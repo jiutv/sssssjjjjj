@@ -1,0 +1,989 @@
+3s
+Run actions/checkout@v4
+Syncing repository: jiutv/sssssjjjjj
+Getting Git version info
+Temporarily overriding HOME='/home/runner/work/_temp/1677f609-13b3-425c-aed5-d62ceccd43bf' before making global git config changes
+Adding repository directory to the temporary git global config as a safe directory
+/usr/bin/git config --global --add safe.directory /home/runner/work/sssssjjjjj/sssssjjjjj
+Deleting the contents of '/home/runner/work/sssssjjjjj/sssssjjjjj'
+Initializing the repository
+Disabling automatic garbage collection
+Setting up auth
+Fetching the repository
+Determining the checkout info
+/usr/bin/git sparse-checkout disable
+/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Checking out the ref
+/usr/bin/git log -1 --format=%H
+1f2ae6301110cf8190b5b27a72d14cfcf707f1d9
+0s
+11s
+yes: standard output: Broken pipe
+Loading package information...                                                  
+Loading local repository...                                                     
+[                                       ] 3% Loading local repository...        
+[                                       ] 3% Fetch remote repository...         
+[=                                      ] 3% Fetch remote repository...         
+[=                                      ] 4% Fetch remote repository...         
+[=                                      ] 5% Fetch remote repository...         
+[==                                     ] 5% Fetch remote repository...         
+[==                                     ] 6% Fetch remote repository...         
+[==                                     ] 7% Fetch remote repository...         
+[==                                     ] 7% Computing updates...               
+[===                                    ] 8% Computing updates...               
+[===                                    ] 10% Computing updates...              
+[===                                    ] 10% Installing Android SDK Build-Tools
+[===                                    ] 10% Downloading build-tools_r33.0.2-li
+[====                                   ] 10% Downloading build-tools_r33.0.2-li
+[====                                   ] 11% Downloading build-tools_r33.0.2-li
+[====                                   ] 12% Downloading build-tools_r33.0.2-li
+[=====                                  ] 13% Downloading build-tools_r33.0.2-li
+[=====                                  ] 14% Downloading build-tools_r33.0.2-li
+[=====                                  ] 15% Downloading build-tools_r33.0.2-li
+[======                                 ] 15% Downloading build-tools_r33.0.2-li
+[======                                 ] 16% Downloading build-tools_r33.0.2-li
+[======                                 ] 17% Downloading build-tools_r33.0.2-li
+[=======                                ] 18% Downloading build-tools_r33.0.2-li
+[=======                                ] 18% Unzipping...                      
+[=======                                ] 18% Unzipping... android-13/NOTICE.txt
+[=======                                ] 18% Unzipping... android-13/aapt      
+[=======                                ] 18% Unzipping... android-13/aapt2     
+[=======                                ] 18% Unzipping... android-13/aarch64-li
+[=======                                ] 18% Unzipping... android-13/aidl      
+[=======                                ] 18% Unzipping... android-13/apksigner 
+[=======                                ] 18% Unzipping... android-13/arm-linux-
+[=======                                ] 18% Unzipping... android-13/bcc_compat
+[=======                                ] 18% Unzipping... android-13/core-lambd
+[=======                                ] 18% Unzipping... android-13/d8        
+[=======                                ] 18% Unzipping... android-13/dexdump   
+[=======                                ] 18% Unzipping... android-13/i686-linux
+[=======                                ] 18% Unzipping... android-13/lld       
+[=======                                ] 18% Unzipping... android-13/llvm-rs-cc
+[=======                                ] 18% Unzipping... android-13/mipsel-lin
+[=======                                ] 18% Unzipping... android-13/runtime.pr
+[=======                                ] 18% Unzipping... android-13/source.pro
+[=======                                ] 18% Unzipping... android-13/split-sele
+[=======                                ] 18% Unzipping... android-13/x86_64-lin
+[=======                                ] 18% Unzipping... android-13/zipalign  
+[=======                                ] 18% Unzipping... android-13/lib/apksig
+[=======                                ] 18% Unzipping... android-13/lib/d8.jar
+[=======                                ] 19% Unzipping... android-13/lib/d8.jar
+[=======                                ] 19% Unzipping... android-13/lib64/libL
+[=======                                ] 20% Unzipping... android-13/lib64/libL
+[========                               ] 20% Unzipping... android-13/lib64/libL
+[========                               ] 21% Unzipping... android-13/lib64/libL
+[========                               ] 21% Unzipping... android-13/lib64/libb
+[========                               ] 21% Unzipping... android-13/lib64/libc
+[========                               ] 22% Unzipping... android-13/lib64/libc
+[========                               ] 22% Unzipping... android-13/lld-bin/ll
+[=========                              ] 23% Unzipping... android-13/lld-bin/ll
+[=========                              ] 24% Unzipping... android-13/lld-bin/ll
+[=========                              ] 24% Unzipping... android-13/renderscri
+[=========                              ] 25% Unzipping... android-13/renderscri
+[===============                        ] 40% Unzipping... android-13/renderscri
+[===============                        ] 40% Installing Android SDK Platform 33
+[===============                        ] 40% Downloading platform-33-ext3_r03.z
+[================                       ] 40% Downloading platform-33-ext3_r03.z
+[================                       ] 41% Downloading platform-33-ext3_r03.z
+[================                       ] 42% Downloading platform-33-ext3_r03.z
+[=================                      ] 43% Downloading platform-33-ext3_r03.z
+[=================                      ] 44% Downloading platform-33-ext3_r03.z
+[=================                      ] 45% Downloading platform-33-ext3_r03.z
+[==================                     ] 45% Downloading platform-33-ext3_r03.z
+[==================                     ] 46% Downloading platform-33-ext3_r03.z
+[==================                     ] 47% Downloading platform-33-ext3_r03.z
+[==================                     ] 48% Downloading platform-33-ext3_r03.z
+[==================                     ] 48% Unzipping... android-13/renderscri
+[==================                     ] 48% Unzipping... android-13/          
+[==================                     ] 48% Unzipping... android-13/android.ja
+[===================                    ] 48% Unzipping... android-13/android.ja
+[===================                    ] 49% Unzipping... android-13/android.ja
+[===================                    ] 50% Unzipping... android-13/android.ja
+[====================                   ] 50% Unzipping... android-13/android.ja
+[====================                   ] 50% Unzipping... android-13/optional/ 
+[====================                   ] 50% Unzipping... android-13/optional/a
+[====================                   ] 50% Unzipping... android-13/optional/l
+[====================                   ] 50% Unzipping... android-13/optional/o
+[====================                   ] 50% Unzipping... android-13/optional/a
+[====================                   ] 50% Unzipping... android-13/optional/o
+[====================                   ] 50% Unzipping... android-13/templates/
+[====================                   ] 50% Unzipping... android-13/core-for-s
+[====================                   ] 50% Unzipping... android-13/build.prop
+[====================                   ] 50% Unzipping... android-13/android-st
+[====================                   ] 51% Unzipping... android-13/android-st
+[====================                   ] 51% Unzipping... android-13/uiautomato
+[====================                   ] 51% Unzipping... android-13/source.pro
+[====================                   ] 51% Unzipping... android-13/data/     
+[====================                   ] 51% Unzipping... android-13/data/servi
+[====================                   ] 51% Unzipping... android-13/data/NOTIC
+[====================                   ] 51% Unzipping... android-13/data/widge
+[====================                   ] 51% Unzipping... android-13/data/broad
+[====================                   ] 51% Unzipping... android-13/data/api-v
+[====================                   ] 51% Unzipping... android-13/data/featu
+[====================                   ] 51% Unzipping... android-13/data/annot
+[====================                   ] 51% Unzipping... android-13/data/res/ 
+[====================                   ] 51% Unzipping... android-13/data/res/v
+[====================                   ] 51% Unzipping... android-13/data/res/l
+[====================                   ] 51% Unzipping... android-13/data/res/v
+[====================                   ] 51% Unzipping... android-13/data/res/m
+[====================                   ] 51% Unzipping... android-13/data/res/v
+[====================                   ] 51% Unzipping... android-13/data/res/a
+[====================                   ] 51% Unzipping... android-13/data/res/v
+[====================                   ] 51% Unzipping... android-13/data/res/d
+[====================                   ] 51% Unzipping... android-13/data/res/v
+[====================                   ] 51% Unzipping... android-13/data/res/x
+[====================                   ] 51% Unzipping... android-13/data/res/v
+[====================                   ] 51% Unzipping... android-13/data/res/l
+[====================                   ] 51% Unzipping... android-13/data/res/v
+[====================                   ] 51% Unzipping... android-13/data/res/l
+[====================                   ] 51% Unzipping... android-13/data/res/v
+[====================                   ] 51% Unzipping... android-13/data/res/r
+[====================                   ] 51% Unzipping... android-13/data/res/v
+[====================                   ] 51% Unzipping... android-13/data/res/x
+[====================                   ] 51% Unzipping... android-13/data/res/v
+[====================                   ] 51% Unzipping... android-13/data/res/r
+[====================                   ] 51% Unzipping... android-13/data/res/v
+[====================                   ] 51% Unzipping... android-13/data/res/a
+[====================                   ] 52% Unzipping... android-13/data/res/a
+[====================                   ] 52% Unzipping... android-13/data/res/v
+[====================                   ] 52% Unzipping... android-13/data/res/r
+[====================                   ] 52% Unzipping... android-13/data/res/v
+[====================                   ] 52% Unzipping... android-13/data/res/c
+[====================                   ] 52% Unzipping... android-13/data/res/v
+[====================                   ] 52% Unzipping... android-13/data/res/d
+[====================                   ] 52% Unzipping... android-13/data/res/v
+[====================                   ] 52% Unzipping... android-13/data/res/t
+[====================                   ] 52% Unzipping... android-13/data/res/v
+[====================                   ] 52% Unzipping... android-13/data/res/x
+[====================                   ] 52% Unzipping... android-13/data/res/v
+[====================                   ] 52% Unzipping... android-13/data/res/r
+[====================                   ] 52% Unzipping... android-13/data/res/v
+[====================                   ] 52% Unzipping... android-13/data/res/r
+[====================                   ] 52% Unzipping... android-13/data/res/v
+[====================                   ] 52% Unzipping... android-13/data/res/l
+[====================                   ] 52% Unzipping... android-13/data/res/v
+[====================                   ] 52% Unzipping... android-13/data/res/r
+[====================                   ] 52% Unzipping... android-13/data/res/v
+[====================                   ] 52% Unzipping... android-13/data/res/d
+[====================                   ] 52% Unzipping... android-13/data/res/v
+[====================                   ] 52% Unzipping... android-13/data/res/d
+[====================                   ] 52% Unzipping... android-13/data/res/v
+[====================                   ] 52% Unzipping... android-13/data/res/r
+[====================                   ] 52% Unzipping... android-13/data/res/v
+[====================                   ] 52% Unzipping... android-13/data/res/r
+[====================                   ] 52% Unzipping... android-13/data/res/v
+[====================                   ] 52% Unzipping... android-13/data/res/m
+[====================                   ] 52% Unzipping... android-13/data/res/v
+[====================                   ] 52% Unzipping... android-13/data/res/r
+[====================                   ] 52% Unzipping... android-13/data/res/v
+[====================                   ] 52% Unzipping... android-13/data/res/c
+[====================                   ] 52% Unzipping... android-13/data/res/v
+[====================                   ] 52% Unzipping... android-13/data/res/r
+[====================                   ] 52% Unzipping... android-13/data/res/v
+[====================                   ] 52% Unzipping... android-13/data/res/r
+[====================                   ] 52% Unzipping... android-13/data/res/x
+[====================                   ] 52% Unzipping... android-13/data/res/v
+[====================                   ] 52% Unzipping... android-13/data/res/d
+[=====================                  ] 53% Unzipping... android-13/data/res/d
+[=====================                  ] 53% Unzipping... android-13/data/res/v
+[=====================                  ] 53% Unzipping... android-13/data/res/r
+[=====================                  ] 53% Unzipping... android-13/data/res/v
+[=====================                  ] 53% Unzipping... android-13/data/res/c
+[=====================                  ] 53% Unzipping... android-13/data/res/v
+[=====================                  ] 53% Unzipping... android-13/data/res/m
+[=====================                  ] 53% Unzipping... android-13/data/res/v
+[=====================                  ] 53% Unzipping... android-13/data/res/r
+[=====================                  ] 53% Unzipping... android-13/data/res/v
+[=====================                  ] 53% Unzipping... android-13/data/res/r
+[=====================                  ] 53% Unzipping... android-13/data/res/v
+[=====================                  ] 53% Unzipping... android-13/data/res/i
+[=====================                  ] 53% Unzipping... android-13/data/res/v
+[=====================                  ] 53% Unzipping... android-13/data/res/d
+[=====================                  ] 53% Unzipping... android-13/data/res/v
+[=====================                  ] 53% Unzipping... android-13/data/res/m
+[=====================                  ] 53% Unzipping... android-13/data/res/v
+[=====================                  ] 53% Unzipping... android-13/data/res/d
+[=====================                  ] 53% Unzipping... android-13/data/res/v
+[=====================                  ] 53% Unzipping... android-13/data/res/d
+[=====================                  ] 53% Unzipping... android-13/data/res/v
+[=====================                  ] 53% Unzipping... android-13/data/res/d
+[=====================                  ] 53% Unzipping... android-13/data/res/v
+[=====================                  ] 53% Unzipping... android-13/data/res/d
+[=====================                  ] 53% Unzipping... android-13/data/res/v
+[=====================                  ] 53% Unzipping... android-13/data/res/d
+[=====================                  ] 53% Unzipping... android-13/data/res/v
+[=====================                  ] 53% Unzipping... android-13/data/res/d
+[=====================                  ] 53% Unzipping... android-13/data/res/v
+[=====================                  ] 53% Unzipping... android-13/data/res/x
+[=====================                  ] 53% Unzipping... android-13/data/res/v
+[=====================                  ] 53% Unzipping... android-13/data/res/d
+[=====================                  ] 53% Unzipping... android-13/data/res/v
+[=====================                  ] 53% Unzipping... android-13/data/res/d
+[=====================                  ] 54% Unzipping... android-13/data/res/d
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/a
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/r
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/m
+[=====================                  ] 54% Unzipping... android-13/data/res/x
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/a
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/i
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/r
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/r
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/r
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/l
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/l
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/d
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/l
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/m
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/r
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/d
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/l
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/l
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/d
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/l
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/c
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/r
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/d
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/m
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/d
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/m
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/r
+[=====================                  ] 54% Unzipping... android-13/data/res/l
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/r
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/d
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/r
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 54% Unzipping... android-13/data/res/d
+[=====================                  ] 54% Unzipping... android-13/data/res/v
+[=====================                  ] 55% Unzipping... android-13/data/res/v
+[=====================                  ] 55% Unzipping... android-13/data/res/d
+[=====================                  ] 55% Unzipping... android-13/data/res/v
+[=====================                  ] 55% Unzipping... android-13/data/categ
+[=====================                  ] 55% Unzipping... android-13/data/activ
+[=====================                  ] 55% Unzipping... android-13/sdk.proper
+[=====================                  ] 55% Unzipping... android-13/skins/    
+[=====================                  ] 55% Unzipping... android-13/skins/WXGA
+[=====================                  ] 55% Unzipping... android-13/skins/WQVG
+[=====================                  ] 55% Unzipping... android-13/skins/NOTI
+[=====================                  ] 55% Unzipping... android-13/skins/HVGA
+[=====================                  ] 55% Unzipping... android-13/skins/WVGA
+[=====================                  ] 55% Unzipping... android-13/skins/WQVG
+[=====================                  ] 55% Unzipping... android-13/skins/WVGA
+[=====================                  ] 55% Unzipping... android-13/skins/QVGA
+[=====================                  ] 55% Unzipping... android-13/skins/WXGA
+[=====================                  ] 55% Unzipping... android-13/skins/WSVG
+[=====================                  ] 55% Unzipping... android-13/skins/WXGA
+[=====================                  ] 55% Unzipping... android-13/framework.
+[===========================            ] 70% Unzipping... android-13/framework.
+[===========================            ] 70% Installing Android SDK Platform-To
+[===========================            ] 70% Downloading platform-tools_r37.0.1
+[============================           ] 70% Downloading platform-tools_r37.0.1
+[============================           ] 71% Downloading platform-tools_r37.0.1
+[============================           ] 72% Downloading platform-tools_r37.0.1
+[=============================          ] 73% Downloading platform-tools_r37.0.1
+[=============================          ] 74% Downloading platform-tools_r37.0.1
+[=============================          ] 75% Downloading platform-tools_r37.0.1
+[==============================         ] 75% Downloading platform-tools_r37.0.1
+[==============================         ] 76% Downloading platform-tools_r37.0.1
+[==============================         ] 77% Downloading platform-tools_r37.0.1
+[==============================         ] 77% Unzipping... android-13/framework.
+[==============================         ] 77% Unzipping... platform-tools/NOTICE
+[===============================        ] 78% Unzipping... platform-tools/NOTICE
+[===============================        ] 78% Unzipping... platform-tools/adb   
+[===============================        ] 79% Unzipping... platform-tools/adb   
+[===============================        ] 80% Unzipping... platform-tools/adb   
+[================================       ] 80% Unzipping... platform-tools/adb   
+[================================       ] 81% Unzipping... platform-tools/adb   
+[================================       ] 81% Unzipping... platform-tools/etc1to
+[================================       ] 82% Unzipping... platform-tools/etc1to
+[================================       ] 82% Unzipping... platform-tools/fastbo
+[=================================      ] 83% Unzipping... platform-tools/fastbo
+[=================================      ] 83% Unzipping... platform-tools/hprof-
+[=================================      ] 83% Unzipping... platform-tools/lib64/
+[=================================      ] 83% Unzipping... platform-tools/make_f
+[=================================      ] 83% Unzipping... platform-tools/mke2fs
+[=================================      ] 84% Unzipping... platform-tools/mke2fs
+[=================================      ] 84% Unzipping... platform-tools/source
+[=================================      ] 84% Unzipping... platform-tools/sqlite
+[=================================      ] 85% Unzipping... platform-tools/sqlite
+[=======================================] 100% Unzipping... platform-tools/sqlit
+0s
+Run if [ -n "" ]; then
+⚠ No SIGNING_KEYSTORE_BASE64 secret — 构建将使用默认签名（非正式签名）。
+2m 20s
+Run chmod +x gradlew
+Downloading https://services.gradle.org/distributions/gradle-7.3.3-bin.zip
+..............................................................................................................
+Unzipping /home/runner/.gradle/wrapper/dists/gradle-7.3.3-bin/6a41zxkdtcxs8rphpq6y0069z/gradle-7.3.3-bin.zip to /home/runner/.gradle/wrapper/dists/gradle-7.3.3-bin/6a41zxkdtcxs8rphpq6y0069z
+Set executable permissions for: /home/runner/.gradle/wrapper/dists/gradle-7.3.3-bin/6a41zxkdtcxs8rphpq6y0069z/gradle-7.3.3/bin/gradle
+
+Welcome to Gradle 7.3.3!
+
+Here are the highlights of this release:
+ - Easily declare new test suites in Java projects
+ - Support for Java 17
+ - Support for Scala 3
+
+For more details see https://docs.gradle.org/7.3.3/release-notes.html
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. See https://docs.gradle.org/7.3.3/userguide/gradle_daemon.html#sec:disabling_the_daemon.
+Daemon will be stopped at the end of the build 
+
+> Configure project :app
+WARNING:DSL element 'dexOptions' is obsolete and should be removed.
+It will be removed in version 8.0 of the Android Gradle plugin.
+Using it has no effect, and the AndroidGradle plugin optimizes dexing automatically.
+Checking the license for package Android SDK Build-Tools 30.0.3 in /home/runner/work/sssssjjjjj/sssssjjjjj/android-sdk/licenses
+License for package Android SDK Build-Tools 30.0.3 accepted.
+Preparing "Install Android SDK Build-Tools 30.0.3 (revision: 30.0.3)".
+"Install Android SDK Build-Tools 30.0.3 (revision: 30.0.3)" ready.
+Installing Android SDK Build-Tools 30.0.3 in /home/runner/work/sssssjjjjj/sssssjjjjj/android-sdk/build-tools/30.0.3
+"Install Android SDK Build-Tools 30.0.3 (revision: 30.0.3)" complete.
+"Install Android SDK Build-Tools 30.0.3 (revision: 30.0.3)" finished.
+Checking the license for package Android SDK Platform 30 in /home/runner/work/sssssjjjjj/sssssjjjjj/android-sdk/licenses
+License for package Android SDK Platform 30 accepted.
+Preparing "Install Android SDK Platform 30 (revision: 3)".
+"Install Android SDK Platform 30 (revision: 3)" ready.
+Installing Android SDK Platform 30 in /home/runner/work/sssssjjjjj/sssssjjjjj/android-sdk/platforms/android-30
+"Install Android SDK Platform 30 (revision: 3)" complete.
+"Install Android SDK Platform 30 (revision: 3)" finished.
+
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :app:mergeReleaseJniLibFolders
+> Task :crash:preBuild UP-TO-DATE
+> Task :crash:preReleaseBuild UP-TO-DATE
+> Task :crash:mergeReleaseJniLibFolders
+> Task :crash:mergeReleaseNativeLibs NO-SOURCE
+> Task :player:preBuild UP-TO-DATE
+> Task :player:preReleaseBuild UP-TO-DATE
+> Task :crash:copyReleaseJniLibsProjectOnly
+> Task :player:mergeReleaseJniLibFolders
+> Task :quickjs:preBuild UP-TO-DATE
+> Task :quickjs:preReleaseBuild UP-TO-DATE
+> Task :quickjs:mergeReleaseJniLibFolders
+> Task :TabLayout:preBuild UP-TO-DATE
+> Task :TabLayout:preReleaseBuild UP-TO-DATE
+> Task :quickjs:mergeReleaseNativeLibs
+> Task :TabLayout:mergeReleaseJniLibFolders
+> Task :TabLayout:mergeReleaseNativeLibs NO-SOURCE
+> Task :ViewPager1Delegate:preBuild UP-TO-DATE
+> Task :ViewPager1Delegate:preReleaseBuild UP-TO-DATE
+> Task :TabLayout:copyReleaseJniLibsProjectOnly
+> Task :quickjs:copyReleaseJniLibsProjectOnly
+> Task :ViewPager1Delegate:mergeReleaseJniLibFolders
+> Task :ViewPager1Delegate:mergeReleaseNativeLibs NO-SOURCE
+> Task :ViewPager1Delegate:copyReleaseJniLibsProjectOnly
+> Task :player:compileReleaseAidl NO-SOURCE
+> Task :player:compileReleaseRenderscript NO-SOURCE
+> Task :player:generateReleaseBuildConfig
+> Task :player:generateReleaseResValues
+> Task :player:generateReleaseResources
+> Task :player:mergeReleaseNativeLibs
+> Task :player:packageReleaseResources
+> Task :player:copyReleaseJniLibsProjectOnly
+> Task :player:parseReleaseLocalResources
+> Task :player:processReleaseManifest
+> Task :app:mergeReleaseNativeLibs
+> Task :app:mergeReleaseNativeLibs FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:mergeReleaseNativeLibs'.
+> Could not resolve all dependencies for configuration ':app:releaseRuntimeClasspath'.
+   > Could not determine artifacts for com.lzy.net:okgo:3.0.4: Skipped due to earlier error
+19 actionable tasks: 19 executed
+
+* Try:
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+
+* Exception is:
+org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:mergeReleaseNativeLibs'.
+	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:38)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:74)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:402)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:389)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:382)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:368)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.lambda$run$0(DefaultPlanExecutor.java:127)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:191)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.executeNextNode(DefaultPlanExecutor.java:182)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:124)
+	at org.gradle.execution.plan.DefaultPlanExecutor.process(DefaultPlanExecutor.java:72)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph.executeWithServices(DefaultTaskExecutionGraph.java:187)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph.execute(DefaultTaskExecutionGraph.java:180)
+	at org.gradle.execution.SelectedTaskExecutionAction.execute(SelectedTaskExecutionAction.java:39)
+	at org.gradle.execution.DefaultBuildWorkExecutor.execute(DefaultBuildWorkExecutor.java:44)
+	at org.gradle.execution.DefaultBuildWorkExecutor.access$000(DefaultBuildWorkExecutor.java:26)
+	at org.gradle.execution.DefaultBuildWorkExecutor$1.proceed(DefaultBuildWorkExecutor.java:52)
+	at org.gradle.execution.DryRunBuildExecutionAction.execute(DryRunBuildExecutionAction.java:49)
+	at org.gradle.execution.DefaultBuildWorkExecutor.execute(DefaultBuildWorkExecutor.java:44)
+	at org.gradle.execution.DefaultBuildWorkExecutor.execute(DefaultBuildWorkExecutor.java:36)
+	at org.gradle.execution.BuildOperationFiringBuildWorkerExecutor$ExecuteTasks.call(BuildOperationFiringBuildWorkerExecutor.java:51)
+	at org.gradle.execution.BuildOperationFiringBuildWorkerExecutor$ExecuteTasks.call(BuildOperationFiringBuildWorkerExecutor.java:42)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.execution.BuildOperationFiringBuildWorkerExecutor.execute(BuildOperationFiringBuildWorkerExecutor.java:39)
+	at org.gradle.internal.build.DefaultBuildLifecycleController.lambda$executeTasks$3(DefaultBuildLifecycleController.java:136)
+	at org.gradle.internal.build.StateTransitionController.doTransition(StateTransitionController.java:243)
+	at org.gradle.internal.build.StateTransitionController.tryTransition(StateTransitionController.java:158)
+	at org.gradle.internal.build.DefaultBuildLifecycleController.executeTasks(DefaultBuildLifecycleController.java:136)
+	at org.gradle.internal.buildtree.DefaultBuildTreeWorkExecutor.execute(DefaultBuildTreeWorkExecutor.java:35)
+	at org.gradle.internal.buildtree.BuildOperationFiringBuildTreeWorkExecutor$1.call(BuildOperationFiringBuildTreeWorkExecutor.java:40)
+	at org.gradle.internal.buildtree.BuildOperationFiringBuildTreeWorkExecutor$1.call(BuildOperationFiringBuildTreeWorkExecutor.java:37)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.internal.buildtree.BuildOperationFiringBuildTreeWorkExecutor.execute(BuildOperationFiringBuildTreeWorkExecutor.java:37)
+	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.lambda$doScheduleAndRunTasks$2(DefaultBuildTreeLifecycleController.java:87)
+	at org.gradle.composite.internal.DefaultIncludedBuildTaskGraph.withNewTaskGraph(DefaultIncludedBuildTaskGraph.java:94)
+	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.doScheduleAndRunTasks(DefaultBuildTreeLifecycleController.java:85)
+	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.lambda$runBuild$4(DefaultBuildTreeLifecycleController.java:103)
+	at org.gradle.internal.build.StateTransitionController.lambda$transition$0(StateTransitionController.java:145)
+	at org.gradle.internal.build.StateTransitionController.doTransition(StateTransitionController.java:243)
+	at org.gradle.internal.build.StateTransitionController.transition(StateTransitionController.java:145)
+	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.runBuild(DefaultBuildTreeLifecycleController.java:100)
+	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.scheduleAndRunTasks(DefaultBuildTreeLifecycleController.java:66)
+	at org.gradle.tooling.internal.provider.ExecuteBuildActionRunner.run(ExecuteBuildActionRunner.java:31)
+	at org.gradle.launcher.exec.ChainingBuildActionRunner.run(ChainingBuildActionRunner.java:35)
+	at org.gradle.internal.buildtree.ProblemReportingBuildActionRunner.run(ProblemReportingBuildActionRunner.java:49)
+	at org.gradle.launcher.exec.BuildOutcomeReportingBuildActionRunner.run(BuildOutcomeReportingBuildActionRunner.java:69)
+	at org.gradle.tooling.internal.provider.FileSystemWatchingBuildActionRunner.run(FileSystemWatchingBuildActionRunner.java:114)
+	at org.gradle.launcher.exec.BuildCompletionNotifyingBuildActionRunner.run(BuildCompletionNotifyingBuildActionRunner.java:41)
+	at org.gradle.launcher.exec.RootBuildLifecycleBuildActionExecutor.lambda$execute$0(RootBuildLifecycleBuildActionExecutor.java:40)
+	at org.gradle.composite.internal.DefaultRootBuildState.run(DefaultRootBuildState.java:155)
+	at org.gradle.launcher.exec.RootBuildLifecycleBuildActionExecutor.execute(RootBuildLifecycleBuildActionExecutor.java:40)
+	at org.gradle.internal.buildtree.DefaultBuildTreeContext.execute(DefaultBuildTreeContext.java:40)
+	at org.gradle.launcher.exec.BuildTreeLifecycleBuildActionExecutor.lambda$execute$0(BuildTreeLifecycleBuildActionExecutor.java:65)
+	at org.gradle.internal.buildtree.BuildTreeState.run(BuildTreeState.java:53)
+	at org.gradle.launcher.exec.BuildTreeLifecycleBuildActionExecutor.execute(BuildTreeLifecycleBuildActionExecutor.java:65)
+	at org.gradle.launcher.exec.RunAsBuildOperationBuildActionExecutor$3.call(RunAsBuildOperationBuildActionExecutor.java:61)
+	at org.gradle.launcher.exec.RunAsBuildOperationBuildActionExecutor$3.call(RunAsBuildOperationBuildActionExecutor.java:57)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.launcher.exec.RunAsBuildOperationBuildActionExecutor.execute(RunAsBuildOperationBuildActionExecutor.java:57)
+	at org.gradle.launcher.exec.RunAsWorkerThreadBuildActionExecutor.lambda$execute$0(RunAsWorkerThreadBuildActionExecutor.java:38)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:211)
+	at org.gradle.launcher.exec.RunAsWorkerThreadBuildActionExecutor.execute(RunAsWorkerThreadBuildActionExecutor.java:38)
+	at org.gradle.tooling.internal.provider.ContinuousBuildActionExecutor.execute(ContinuousBuildActionExecutor.java:103)
+	at org.gradle.tooling.internal.provider.SubscribableBuildActionExecutor.execute(SubscribableBuildActionExecutor.java:64)
+	at org.gradle.internal.session.DefaultBuildSessionContext.execute(DefaultBuildSessionContext.java:46)
+	at org.gradle.tooling.internal.provider.BuildSessionLifecycleBuildActionExecuter$ActionImpl.apply(BuildSessionLifecycleBuildActionExecuter.java:100)
+	at org.gradle.tooling.internal.provider.BuildSessionLifecycleBuildActionExecuter$ActionImpl.apply(BuildSessionLifecycleBuildActionExecuter.java:88)
+	at org.gradle.internal.session.BuildSessionState.run(BuildSessionState.java:69)
+	at org.gradle.tooling.internal.provider.BuildSessionLifecycleBuildActionExecuter.execute(BuildSessionLifecycleBuildActionExecuter.java:62)
+	at org.gradle.tooling.internal.provider.BuildSessionLifecycleBuildActionExecuter.execute(BuildSessionLifecycleBuildActionExecuter.java:41)
+	at org.gradle.tooling.internal.provider.GradleThreadBuildActionExecuter.execute(GradleThreadBuildActionExecuter.java:36)
+	at org.gradle.tooling.internal.provider.GradleThreadBuildActionExecuter.execute(GradleThreadBuildActionExecuter.java:25)
+	at org.gradle.tooling.internal.provider.StartParamsValidatingActionExecuter.execute(StartParamsValidatingActionExecuter.java:63)
+	at org.gradle.tooling.internal.provider.StartParamsValidatingActionExecuter.execute(StartParamsValidatingActionExecuter.java:31)
+	at org.gradle.tooling.internal.provider.SessionFailureReportingActionExecuter.execute(SessionFailureReportingActionExecuter.java:58)
+	at org.gradle.tooling.internal.provider.SessionFailureReportingActionExecuter.execute(SessionFailureReportingActionExecuter.java:42)
+	at org.gradle.tooling.internal.provider.SetupLoggingActionExecuter.execute(SetupLoggingActionExecuter.java:47)
+	at org.gradle.tooling.internal.provider.SetupLoggingActionExecuter.execute(SetupLoggingActionExecuter.java:31)
+	at org.gradle.launcher.daemon.server.exec.ExecuteBuild.doBuild(ExecuteBuild.java:65)
+	at org.gradle.launcher.daemon.server.exec.BuildCommandOnly.execute(BuildCommandOnly.java:37)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.WatchForDisconnection.execute(WatchForDisconnection.java:39)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.ResetDeprecationLogger.execute(ResetDeprecationLogger.java:29)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.RequestStopIfSingleUsedDaemon.execute(RequestStopIfSingleUsedDaemon.java:35)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.ForwardClientInput$2.create(ForwardClientInput.java:78)
+	at org.gradle.launcher.daemon.server.exec.ForwardClientInput$2.create(ForwardClientInput.java:75)
+	at org.gradle.util.internal.Swapper.swap(Swapper.java:38)
+	at org.gradle.launcher.daemon.server.exec.ForwardClientInput.execute(ForwardClientInput.java:75)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.LogAndCheckHealth.execute(LogAndCheckHealth.java:50)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.LogToClient.doBuild(LogToClient.java:63)
+	at org.gradle.launcher.daemon.server.exec.BuildCommandOnly.execute(BuildCommandOnly.java:37)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.EstablishBuildEnvironment.doBuild(EstablishBuildEnvironment.java:84)
+	at org.gradle.launcher.daemon.server.exec.BuildCommandOnly.execute(BuildCommandOnly.java:37)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.StartBuildOrRespondWithBusy$1.run(StartBuildOrRespondWithBusy.java:52)
+	at org.gradle.launcher.daemon.server.DaemonStateCoordinator$1.run(DaemonStateCoordinator.java:297)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.ManagedExecutorImpl$1.run(ManagedExecutorImpl.java:48)
+	at org.gradle.internal.concurrent.ThreadFactoryImpl$ManagedThreadRunnable.run(ThreadFactoryImpl.java:61)
+Caused by: org.gradle.api.artifacts.ResolveException: Could not resolve all dependencies for configuration ':app:releaseRuntimeClasspath'.
+	at org.gradle.api.internal.artifacts.ivyservice.ErrorHandlingConfigurationResolver.wrapException(ErrorHandlingConfigurationResolver.java:105)
+	at org.gradle.api.internal.artifacts.ivyservice.ErrorHandlingConfigurationResolver.resolveGraph(ErrorHandlingConfigurationResolver.java:76)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration$1.call(DefaultConfiguration.java:644)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration$1.call(DefaultConfiguration.java:635)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration.resolveGraphIfRequired(DefaultConfiguration.java:635)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration.lambda$resolveExclusively$4(DefaultConfiguration.java:615)
+	at org.gradle.api.internal.project.DefaultProjectStateRegistry$CalculatedModelValueImpl.update(DefaultProjectStateRegistry.java:478)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration.resolveExclusively(DefaultConfiguration.java:612)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration.resolveToStateOrLater(DefaultConfiguration.java:599)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration.access$1900(DefaultConfiguration.java:152)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration$SelectedArtifactsProvider.getValue(DefaultConfiguration.java:1344)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration$SelectedArtifactsProvider.getValue(DefaultConfiguration.java:1334)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration$ConfigurationFileCollection.getSelectedArtifacts(DefaultConfiguration.java:1406)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration$ConfigurationFileCollection.visitContents(DefaultConfiguration.java:1393)
+	at org.gradle.api.internal.file.AbstractFileCollection.getFiles(AbstractFileCollection.java:130)
+	at org.gradle.api.internal.file.AbstractFileCollection.iterator(AbstractFileCollection.java:176)
+	at org.gradle.api.internal.file.FilteredFileCollection.iterator(FilteredFileCollection.java:79)
+	at com.google.common.collect.ImmutableSet.copyOf(ImmutableSet.java:257)
+	at org.gradle.api.internal.file.collections.DefaultConfigurableFileCollection$1.visitCollection(DefaultConfigurableFileCollection.java:244)
+	at org.gradle.api.internal.file.AbstractFileCollection.visitContents(AbstractFileCollection.java:335)
+	at org.gradle.api.internal.file.AbstractFileCollection.visitStructure(AbstractFileCollection.java:330)
+	at org.gradle.api.internal.file.collections.DefaultConfigurableFileCollection.lambda$calculateFinalizedValue$0(DefaultConfigurableFileCollection.java:241)
+	at org.gradle.api.internal.file.collections.UnpackingVisitor.add(UnpackingVisitor.java:64)
+	at org.gradle.api.internal.file.collections.DefaultConfigurableFileCollection$UnresolvedItemsCollector.visitContents(DefaultConfigurableFileCollection.java:372)
+	at org.gradle.api.internal.file.collections.DefaultConfigurableFileCollection.calculateFinalizedValue(DefaultConfigurableFileCollection.java:241)
+	at org.gradle.api.internal.file.collections.DefaultConfigurableFileCollection.visitChildren(DefaultConfigurableFileCollection.java:277)
+	at org.gradle.api.internal.file.CompositeFileCollection.getSourceCollections(CompositeFileCollection.java:113)
+	at org.gradle.api.internal.file.CompositeFileCollection.isEmpty(CompositeFileCollection.java:60)
+	at org.gradle.api.internal.file.CompositeFileCollection.isEmpty(CompositeFileCollection.java:61)
+	at org.gradle.api.internal.file.CompositeFileCollection.isEmpty(CompositeFileCollection.java:61)
+	at org.gradle.api.internal.file.CompositeFileCollection.isEmpty(CompositeFileCollection.java:61)
+	at org.gradle.api.internal.tasks.execution.DefaultEmptySourceTaskSkipper.skipIfEmptySources(DefaultEmptySourceTaskSkipper.java:67)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.skipIfInputsEmpty(TaskExecution.java:483)
+	at org.gradle.internal.execution.steps.SkipEmptyWorkStep.execute(SkipEmptyWorkStep.java:47)
+	at org.gradle.internal.execution.steps.SkipEmptyWorkStep.execute(SkipEmptyWorkStep.java:34)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsStartedStep.execute(MarkSnapshottingInputsStartedStep.java:38)
+	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:43)
+	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:31)
+	at org.gradle.internal.execution.steps.AssignWorkspaceStep.lambda$execute$0(AssignWorkspaceStep.java:40)
+	at org.gradle.api.internal.tasks.execution.TaskExecution$3.withWorkspace(TaskExecution.java:284)
+	at org.gradle.internal.execution.steps.AssignWorkspaceStep.execute(AssignWorkspaceStep.java:40)
+	at org.gradle.internal.execution.steps.AssignWorkspaceStep.execute(AssignWorkspaceStep.java:30)
+	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:37)
+	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:27)
+	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:44)
+	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:33)
+	at org.gradle.internal.execution.impl.DefaultExecutionEngine$1.execute(DefaultExecutionEngine.java:76)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:142)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:131)
+	at org.gradle.api.internal.tasks.execution.CleanupStaleOutputsExecuter.execute(CleanupStaleOutputsExecuter.java:77)
+	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:56)
+	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:74)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:402)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:389)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:382)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:368)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.lambda$run$0(DefaultPlanExecutor.java:127)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:191)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.executeNextNode(DefaultPlanExecutor.java:182)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:124)
+	at org.gradle.execution.plan.DefaultPlanExecutor.process(DefaultPlanExecutor.java:72)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph.executeWithServices(DefaultTaskExecutionGraph.java:187)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph.execute(DefaultTaskExecutionGraph.java:180)
+	at org.gradle.execution.SelectedTaskExecutionAction.execute(SelectedTaskExecutionAction.java:39)
+	at org.gradle.execution.DefaultBuildWorkExecutor.execute(DefaultBuildWorkExecutor.java:44)
+	at org.gradle.execution.DefaultBuildWorkExecutor.access$000(DefaultBuildWorkExecutor.java:26)
+	at org.gradle.execution.DefaultBuildWorkExecutor$1.proceed(DefaultBuildWorkExecutor.java:52)
+	at org.gradle.execution.DryRunBuildExecutionAction.execute(DryRunBuildExecutionAction.java:49)
+	at org.gradle.execution.DefaultBuildWorkExecutor.execute(DefaultBuildWorkExecutor.java:44)
+	at org.gradle.execution.DefaultBuildWorkExecutor.execute(DefaultBuildWorkExecutor.java:36)
+	at org.gradle.execution.BuildOperationFiringBuildWorkerExecutor$ExecuteTasks.call(BuildOperationFiringBuildWorkerExecutor.java:51)
+	at org.gradle.execution.BuildOperationFiringBuildWorkerExecutor$ExecuteTasks.call(BuildOperationFiringBuildWorkerExecutor.java:42)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.execution.BuildOperationFiringBuildWorkerExecutor.execute(BuildOperationFiringBuildWorkerExecutor.java:39)
+	at org.gradle.internal.build.DefaultBuildLifecycleController.lambda$executeTasks$3(DefaultBuildLifecycleController.java:136)
+	at org.gradle.internal.build.StateTransitionController.doTransition(StateTransitionController.java:243)
+	at org.gradle.internal.build.StateTransitionController.tryTransition(StateTransitionController.java:158)
+	at org.gradle.internal.build.DefaultBuildLifecycleController.executeTasks(DefaultBuildLifecycleController.java:136)
+	at org.gradle.internal.buildtree.DefaultBuildTreeWorkExecutor.execute(DefaultBuildTreeWorkExecutor.java:35)
+	at org.gradle.internal.buildtree.BuildOperationFiringBuildTreeWorkExecutor$1.call(BuildOperationFiringBuildTreeWorkExecutor.java:40)
+	at org.gradle.internal.buildtree.BuildOperationFiringBuildTreeWorkExecutor$1.call(BuildOperationFiringBuildTreeWorkExecutor.java:37)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.internal.buildtree.BuildOperationFiringBuildTreeWorkExecutor.execute(BuildOperationFiringBuildTreeWorkExecutor.java:37)
+	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.lambda$doScheduleAndRunTasks$2(DefaultBuildTreeLifecycleController.java:87)
+	at org.gradle.composite.internal.DefaultIncludedBuildTaskGraph.withNewTaskGraph(DefaultIncludedBuildTaskGraph.java:94)
+	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.doScheduleAndRunTasks(DefaultBuildTreeLifecycleController.java:85)
+	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.lambda$runBuild$4(DefaultBuildTreeLifecycleController.java:103)
+	at org.gradle.internal.build.StateTransitionController.lambda$transition$0(StateTransitionController.java:145)
+	at org.gradle.internal.build.StateTransitionController.doTransition(StateTransitionController.java:243)
+	at org.gradle.internal.build.StateTransitionController.transition(StateTransitionController.java:145)
+	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.runBuild(DefaultBuildTreeLifecycleController.java:100)
+	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.scheduleAndRunTasks(DefaultBuildTreeLifecycleController.java:66)
+	at org.gradle.tooling.internal.provider.ExecuteBuildActionRunner.run(ExecuteBuildActionRunner.java:31)
+	at org.gradle.launcher.exec.ChainingBuildActionRunner.run(ChainingBuildActionRunner.java:35)
+	at org.gradle.internal.buildtree.ProblemReportingBuildActionRunner.run(ProblemReportingBuildActionRunner.java:49)
+	at org.gradle.launcher.exec.BuildOutcomeReportingBuildActionRunner.run(BuildOutcomeReportingBuildActionRunner.java:69)
+	at org.gradle.tooling.internal.provider.FileSystemWatchingBuildActionRunner.run(FileSystemWatchingBuildActionRunner.java:114)
+	at org.gradle.launcher.exec.BuildCompletionNotifyingBuildActionRunner.run(BuildCompletionNotifyingBuildActionRunner.java:41)
+	at org.gradle.launcher.exec.RootBuildLifecycleBuildActionExecutor.lambda$execute$0(RootBuildLifecycleBuildActionExecutor.java:40)
+	at org.gradle.composite.internal.DefaultRootBuildState.run(DefaultRootBuildState.java:155)
+	at org.gradle.launcher.exec.RootBuildLifecycleBuildActionExecutor.execute(RootBuildLifecycleBuildActionExecutor.java:40)
+	at org.gradle.internal.buildtree.DefaultBuildTreeContext.execute(DefaultBuildTreeContext.java:40)
+	at org.gradle.launcher.exec.BuildTreeLifecycleBuildActionExecutor.lambda$execute$0(BuildTreeLifecycleBuildActionExecutor.java:65)
+	at org.gradle.internal.buildtree.BuildTreeState.run(BuildTreeState.java:53)
+	at org.gradle.launcher.exec.BuildTreeLifecycleBuildActionExecutor.execute(BuildTreeLifecycleBuildActionExecutor.java:65)
+	at org.gradle.launcher.exec.RunAsBuildOperationBuildActionExecutor$3.call(RunAsBuildOperationBuildActionExecutor.java:61)
+	at org.gradle.launcher.exec.RunAsBuildOperationBuildActionExecutor$3.call(RunAsBuildOperationBuildActionExecutor.java:57)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.launcher.exec.RunAsBuildOperationBuildActionExecutor.execute(RunAsBuildOperationBuildActionExecutor.java:57)
+	at org.gradle.launcher.exec.RunAsWorkerThreadBuildActionExecutor.lambda$execute$0(RunAsWorkerThreadBuildActionExecutor.java:38)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:211)
+	at org.gradle.launcher.exec.RunAsWorkerThreadBuildActionExecutor.execute(RunAsWorkerThreadBuildActionExecutor.java:38)
+	at org.gradle.tooling.internal.provider.ContinuousBuildActionExecutor.execute(ContinuousBuildActionExecutor.java:103)
+	at org.gradle.tooling.internal.provider.SubscribableBuildActionExecutor.execute(SubscribableBuildActionExecutor.java:64)
+	at org.gradle.internal.session.DefaultBuildSessionContext.execute(DefaultBuildSessionContext.java:46)
+	at org.gradle.tooling.internal.provider.BuildSessionLifecycleBuildActionExecuter$ActionImpl.apply(BuildSessionLifecycleBuildActionExecuter.java:100)
+	at org.gradle.tooling.internal.provider.BuildSessionLifecycleBuildActionExecuter$ActionImpl.apply(BuildSessionLifecycleBuildActionExecuter.java:88)
+	at org.gradle.internal.session.BuildSessionState.run(BuildSessionState.java:69)
+	at org.gradle.tooling.internal.provider.BuildSessionLifecycleBuildActionExecuter.execute(BuildSessionLifecycleBuildActionExecuter.java:62)
+	at org.gradle.tooling.internal.provider.BuildSessionLifecycleBuildActionExecuter.execute(BuildSessionLifecycleBuildActionExecuter.java:41)
+	at org.gradle.tooling.internal.provider.GradleThreadBuildActionExecuter.execute(GradleThreadBuildActionExecuter.java:36)
+	at org.gradle.tooling.internal.provider.GradleThreadBuildActionExecuter.execute(GradleThreadBuildActionExecuter.java:25)
+	at org.gradle.tooling.internal.provider.StartParamsValidatingActionExecuter.execute(StartParamsValidatingActionExecuter.java:63)
+	at org.gradle.tooling.internal.provider.StartParamsValidatingActionExecuter.execute(StartParamsValidatingActionExecuter.java:31)
+	at org.gradle.tooling.internal.provider.SessionFailureReportingActionExecuter.execute(SessionFailureReportingActionExecuter.java:58)
+	at org.gradle.tooling.internal.provider.SessionFailureReportingActionExecuter.execute(SessionFailureReportingActionExecuter.java:42)
+	at org.gradle.tooling.internal.provider.SetupLoggingActionExecuter.execute(SetupLoggingActionExecuter.java:47)
+	at org.gradle.tooling.internal.provider.SetupLoggingActionExecuter.execute(SetupLoggingActionExecuter.java:31)
+	at org.gradle.launcher.daemon.server.exec.ExecuteBuild.doBuild(ExecuteBuild.java:65)
+	at org.gradle.launcher.daemon.server.exec.BuildCommandOnly.execute(BuildCommandOnly.java:37)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.WatchForDisconnection.execute(WatchForDisconnection.java:39)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.ResetDeprecationLogger.execute(ResetDeprecationLogger.java:29)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.RequestStopIfSingleUsedDaemon.execute(RequestStopIfSingleUsedDaemon.java:35)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.ForwardClientInput$2.create(ForwardClientInput.java:78)
+	at org.gradle.launcher.daemon.server.exec.ForwardClientInput$2.create(ForwardClientInput.java:75)
+	at org.gradle.util.internal.Swapper.swap(Swapper.java:38)
+	at org.gradle.launcher.daemon.server.exec.ForwardClientInput.execute(ForwardClientInput.java:75)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.LogAndCheckHealth.execute(LogAndCheckHealth.java:50)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.LogToClient.doBuild(LogToClient.java:63)
+	at org.gradle.launcher.daemon.server.exec.BuildCommandOnly.execute(BuildCommandOnly.java:37)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.EstablishBuildEnvironment.doBuild(EstablishBuildEnvironment.java:84)
+	at org.gradle.launcher.daemon.server.exec.BuildCommandOnly.execute(BuildCommandOnly.java:37)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.StartBuildOrRespondWithBusy$1.run(StartBuildOrRespondWithBusy.java:52)
+	at org.gradle.launcher.daemon.server.DaemonStateCoordinator$1.run(DaemonStateCoordinator.java:297)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.ManagedExecutorImpl$1.run(ManagedExecutorImpl.java:48)
+	at org.gradle.internal.concurrent.ThreadFactoryImpl$ManagedThreadRunnable.run(ThreadFactoryImpl.java:61)
+Caused by: org.gradle.internal.resolve.ArtifactResolveException: Could not determine artifacts for com.lzy.net:okgo:3.0.4: Skipped due to earlier error
+	at org.gradle.api.internal.artifacts.ivyservice.ivyresolve.ErrorHandlingModuleComponentRepository$ErrorHandlingModuleComponentRepositoryAccess.lambda$resolveArtifacts$13(ErrorHandlingModuleComponentRepository.java:173)
+	at org.gradle.api.internal.artifacts.ivyservice.ivyresolve.ErrorHandlingModuleComponentRepository$ErrorHandlingModuleComponentRepositoryAccess.performOperationWithRetries(ErrorHandlingModuleComponentRepository.java:211)
+	at org.gradle.api.internal.artifacts.ivyservice.ivyresolve.ErrorHandlingModuleComponentRepository$ErrorHandlingModuleComponentRepositoryAccess.resolveArtifacts(ErrorHandlingModuleComponentRepository.java:171)
+	at org.gradle.api.internal.artifacts.ivyservice.ivyresolve.RepositoryChainArtifactResolver.resolveArtifacts(RepositoryChainArtifactResolver.java:87)
+	at org.gradle.internal.resolve.resolver.DefaultArtifactSelector.resolveArtifacts(DefaultArtifactSelector.java:64)
+	at org.gradle.api.internal.artifacts.ivyservice.resolveengine.artifact.ResolvedArtifactsGraphVisitor.getArtifacts(ResolvedArtifactsGraphVisitor.java:100)
+	at org.gradle.api.internal.artifacts.ivyservice.resolveengine.artifact.ResolvedArtifactsGraphVisitor.visitEdges(ResolvedArtifactsGraphVisitor.java:69)
+	at org.gradle.api.internal.artifacts.ivyservice.resolveengine.graph.CompositeDependencyGraphVisitor.visitEdges(CompositeDependencyGraphVisitor.java:53)
+	at org.gradle.api.internal.artifacts.ivyservice.resolveengine.graph.builder.DependencyGraphBuilder.assembleResult(DependencyGraphBuilder.java:637)
+	at org.gradle.api.internal.artifacts.ivyservice.resolveengine.graph.builder.DependencyGraphBuilder.resolve(DependencyGraphBuilder.java:153)
+	at org.gradle.api.internal.artifacts.ivyservice.resolveengine.DefaultArtifactDependencyResolver.resolve(DefaultArtifactDependencyResolver.java:145)
+	at org.gradle.api.internal.artifacts.ivyservice.DefaultConfigurationResolver.resolveGraph(DefaultConfigurationResolver.java:186)
+	at org.gradle.api.internal.artifacts.ivyservice.ShortCircuitEmptyConfigurationResolver.resolveGraph(ShortCircuitEmptyConfigurationResolver.java:85)
+	at org.gradle.api.internal.artifacts.ivyservice.ErrorHandlingConfigurationResolver.resolveGraph(ErrorHandlingConfigurationResolver.java:74)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration$1.call(DefaultConfiguration.java:644)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration$1.call(DefaultConfiguration.java:635)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration.resolveGraphIfRequired(DefaultConfiguration.java:635)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration.lambda$resolveExclusively$4(DefaultConfiguration.java:615)
+	at org.gradle.api.internal.project.DefaultProjectStateRegistry$CalculatedModelValueImpl.update(DefaultProjectStateRegistry.java:478)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration.resolveExclusively(DefaultConfiguration.java:612)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration.resolveToStateOrLater(DefaultConfiguration.java:599)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration.access$1900(DefaultConfiguration.java:152)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration$SelectedArtifactsProvider.getValue(DefaultConfiguration.java:1344)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration$SelectedArtifactsProvider.getValue(DefaultConfiguration.java:1334)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration$ConfigurationFileCollection.getSelectedArtifacts(DefaultConfiguration.java:1406)
+	at org.gradle.api.internal.artifacts.configurations.DefaultConfiguration$ConfigurationFileCollection.visitContents(DefaultConfiguration.java:1393)
+	at org.gradle.api.internal.file.AbstractFileCollection.getFiles(AbstractFileCollection.java:130)
+	at org.gradle.api.internal.file.AbstractFileCollection.iterator(AbstractFileCollection.java:176)
+	at org.gradle.api.internal.file.FilteredFileCollection.iterator(FilteredFileCollection.java:79)
+	at com.google.common.collect.ImmutableSet.copyOf(ImmutableSet.java:257)
+	at org.gradle.api.internal.file.collections.DefaultConfigurableFileCollection$1.visitCollection(DefaultConfigurableFileCollection.java:244)
+	at org.gradle.api.internal.file.AbstractFileCollection.visitContents(AbstractFileCollection.java:335)
+	at org.gradle.api.internal.file.AbstractFileCollection.visitStructure(AbstractFileCollection.java:330)
+	at org.gradle.api.internal.file.collections.DefaultConfigurableFileCollection.lambda$calculateFinalizedValue$0(DefaultConfigurableFileCollection.java:241)
+	at org.gradle.api.internal.file.collections.UnpackingVisitor.add(UnpackingVisitor.java:64)
+	at org.gradle.api.internal.file.collections.DefaultConfigurableFileCollection$UnresolvedItemsCollector.visitContents(DefaultConfigurableFileCollection.java:372)
+	at org.gradle.api.internal.file.collections.DefaultConfigurableFileCollection.calculateFinalizedValue(DefaultConfigurableFileCollection.java:241)
+	at org.gradle.api.internal.file.collections.DefaultConfigurableFileCollection.visitChildren(DefaultConfigurableFileCollection.java:277)
+	at org.gradle.api.internal.file.CompositeFileCollection.getSourceCollections(CompositeFileCollection.java:113)
+	at org.gradle.api.internal.file.CompositeFileCollection.isEmpty(CompositeFileCollection.java:60)
+	at org.gradle.api.internal.file.CompositeFileCollection.isEmpty(CompositeFileCollection.java:61)
+	at org.gradle.api.internal.file.CompositeFileCollection.isEmpty(CompositeFileCollection.java:61)
+	at org.gradle.api.internal.file.CompositeFileCollection.isEmpty(CompositeFileCollection.java:61)
+	at org.gradle.api.internal.tasks.execution.DefaultEmptySourceTaskSkipper.skipIfEmptySources(DefaultEmptySourceTaskSkipper.java:67)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.skipIfInputsEmpty(TaskExecution.java:483)
+	at org.gradle.internal.execution.steps.SkipEmptyWorkStep.execute(SkipEmptyWorkStep.java:47)
+	at org.gradle.internal.execution.steps.SkipEmptyWorkStep.execute(SkipEmptyWorkStep.java:34)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsStartedStep.execute(MarkSnapshottingInputsStartedStep.java:38)
+	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:43)
+	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:31)
+	at org.gradle.internal.execution.steps.AssignWorkspaceStep.lambda$execute$0(AssignWorkspaceStep.java:40)
+	at org.gradle.api.internal.tasks.execution.TaskExecution$3.withWorkspace(TaskExecution.java:284)
+	at org.gradle.internal.execution.steps.AssignWorkspaceStep.execute(AssignWorkspaceStep.java:40)
+	at org.gradle.internal.execution.steps.AssignWorkspaceStep.execute(AssignWorkspaceStep.java:30)
+	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:37)
+	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:27)
+	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:44)
+	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:33)
+	at org.gradle.internal.execution.impl.DefaultExecutionEngine$1.execute(DefaultExecutionEngine.java:76)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:142)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:131)
+	at org.gradle.api.internal.tasks.execution.CleanupStaleOutputsExecuter.execute(CleanupStaleOutputsExecuter.java:77)
+	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:56)
+	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:74)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:402)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:389)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:382)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:368)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.lambda$run$0(DefaultPlanExecutor.java:127)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:191)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.executeNextNode(DefaultPlanExecutor.java:182)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:124)
+	at org.gradle.execution.plan.DefaultPlanExecutor.process(DefaultPlanExecutor.java:72)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph.executeWithServices(DefaultTaskExecutionGraph.java:187)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph.execute(DefaultTaskExecutionGraph.java:180)
+	at org.gradle.execution.SelectedTaskExecutionAction.execute(SelectedTaskExecutionAction.java:39)
+	at org.gradle.execution.DefaultBuildWorkExecutor.execute(DefaultBuildWorkExecutor.java:44)
+	at org.gradle.execution.DefaultBuildWorkExecutor.access$000(DefaultBuildWorkExecutor.java:26)
+	at org.gradle.execution.DefaultBuildWorkExecutor$1.proceed(DefaultBuildWorkExecutor.java:52)
+	at org.gradle.execution.DryRunBuildExecutionAction.execute(DryRunBuildExecutionAction.java:49)
+	at org.gradle.execution.DefaultBuildWorkExecutor.execute(DefaultBuildWorkExecutor.java:44)
+	at org.gradle.execution.DefaultBuildWorkExecutor.execute(DefaultBuildWorkExecutor.java:36)
+	at org.gradle.execution.BuildOperationFiringBuildWorkerExecutor$ExecuteTasks.call(BuildOperationFiringBuildWorkerExecutor.java:51)
+	at org.gradle.execution.BuildOperationFiringBuildWorkerExecutor$ExecuteTasks.call(BuildOperationFiringBuildWorkerExecutor.java:42)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.execution.BuildOperationFiringBuildWorkerExecutor.execute(BuildOperationFiringBuildWorkerExecutor.java:39)
+	at org.gradle.internal.build.DefaultBuildLifecycleController.lambda$executeTasks$3(DefaultBuildLifecycleController.java:136)
+	at org.gradle.internal.build.StateTransitionController.doTransition(StateTransitionController.java:243)
+	at org.gradle.internal.build.StateTransitionController.tryTransition(StateTransitionController.java:158)
+	at org.gradle.internal.build.DefaultBuildLifecycleController.executeTasks(DefaultBuildLifecycleController.java:136)
+	at org.gradle.internal.buildtree.DefaultBuildTreeWorkExecutor.execute(DefaultBuildTreeWorkExecutor.java:35)
+	at org.gradle.internal.buildtree.BuildOperationFiringBuildTreeWorkExecutor$1.call(BuildOperationFiringBuildTreeWorkExecutor.java:40)
+	at org.gradle.internal.buildtree.BuildOperationFiringBuildTreeWorkExecutor$1.call(BuildOperationFiringBuildTreeWorkExecutor.java:37)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.internal.buildtree.BuildOperationFiringBuildTreeWorkExecutor.execute(BuildOperationFiringBuildTreeWorkExecutor.java:37)
+	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.lambda$doScheduleAndRunTasks$2(DefaultBuildTreeLifecycleController.java:87)
+	at org.gradle.composite.internal.DefaultIncludedBuildTaskGraph.withNewTaskGraph(DefaultIncludedBuildTaskGraph.java:94)
+	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.doScheduleAndRunTasks(DefaultBuildTreeLifecycleController.java:85)
+	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.lambda$runBuild$4(DefaultBuildTreeLifecycleController.java:103)
+	at org.gradle.internal.build.StateTransitionController.lambda$transition$0(StateTransitionController.java:145)
+	at org.gradle.internal.build.StateTransitionController.doTransition(StateTransitionController.java:243)
+	at org.gradle.internal.build.StateTransitionController.transition(StateTransitionController.java:145)
+	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.runBuild(DefaultBuildTreeLifecycleController.java:100)
+	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.scheduleAndRunTasks(DefaultBuildTreeLifecycleController.java:66)
+	at org.gradle.tooling.internal.provider.ExecuteBuildActionRunner.run(ExecuteBuildActionRunner.java:31)
+	at org.gradle.launcher.exec.ChainingBuildActionRunner.run(ChainingBuildActionRunner.java:35)
+	at org.gradle.internal.buildtree.ProblemReportingBuildActionRunner.run(ProblemReportingBuildActionRunner.java:49)
+	at org.gradle.launcher.exec.BuildOutcomeReportingBuildActionRunner.run(BuildOutcomeReportingBuildActionRunner.java:69)
+	at org.gradle.tooling.internal.provider.FileSystemWatchingBuildActionRunner.run(FileSystemWatchingBuildActionRunner.java:114)
+	at org.gradle.launcher.exec.BuildCompletionNotifyingBuildActionRunner.run(BuildCompletionNotifyingBuildActionRunner.java:41)
+	at org.gradle.launcher.exec.RootBuildLifecycleBuildActionExecutor.lambda$execute$0(RootBuildLifecycleBuildActionExecutor.java:40)
+	at org.gradle.composite.internal.DefaultRootBuildState.run(DefaultRootBuildState.java:155)
+	at org.gradle.launcher.exec.RootBuildLifecycleBuildActionExecutor.execute(RootBuildLifecycleBuildActionExecutor.java:40)
+	at org.gradle.internal.buildtree.DefaultBuildTreeContext.execute(DefaultBuildTreeContext.java:40)
+	at org.gradle.launcher.exec.BuildTreeLifecycleBuildActionExecutor.lambda$execute$0(BuildTreeLifecycleBuildActionExecutor.java:65)
+	at org.gradle.internal.buildtree.BuildTreeState.run(BuildTreeState.java:53)
+	at org.gradle.launcher.exec.BuildTreeLifecycleBuildActionExecutor.execute(BuildTreeLifecycleBuildActionExecutor.java:65)
+	at org.gradle.launcher.exec.RunAsBuildOperationBuildActionExecutor$3.call(RunAsBuildOperationBuildActionExecutor.java:61)
+	at org.gradle.launcher.exec.RunAsBuildOperationBuildActionExecutor$3.call(RunAsBuildOperationBuildActionExecutor.java:57)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.launcher.exec.RunAsBuildOperationBuildActionExecutor.execute(RunAsBuildOperationBuildActionExecutor.java:57)
+	at org.gradle.launcher.exec.RunAsWorkerThreadBuildActionExecutor.lambda$execute$0(RunAsWorkerThreadBuildActionExecutor.java:38)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:211)
+	at org.gradle.launcher.exec.RunAsWorkerThreadBuildActionExecutor.execute(RunAsWorkerThreadBuildActionExecutor.java:38)
+	at org.gradle.tooling.internal.provider.ContinuousBuildActionExecutor.execute(ContinuousBuildActionExecutor.java:103)
+	at org.gradle.tooling.internal.provider.SubscribableBuildActionExecutor.execute(SubscribableBuildActionExecutor.java:64)
+	at org.gradle.internal.session.DefaultBuildSessionContext.execute(DefaultBuildSessionContext.java:46)
+	at org.gradle.tooling.internal.provider.BuildSessionLifecycleBuildActionExecuter$ActionImpl.apply(BuildSessionLifecycleBuildActionExecuter.java:100)
+	at org.gradle.tooling.internal.provider.BuildSessionLifecycleBuildActionExecuter$ActionImpl.apply(BuildSessionLifecycleBuildActionExecuter.java:88)
+	at org.gradle.internal.session.BuildSessionState.run(BuildSessionState.java:69)
+	at org.gradle.tooling.internal.provider.BuildSessionLifecycleBuildActionExecuter.execute(BuildSessionLifecycleBuildActionExecuter.java:62)
+	at org.gradle.tooling.internal.provider.BuildSessionLifecycleBuildActionExecuter.execute(BuildSessionLifecycleBuildActionExecuter.java:41)
+	at org.gradle.tooling.internal.provider.GradleThreadBuildActionExecuter.execute(GradleThreadBuildActionExecuter.java:36)
+	at org.gradle.tooling.internal.provider.GradleThreadBuildActionExecuter.execute(GradleThreadBuildActionExecuter.java:25)
+	at org.gradle.tooling.internal.provider.StartParamsValidatingActionExecuter.execute(StartParamsValidatingActionExecuter.java:63)
+	at org.gradle.tooling.internal.provider.StartParamsValidatingActionExecuter.execute(StartParamsValidatingActionExecuter.java:31)
+	at org.gradle.tooling.internal.provider.SessionFailureReportingActionExecuter.execute(SessionFailureReportingActionExecuter.java:58)
+	at org.gradle.tooling.internal.provider.SessionFailureReportingActionExecuter.execute(SessionFailureReportingActionExecuter.java:42)
+	at org.gradle.tooling.internal.provider.SetupLoggingActionExecuter.execute(SetupLoggingActionExecuter.java:47)
+	at org.gradle.tooling.internal.provider.SetupLoggingActionExecuter.execute(SetupLoggingActionExecuter.java:31)
+	at org.gradle.launcher.daemon.server.exec.ExecuteBuild.doBuild(ExecuteBuild.java:65)
+	at org.gradle.launcher.daemon.server.exec.BuildCommandOnly.execute(BuildCommandOnly.java:37)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.WatchForDisconnection.execute(WatchForDisconnection.java:39)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.ResetDeprecationLogger.execute(ResetDeprecationLogger.java:29)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.RequestStopIfSingleUsedDaemon.execute(RequestStopIfSingleUsedDaemon.java:35)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.ForwardClientInput$2.create(ForwardClientInput.java:78)
+	at org.gradle.launcher.daemon.server.exec.ForwardClientInput$2.create(ForwardClientInput.java:75)
+	at org.gradle.util.internal.Swapper.swap(Swapper.java:38)
+	at org.gradle.launcher.daemon.server.exec.ForwardClientInput.execute(ForwardClientInput.java:75)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.LogAndCheckHealth.execute(LogAndCheckHealth.java:50)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.LogToClient.doBuild(LogToClient.java:63)
+	at org.gradle.launcher.daemon.server.exec.BuildCommandOnly.execute(BuildCommandOnly.java:37)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.EstablishBuildEnvironment.doBuild(EstablishBuildEnvironment.java:84)
+	at org.gradle.launcher.daemon.server.exec.BuildCommandOnly.execute(BuildCommandOnly.java:37)
+	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
+	at org.gradle.launcher.daemon.server.exec.StartBuildOrRespondWithBusy$1.run(StartBuildOrRespondWithBusy.java:52)
+	at org.gradle.launcher.daemon.server.DaemonStateCoordinator$1.run(DaemonStateCoordinator.java:297)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.ManagedExecutorImpl$1.run(ManagedExecutorImpl.java:48)
+	at org.gradle.internal.concurrent.ThreadFactoryImpl$ManagedThreadRunnable.run(ThreadFactoryImpl.java:61)
+
+
+* Get more help at https://help.gradle.org
+
+BUILD FAILED in 2m 19s
+Error: Process completed with exit code 1.

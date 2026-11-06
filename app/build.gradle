@@ -131,9 +131,7 @@ dependencies {
     implementation project(":quickjs")
     implementation 'net.sourceforge.streamsupport:android-retrofuture:1.7.4'
 
-    // okgo 原 jcenter 坐标 com.lzy.net:okgo:3.0.4 已失效
-    // jitpack 上 3.0.4 tag 构建失败，v3.0.2 可正常获取
-    implementation 'com.github.jeasonlzy.okhttp-OkGo:okgo:v3.0.2'
+    implementation 'com.lzy.net:okgo:3.0.4'
     // implementation 'com.tencent.bugly:crashreport_upgrade:latest.release'
     implementation 'com.owen:tv-recyclerview:3.0.0'
 
