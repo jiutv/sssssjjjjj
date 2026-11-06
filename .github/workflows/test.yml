@@ -29,8 +29,11 @@ jobs:
           ANDROID_HOME="${GITHUB_WORKSPACE}/android-sdk"
           echo "ANDROID_HOME=${ANDROID_HOME}" >> "$GITHUB_ENV"
 
-          # 下载 Android command-line tools
-          wget -q "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
+          # command-line tools 9477386 是 2022 年 5 月版，
+          # 与 JDK 11 / AGP 7.2.2 / Gradle 7.3.3 稳定兼容。
+          # 再新的版本（如 11076708）里的 sdkmanager 要求 Java 17，
+          # 会报 UnsupportedClassVersionError (61.0 vs 55.0)。
+          wget -q "https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip" \
             -O /tmp/cmdline.zip
           unzip -q /tmp/cmdline.zip -d "${ANDROID_HOME}"
           rm /tmp/cmdline.zip
@@ -42,7 +45,6 @@ jobs:
 
           export PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
 
-          # 接受 license 并安装需要的组件
           yes | sdkmanager --licenses > /dev/null
           sdkmanager --install \
             "platform-tools" \
