@@ -1,31 +1,84 @@
-name: Test Build
+name: Build & Release APK
 
 on:
-#  push:
-#    branches:
-#      - main
-#  pull_request:
-  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'          # 打 tag 触发，如 v1.1.1
+  workflow_dispatch:  # 也可手动触发
+
+permissions:
+  contents: write    # 必须，才能创建 Release
 
 jobs:
-  build:
+  build-release:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
         with:
-          fetch-depth: 0
-      - name: Build With Gradle
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Set up Android SDK
+        run: |
+          set -e
+          ANDROID_HOME="${GITHUB_WORKSPACE}/android-sdk"
+          echo "ANDROID_HOME=${ANDROID_HOME}" >> "$GITHUB_ENV"
+
+          # 下载 Android command-line tools
+          wget -q "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
+            -O /tmp/cmdline.zip
+          unzip -q /tmp/cmdline.zip -d "${ANDROID_HOME}"
+          rm /tmp/cmdline.zip
+
+          # sdkmanager 必须放在 cmdline-tools/latest/ 路径下
+          mkdir -p "${ANDROID_HOME}/cmdline-tools/latest"
+          mv "${ANDROID_HOME}/cmdline-tools"/* "${ANDROID_HOME}/cmdline-tools/latest/" 2>/dev/null || true
+          rmdir "${ANDROID_HOME}/cmdline-tools" 2>/dev/null || true
+
+          export PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
+
+          # 接受 license 并安装需要的组件
+          yes | sdkmanager --licenses > /dev/null
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-33" \
+            "build-tools;33.0.2"
+
+      - name: Restore signing keystore (if provided)
+        run: |
+          if [ -n "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 -d \
+              > "${GITHUB_WORKSPACE}/TVBoxOSC.jks"
+            echo "SIGNING_STORE_FILE=${GITHUB_WORKSPACE}/TVBoxOSC.jks" >> "$GITHUB_ENV"
+            echo "SIGNING_STORE_PASSWORD=${{ secrets.SIGNING_STORE_PASSWORD }}" >> "$GITHUB_ENV"
+            echo "SIGNING_KEY_ALIAS=${{ secrets.SIGNING_KEY_ALIAS }}" >> "$GITHUB_ENV"
+            echo "SIGNING_KEY_PASSWORD=${{ secrets.SIGNING_KEY_PASSWORD }}" >> "$GITHUB_ENV"
+            echo "✓ Keystore restored from secrets"
+          else
+            echo "⚠ No SIGNING_KEYSTORE_BASE64 secret — 构建将使用默认签名（非正式签名）。"
+          fi
+
+      - name: Build APK
         run: |
           chmod +x gradlew
-          ./gradlew assemblerelease --build-cache --parallel --daemon --warning-mode all
-      - name: Prepare App
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Collect APK files
         run: |
-          mkdir -p ${{ github.workspace }}/apk/
-          for file in `find ~ -name "*.apk" -print`; do
-            mv "$file" ${{ github.workspace }}/apk/
-          done
-      - name: Upload App To Artifact
-        uses: actions/upload-artifact@v3
+          mkdir -p apk
+          find . -path '*/build/outputs/apk/release/*.apk' -exec cp -v {} apk/ \;
+          echo "---- APK list ----"
+          ls -la apk/
+
+      - name: Upload APK to Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: com.github.tvbox.osc
-          path: ${{ github.workspace }}/apk/*
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
+          files: apk/*.apk
