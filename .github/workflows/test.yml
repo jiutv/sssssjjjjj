@@ -17,10 +17,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 11
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'temurin'
 
       - name: Set up Android SDK
@@ -29,11 +29,9 @@ jobs:
           ANDROID_HOME="${GITHUB_WORKSPACE}/android-sdk"
           echo "ANDROID_HOME=${ANDROID_HOME}" >> "$GITHUB_ENV"
 
-          # command-line tools 9477386 是 2022 年 5 月版，
-          # 与 JDK 11 / AGP 7.2.2 / Gradle 7.3.3 稳定兼容。
-          # 再新的版本（如 11076708）里的 sdkmanager 要求 Java 17，
-          # 会报 UnsupportedClassVersionError (61.0 vs 55.0)。
-          wget -q "https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip" \
+          # Java 17 运行时才能加载新版 sdkmanager (class file 61.0)
+          # Gradle 7.3.3 + AGP 7.2.2 完全支持 JDK 17
+          wget -q "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
             -O /tmp/cmdline.zip
           unzip -q /tmp/cmdline.zip -d "${ANDROID_HOME}"
           rm /tmp/cmdline.zip
