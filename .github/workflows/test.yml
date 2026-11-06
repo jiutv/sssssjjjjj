@@ -28,6 +28,10 @@ jobs:
           set -e
           ANDROID_HOME="${GITHUB_WORKSPACE}/android-sdk"
           echo "ANDROID_HOME=${ANDROID_HOME}" >> "$GITHUB_ENV"
+          # 关键：runner 自带的 ANDROID_SDK_ROOT 指向 /usr/local/lib/android/sdk，
+          # 和我们装的 ANDROID_HOME 是两个不同路径。
+          # AGP 7.2+ 禁止同时设置两个指向不同路径的变量 → 必须覆盖成同一路径。
+          echo "ANDROID_SDK_ROOT=${ANDROID_HOME}" >> "$GITHUB_ENV"
 
           # Java 17 运行时才能加载新版 sdkmanager (class file 61.0)
           # Gradle 7.3.3 + AGP 7.2.2 完全支持 JDK 17
