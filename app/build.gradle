@@ -168,8 +168,8 @@ dependencies {
     implementation 'com.hyman:flowlayout-lib:1.1.2'
     //崩溃
     implementation project(":crash")
-    //dlna投屏
-    implementation 'com.github.devin1014.DLNA-Cast:dlna-dmc:V1.0.0'
+    //dlna投屏（V1.0.0 在 jitpack 上构建失败，用 v2.0.0）
+    implementation 'com.github.devin1014.DLNA-Cast:dlna-dmc:v2.0.0'
     // Lifecycles only (without ViewModel or LiveData)
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.2.0"
 }
