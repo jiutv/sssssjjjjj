@@ -24,30 +24,13 @@ jobs:
           distribution: 'temurin'
 
       - name: Set up Android SDK
+        # 和 TVMobile 完全一致 —— runner 自带 ANDROID_HOME=/usr/local/lib/android/sdk
+        # 预装了 cmdline-tools + sdkmanager，JDK 17 能直接跑
+        # 关键：绝对不要 unset ANDROID_HOME / ANDROID_SDK_ROOT，只设 ANDROID_SDK_ROOT 覆盖
         run: |
-          set -e
-          ANDROID_HOME="${GITHUB_WORKSPACE}/android-sdk"
-          echo "ANDROID_HOME=${ANDROID_HOME}" >> "$GITHUB_ENV"
-
-          # Java 17 运行时才能加载新版 sdkmanager (class file 61.0)
-          # Gradle 7.3.3 + AGP 7.2.2 完全支持 JDK 17
-          wget -q "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
-            -O /tmp/cmdline.zip
-          unzip -q /tmp/cmdline.zip -d "${ANDROID_HOME}"
-          rm /tmp/cmdline.zip
-
-          # sdkmanager 必须放在 cmdline-tools/latest/ 路径下
-          mkdir -p "${ANDROID_HOME}/cmdline-tools/latest"
-          mv "${ANDROID_HOME}/cmdline-tools"/* "${ANDROID_HOME}/cmdline-tools/latest/" 2>/dev/null || true
-          rmdir "${ANDROID_HOME}/cmdline-tools" 2>/dev/null || true
-
-          export PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
-
+          export PATH=$PATH:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools
           yes | sdkmanager --licenses > /dev/null
-          sdkmanager --install \
-            "platform-tools" \
-            "platforms;android-33" \
-            "build-tools;33.0.2"
+          sdkmanager "platforms;android-33" "build-tools;33.0.2" "platform-tools"
 
       - name: Restore signing keystore (if provided)
         run: |
