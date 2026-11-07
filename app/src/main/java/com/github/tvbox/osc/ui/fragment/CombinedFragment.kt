@@ -1,12 +1,14 @@
 package com.github.tvbox.osc.ui.fragment
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
-import android.view.View
+import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
-import com.angcyo.tablayout.delegate.ViewPager1Delegate.install
 import com.chad.library.adapter.base.BaseQuickAdapter
+import com.github.tvbox.osc.R
 import com.github.tvbox.osc.api.ApiConfig
 import com.github.tvbox.osc.base.BaseVbFragment
 import com.github.tvbox.osc.bean.VodInfo
@@ -29,19 +31,13 @@ class CombinedFragment : BaseVbFragment<FragmentCombinedBinding>() {
     private var currentTab = 0 // 0=历史, 1=收藏
 
     override fun init() {
-        // Tab
-        mBinding.tabLayout.items = arrayOf("历史", "收藏")
-        mBinding.tabLayout.setCurrentItem(0, false)
-        mBinding.tabLayout.setOnTabSelectListener { fromIndex, toIndex, reSelect ->
-            if (!reSelect) {
-                currentTab = toIndex
-                mBinding.mGridView.adapter = if (currentTab == 0) historyAdapter else collectAdapter
-            }
-        }
-
         // RecyclerView
         mBinding.mGridView.layoutManager = GridLayoutManager(context, 3)
         mBinding.mGridView.adapter = historyAdapter
+
+        // Tab 切换
+        mBinding.tabHistory.setOnClickListener { switchTab(0) }
+        mBinding.tabCollect.setOnClickListener { switchTab(1) }
 
         // 历史
         historyAdapter.onItemLongClickListener =
@@ -92,6 +88,22 @@ class CombinedFragment : BaseVbFragment<FragmentCombinedBinding>() {
             }
     }
 
+    private fun switchTab(index: Int) {
+        if (index == currentTab) return
+        currentTab = index
+        val primary = ContextCompat.getColor(mContext, R.color.colorPrimary)
+        val gray = ContextCompat.getColor(mContext, R.color.disable_gray)
+        if (index == 0) {
+            mBinding.tabHistory.setTextColor(primary)
+            mBinding.tabCollect.setTextColor(gray)
+            mBinding.mGridView.adapter = historyAdapter
+        } else {
+            mBinding.tabHistory.setTextColor(gray)
+            mBinding.tabCollect.setTextColor(primary)
+            mBinding.mGridView.adapter = collectAdapter
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         loadData()
@@ -99,7 +111,6 @@ class CombinedFragment : BaseVbFragment<FragmentCombinedBinding>() {
 
     private fun loadData() {
         lifecycleScope.launch(Dispatchers.IO) {
-            // 历史
             val allVodRecord = RoomDataManger.getAllVodRecord(100)
             val vodInfoList: MutableList<VodInfo> = ArrayList()
             for (vodInfo in allVodRecord) {
@@ -107,7 +118,6 @@ class CombinedFragment : BaseVbFragment<FragmentCombinedBinding>() {
                     vodInfo.playNote
                 vodInfoList.add(vodInfo)
             }
-            // 收藏
             val allCollect = RoomDataManger.getAllVodCollect()
             val collectList: MutableList<VodCollect> = ArrayList()
             for (item in allCollect) {
