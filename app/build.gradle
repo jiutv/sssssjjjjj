@@ -44,8 +44,6 @@ android {
 
     signingConfigs {
         config {
-            // CI 环境：从 GitHub Secrets 解码出来的 jks 路径
-            // 本地开发：项目根目录下放 TVBoxOSC.jks（跨平台写法）
             def storeFilePath = System.getenv("SIGNING_STORE_FILE") ?: rootProject.file('TVBoxOSC.jks').absolutePath
             def storePass = System.getenv("SIGNING_STORE_PASSWORD") ?: 'TVBoxOSC'
             def alias = System.getenv("SIGNING_KEY_ALIAS") ?: 'TVBoxOSC'
@@ -58,13 +56,20 @@ android {
         }
     }
 
+    def hasReleaseKeystore = (System.getenv("SIGNING_STORE_FILE") != null
+            || rootProject.file('TVBoxOSC.jks').exists())
+
     buildTypes {
         debug {
-            signingConfig signingConfigs.config
+            if (hasReleaseKeystore) {
+                signingConfig signingConfigs.config
+            }
         }
 
         release {
-            signingConfig signingConfigs.config
+            if (hasReleaseKeystore) {
+                signingConfig signingConfigs.config
+            }
             minifyEnabled false
         }
     }
