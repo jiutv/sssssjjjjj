@@ -1,35 +1,31 @@
 package com.github.tvbox.osc.bean;
 
-import androidx.annotation.NonNull;
-
-import com.android.cast.dlna.core.ICast;
-
 import java.util.UUID;
 
-public class CastVideo implements ICast {
+/**
+ * DLNA-Cast v2.0.0 API 完全重构，不再实现 ICast 接口
+ * 暂时作为 POJO 使用，投屏功能待用 cling 重写
+ */
+public class CastVideo {
 
     private final String name;
     private final String url;
+    private final String id;
 
     public CastVideo(String name, String url) {
         this.name = name;
         this.url = url;
+        this.id = UUID.randomUUID().toString();
     }
 
-    @NonNull
-    @Override
     public String getId() {
-        return UUID.randomUUID().toString();
+        return id;
     }
 
-    @NonNull
-    @Override
     public String getUri() {
         return url;
     }
 
-    @NonNull
-    @Override
     public String getName() {
         return name;
     }
