@@ -10,14 +10,17 @@ import com.blankj.utilcode.util.ToastUtils
 import com.github.tvbox.osc.base.BaseVbActivity
 import com.github.tvbox.osc.constant.IntentKey
 import com.github.tvbox.osc.databinding.ActivityMainBinding
+import com.github.tvbox.osc.ui.fragment.CollectFragment
 import com.github.tvbox.osc.ui.fragment.GridFragment
+import com.github.tvbox.osc.ui.fragment.HistoryFragment
 import com.github.tvbox.osc.ui.fragment.HomeFragment
 import com.github.tvbox.osc.ui.fragment.MyFragment
 import kotlin.system.exitProcess
 
 class MainActivity : BaseVbActivity<ActivityMainBinding>() {
 
-    var fragments = listOf(HomeFragment(),MyFragment())
+    // 首页、收藏、历史、我的
+    var fragments = listOf(HomeFragment(), CollectFragment(), HistoryFragment(), MyFragment())
     var useCacheConfig = false
     private var exitTime = 0L
 
@@ -47,7 +50,8 @@ class MainActivity : BaseVbActivity<ActivityMainBinding>() {
     }
 
     override fun onBackPressed() {
-        if (mBinding.vp.currentItem == 1) {
+        // 非首页 tab 先切回首页
+        if (mBinding.vp.currentItem != 0) {
             mBinding.vp.currentItem = 0
             return
         }
@@ -77,7 +81,6 @@ class MainActivity : BaseVbActivity<ActivityMainBinding>() {
         if (System.currentTimeMillis() - exitTime > 2000) {
             ToastUtils.showShort("再按一次退出程序")
             exitTime = System.currentTimeMillis()
-        } else {
             ActivityUtils.finishAllActivities(true)
             Process.killProcess(Process.myPid())
             exitProcess(0)
