@@ -168,8 +168,11 @@ dependencies {
     implementation 'com.hyman:flowlayout-lib:1.1.2'
     //崩溃
     implementation project(":crash")
-    //dlna投屏
-    implementation 'com.github.devin1014.DLNA-Cast:dlna-dmc:V1.0.0'
+    //dlna投屏 — V1.0.0 jitpack 从未构建成功，改用 v2.0.0（模块名 dlna-dmc → dmc）
+    implementation('com.github.devin1014.DLNA-Cast:dmc:v2.0.0') {
+        // v2.0.0 传递拉了旧版 jetty-orbit javax.servlet，和项目自己的 servlet-api 3.1.0 冲突
+        exclude group: 'org.eclipse.jetty.orbit', module: 'javax.servlet'
+    }
     // Lifecycles only (without ViewModel or LiveData)
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.2.0"
 }
