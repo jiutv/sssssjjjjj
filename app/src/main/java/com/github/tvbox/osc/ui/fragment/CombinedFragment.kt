@@ -2,7 +2,6 @@ package com.github.tvbox.osc.ui.fragment
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import com.chad.library.adapter.base.BaseQuickAdapter
@@ -11,24 +10,48 @@ import com.github.tvbox.osc.base.BaseVbFragment
 import com.github.tvbox.osc.bean.VodInfo
 import com.github.tvbox.osc.cache.RoomDataManger
 import com.github.tvbox.osc.cache.VodCollect
-import com.github.tvbox.osc.databinding.FragmentCollectBinding
+import com.github.tvbox.osc.databinding.FragmentCombinedBinding
 import com.github.tvbox.osc.ui.activity.DetailActivity
 import com.github.tvbox.osc.ui.activity.FastSearchActivity
 import com.github.tvbox.osc.ui.adapter.CollectAdapter
+import com.github.tvbox.osc.ui.adapter.HistoryAdapter
 import com.github.tvbox.osc.util.FastClickCheckUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class CollectFragment : BaseVbFragment<FragmentCollectBinding>() {
+class CombinedFragment : BaseVbFragment<FragmentCombinedBinding>() {
 
+    private val historyAdapter = HistoryAdapter()
     private val collectAdapter = CollectAdapter()
 
     override fun init() {
-        setLoadSir(mBinding.mGridView)
-        mBinding.mGridView.setHasFixedSize(true)
-        mBinding.mGridView.layoutManager = GridLayoutManager(context, 3)
-        mBinding.mGridView.adapter = collectAdapter
+        // 左：历史
+        mBinding.rvHistory.layoutManager = GridLayoutManager(context, 2)
+        mBinding.rvHistory.adapter = historyAdapter
+
+        historyAdapter.onItemLongClickListener =
+            BaseQuickAdapter.OnItemLongClickListener { _, view, position ->
+                FastClickCheckUtil.check(view)
+                val vodInfo = historyAdapter.data[position]
+                historyAdapter.remove(position)
+                RoomDataManger.deleteVodRecord(vodInfo.sourceKey, vodInfo)
+                true
+            }
+
+        historyAdapter.onItemClickListener =
+            BaseQuickAdapter.OnItemClickListener { _, view, position ->
+                FastClickCheckUtil.check(view)
+                val vodInfo = historyAdapter.data[position]
+                val bundle = Bundle()
+                bundle.putString("id", vodInfo.id)
+                bundle.putString("sourceKey", vodInfo.sourceKey)
+                jumpActivity(DetailActivity::class.java, bundle)
+            }
+
+        // 右：收藏
+        mBinding.rvCollect.layoutManager = GridLayoutManager(context, 2)
+        mBinding.rvCollect.adapter = collectAdapter
 
         collectAdapter.onItemLongClickListener =
             BaseQuickAdapter.OnItemLongClickListener { _, _, position ->
@@ -67,18 +90,23 @@ class CollectFragment : BaseVbFragment<FragmentCollectBinding>() {
 
     private fun loadData() {
         lifecycleScope.launch(Dispatchers.IO) {
-            val allVodRecord = RoomDataManger.getAllVodCollect()
-            val vodInfoList: MutableList<VodCollect> = ArrayList()
+            // 历史
+            val allVodRecord = RoomDataManger.getAllVodRecord(100)
+            val vodInfoList: MutableList<VodInfo> = ArrayList()
             for (vodInfo in allVodRecord) {
+                if (vodInfo.playNote != null && vodInfo.playNote.isNotEmpty()) vodInfo.note =
+                    vodInfo.playNote
                 vodInfoList.add(vodInfo)
             }
+            // 收藏
+            val allCollect = RoomDataManger.getAllVodCollect()
+            val collectList: MutableList<VodCollect> = ArrayList()
+            for (item in allCollect) {
+                collectList.add(item)
+            }
             withContext(Dispatchers.Main) {
-                collectAdapter.setNewData(vodInfoList)
-                if (vodInfoList.isNotEmpty()) {
-                    showSuccess()
-                } else {
-                    showEmpty()
-                }
+                historyAdapter.setNewData(vodInfoList)
+                collectAdapter.setNewData(collectList)
             }
         }
     }

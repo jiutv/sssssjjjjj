@@ -1,5 +1,6 @@
 package com.github.tvbox.osc.ui.activity
 
+import android.content.Intent
 import android.os.Process
 import android.view.MenuItem
 import androidx.fragment.app.Fragment
@@ -10,17 +11,16 @@ import com.blankj.utilcode.util.ToastUtils
 import com.github.tvbox.osc.base.BaseVbActivity
 import com.github.tvbox.osc.constant.IntentKey
 import com.github.tvbox.osc.databinding.ActivityMainBinding
-import com.github.tvbox.osc.ui.fragment.CollectFragment
+import com.github.tvbox.osc.ui.fragment.CombinedFragment
 import com.github.tvbox.osc.ui.fragment.GridFragment
-import com.github.tvbox.osc.ui.fragment.HistoryFragment
 import com.github.tvbox.osc.ui.fragment.HomeFragment
 import com.github.tvbox.osc.ui.fragment.MyFragment
 import kotlin.system.exitProcess
 
 class MainActivity : BaseVbActivity<ActivityMainBinding>() {
 
-    // 首页、收藏、历史、我的
-    var fragments = listOf(HomeFragment(), CollectFragment(), HistoryFragment(), MyFragment())
+    // 首页、历史&收藏、我的（直播 tab 直接跳转 LiveActivity）
+    var fragments = listOf(HomeFragment(), CombinedFragment(), MyFragment())
     var useCacheConfig = false
     private var exitTime = 0L
 
@@ -39,12 +39,36 @@ class MainActivity : BaseVbActivity<ActivityMainBinding>() {
         }
 
         mBinding.bottomNav.setOnNavigationItemSelectedListener { menuItem: MenuItem ->
-            mBinding.vp.setCurrentItem(menuItem.order, false)
-            true
+            when (menuItem.itemId) {
+                R.id.navigation_live -> {
+                    // 直播 tab 直接跳转 LiveActivity，不进 ViewPager
+                    startActivity(Intent(this, LiveActivity::class.java))
+                    false  // 不高亮选中
+                }
+                else -> {
+                    // orderInCategory: 首页=0, 历史&收藏=2, 我的=3
+                    // 但 ViewPager 只有 3 个页面（0,1,2），需要映射
+                    val position = when (menuItem.itemId) {
+                        R.id.navigation_home -> 0
+                        R.id.navigation_combined -> 1
+                        R.id.navigation_dashboard -> 2
+                        else -> 0
+                    }
+                    mBinding.vp.setCurrentItem(position, false)
+                    true
+                }
+            }
         }
         mBinding.vp.addOnPageChangeListener(object : SimpleOnPageChangeListener() {
             override fun onPageSelected(position: Int) {
-                mBinding.bottomNav.menu.getItem(position).setChecked(true)
+                // 映射：ViewPager 0→首页, 1→历史&收藏, 2→我的
+                val navId = when (position) {
+                    0 -> R.id.navigation_home
+                    1 -> R.id.navigation_combined
+                    2 -> R.id.navigation_dashboard
+                    else -> R.id.navigation_home
+                }
+                mBinding.bottomNav.menu.findItem(navId).setChecked(true)
             }
         })
     }
