@@ -2,8 +2,10 @@ package com.github.tvbox.osc.ui.fragment
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
+import com.angcyo.tablayout.delegate.ViewPager1Delegate.install
 import com.chad.library.adapter.base.BaseQuickAdapter
 import com.github.tvbox.osc.api.ApiConfig
 import com.github.tvbox.osc.base.BaseVbFragment
@@ -24,12 +26,24 @@ class CombinedFragment : BaseVbFragment<FragmentCombinedBinding>() {
 
     private val historyAdapter = HistoryAdapter()
     private val collectAdapter = CollectAdapter()
+    private var currentTab = 0 // 0=历史, 1=收藏
 
     override fun init() {
-        // 左：历史
-        mBinding.rvHistory.layoutManager = GridLayoutManager(context, 2)
-        mBinding.rvHistory.adapter = historyAdapter
+        // Tab
+        mBinding.tabLayout.items = arrayOf("历史", "收藏")
+        mBinding.tabLayout.setCurrentItem(0, false)
+        mBinding.tabLayout.setOnTabSelectListener { fromIndex, toIndex, reSelect ->
+            if (!reSelect) {
+                currentTab = toIndex
+                mBinding.mGridView.adapter = if (currentTab == 0) historyAdapter else collectAdapter
+            }
+        }
 
+        // RecyclerView
+        mBinding.mGridView.layoutManager = GridLayoutManager(context, 3)
+        mBinding.mGridView.adapter = historyAdapter
+
+        // 历史
         historyAdapter.onItemLongClickListener =
             BaseQuickAdapter.OnItemLongClickListener { _, view, position ->
                 FastClickCheckUtil.check(view)
@@ -38,7 +52,6 @@ class CombinedFragment : BaseVbFragment<FragmentCombinedBinding>() {
                 RoomDataManger.deleteVodRecord(vodInfo.sourceKey, vodInfo)
                 true
             }
-
         historyAdapter.onItemClickListener =
             BaseQuickAdapter.OnItemClickListener { _, view, position ->
                 FastClickCheckUtil.check(view)
@@ -49,10 +62,7 @@ class CombinedFragment : BaseVbFragment<FragmentCombinedBinding>() {
                 jumpActivity(DetailActivity::class.java, bundle)
             }
 
-        // 右：收藏
-        mBinding.rvCollect.layoutManager = GridLayoutManager(context, 2)
-        mBinding.rvCollect.adapter = collectAdapter
-
+        // 收藏
         collectAdapter.onItemLongClickListener =
             BaseQuickAdapter.OnItemLongClickListener { _, _, position ->
                 val vodInfo = collectAdapter.data[position]
@@ -62,7 +72,6 @@ class CombinedFragment : BaseVbFragment<FragmentCombinedBinding>() {
                 }
                 true
             }
-
         collectAdapter.onItemClickListener =
             BaseQuickAdapter.OnItemClickListener { _, view, position ->
                 FastClickCheckUtil.check(view)
@@ -107,6 +116,7 @@ class CombinedFragment : BaseVbFragment<FragmentCombinedBinding>() {
             withContext(Dispatchers.Main) {
                 historyAdapter.setNewData(vodInfoList)
                 collectAdapter.setNewData(collectList)
+                mBinding.mGridView.adapter = if (currentTab == 0) historyAdapter else collectAdapter
             }
         }
     }
