@@ -1,67 +1,108 @@
 name: Build & Release APK
 
+permissions:
+  contents: write
+
 on:
   push:
     tags:
-      - 'v*'          # 打 tag 触发，如 v1.1.1
-  workflow_dispatch:  # 也可手动触发
-
-permissions:
-  contents: write    # 必须，才能创建 Release
+      - 'v*'
+  workflow_dispatch:
 
 jobs:
-  build-release:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          fetch-depth: 0
 
-      - name: Set up Android SDK
-        # 和 TVMobile 完全一致 —— runner 自带 ANDROID_HOME=/usr/local/lib/android/sdk
-        # 预装了 cmdline-tools + sdkmanager，JDK 17 能直接跑
-        # 关键：绝对不要 unset ANDROID_HOME / ANDROID_SDK_ROOT，只设 ANDROID_SDK_ROOT 覆盖
+      - name: Generate tag
+        id: tag
+        run: |
+          TAG="$(git log --date=format:'%Y%m%d-%H%M' --pretty=format:'%cd' -1)"
+          SHORT="$(git rev-parse --short HEAD)"
+          echo "tag=$TAG-$SHORT" >> $GITHUB_OUTPUT
+          echo "tag=$TAG-$SHORT" >> $GITHUB_ENV
+
+      - name: Setup Java 17 (for sdkmanager)
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
         run: |
           export PATH=$PATH:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools
           yes | sdkmanager --licenses > /dev/null
           sdkmanager "platforms;android-33" "build-tools;33.0.2" "platform-tools"
 
-      - name: Restore signing keystore (if provided)
+      - name: Setup Java 11 (for Gradle build)
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '11'
+
+      - name: Prepare build
         run: |
-          if [ -n "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" ]; then
-            echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 -d \
-              > "${GITHUB_WORKSPACE}/TVBoxOSC.jks"
-            echo "SIGNING_STORE_FILE=${GITHUB_WORKSPACE}/TVBoxOSC.jks" >> "$GITHUB_ENV"
-            echo "SIGNING_STORE_PASSWORD=${{ secrets.SIGNING_STORE_PASSWORD }}" >> "$GITHUB_ENV"
-            echo "SIGNING_KEY_ALIAS=${{ secrets.SIGNING_KEY_ALIAS }}" >> "$GITHUB_ENV"
-            echo "SIGNING_KEY_PASSWORD=${{ secrets.SIGNING_KEY_PASSWORD }}" >> "$GITHUB_ENV"
-            echo "✓ Keystore restored from secrets"
-          else
-            echo "⚠ No SIGNING_KEYSTORE_BASE64 secret — 构建将使用默认签名（非正式签名）。"
-          fi
+          echo "sdk.dir=${ANDROID_HOME}" > local.properties
+          cp .github/workflows/TVBoxOSC.jks TVBoxOSC.jks
+          sed -i '/^#org.gradle.jvmargs/s/^#//' gradle.properties
+          echo "=== local.properties ===" && cat local.properties
+          echo "=== jks ===" && ls -la TVBoxOSC.jks
 
       - name: Build APK
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          set -o pipefail
+          ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
+          echo ""
+          echo "=== BUILD RESULT ==="
+          grep -E "BUILD SUCCESSFUL|BUILD FAILED" build.log | tail -1 || true
 
       - name: Collect APK files
         run: |
-          mkdir -p apk
-          find . -path '*/build/outputs/apk/release/*.apk' -exec cp -v {} apk/ \;
-          echo "---- APK list ----"
+          rm -rf apk/
+          mkdir -p apk/
+          echo "===== Searching APKs ====="
+          find app/build/outputs/apk -name "*.apk" -print 2>/dev/null
+          find . -path '*/build/outputs/apk/release/*.apk' -print 2>/dev/null
+          echo ""
+          echo "===== Copying ====="
+          for file in $(find app/build/outputs/apk -name "*.apk" -print 2>/dev/null; find . -path '*/build/outputs/apk/release/*.apk' -print 2>/dev/null); do
+            base=$(basename "$file")
+            echo "  cp $file → apk/$base (size: $(stat -c%s "$file") bytes)"
+            cp "$file" "apk/$base"
+          done
+          echo ""
+          echo "===== apk/ final ====="
           ls -la apk/
+          APK_COUNT=$(ls apk/*.apk 2>/dev/null | wc -l)
+          echo "APK_COUNT=$APK_COUNT"
+          [ "$APK_COUNT" -gt 0 ] || (echo "❌ No APK found!" && exit 1)
 
-      - name: Upload APK to Release
-        uses: softprops/action-gh-release@v2
+      - uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          generate_release_notes: true
-          files: apk/*.apk
+          name: APK-artifacts
+          path: |
+            apk/*
+            build.log
+          if-no-files-found: warn
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la apk/
+          TAG_NAME="${{ github.ref_name }}"
+          # 如果不是 tag 触发（比如 workflow_dispatch），用生成的 tag
+          if [[ "$TAG_NAME" != v* ]]; then
+            TAG_NAME="mobile-${{ env.tag }}"
+          fi
+          echo "Creating release: $TAG_NAME"
+          gh release create "$TAG_NAME" apk/*.apk \
+            --title "Release $TAG_NAME" \
+            --target "${{ github.sha }}" \
+            --latest \
+            --notes "Auto-built APK from commit ${{ github.sha }}"
