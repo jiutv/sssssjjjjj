@@ -197,26 +197,33 @@
 				android:id="@+id/mGroupGridView"
 				android:layout_width="0dp"
 				android:layout_weight="1"
-				android:layout_height="wrap_content"
+				android:layout_height="match_parent"
 				android:fadeScrollbars="false"
 				android:listSelector="@drawable/item_bg_selector_left"
-				android:paddingHorizontal="10dp"
+				android:paddingHorizontal="8dp"
+				android:paddingTop="10dp"
+				android:paddingBottom="10dp"
 				android:scrollbars="none"
-				android:layout_gravity="center"
-				android:layout_marginLeft="40dp"
 				tools:listitem="@layout/item_live_channel_group_new"/>
+
+			<View
+				android:layout_width="1dp"
+				android:layout_height="match_parent"
+				android:background="@color/disable_gray"
+				android:layout_marginVertical="10dp"/>
 
 			<androidx.recyclerview.widget.RecyclerView
 				android:id="@+id/mChannelGridView"
 				android:layout_width="0dp"
-				android:layout_weight="1"
+				android:layout_weight="2"
 				android:layout_height="match_parent"
 				android:fadeScrollbars="false"
 				android:focusable="true"
 				android:listSelector="@drawable/item_bg_selector_right"
 				android:scrollbars="none"
-				android:layout_marginLeft="30dp"
-				android:layout_marginRight="40dp"
+				android:paddingHorizontal="8dp"
+				android:paddingTop="10dp"
+				android:paddingBottom="10dp"
 				tools:listitem="@layout/item_live_channel_new"
 				/>
 		</LinearLayout>

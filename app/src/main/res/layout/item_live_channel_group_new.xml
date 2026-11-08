@@ -4,15 +4,16 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     xmlns:tools="http://schemas.android.com/tools"
-    android:padding="10dp"
+    android:paddingVertical="12dp"
+    android:paddingHorizontal="8dp"
     android:focusable="true"
     android:focusableInTouchMode="false"
-    android:orientation="horizontal"
-    android:gravity="center">
+    android:orientation="vertical"
+    android:gravity="center_vertical">
 
     <TextView
         android:id="@+id/tvChannelGroupName"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:ellipsize="marquee"
         android:gravity="center"
