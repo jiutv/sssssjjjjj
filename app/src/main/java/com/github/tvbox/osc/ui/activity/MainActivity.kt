@@ -20,11 +20,11 @@ import kotlin.system.exitProcess
 class MainActivity : BaseVbActivity<ActivityMainBinding>() {
 
     var fragments = listOf(HomeFragment(), MyFragment())
-    private val POS_HOME = 0
-    private val POS_MY = 4    // 我的：底部第 5 个位置
+    var useCacheConfig = false
     private var exitTime = 0L
 
     override fun init() {
+        useCacheConfig = intent.extras?.getBoolean(IntentKey.CACHE_CONFIG_CHANGED, false)?:false
 
         // 默认选中首页
         mBinding.bottomNav.selectedItemId = R.id.navigation_home
