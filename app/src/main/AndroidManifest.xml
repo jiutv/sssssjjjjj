@@ -89,8 +89,6 @@
             android:name=".ui.activity.CollectActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"/>
 
-        <service android:name="com.android.cast.dlna.dmc.DLNACastService"/>
-
         <receiver android:name=".receiver.SearchReceiver">
             <intent-filter>
                 <action android:name="android.content.movie.search.Action" />
