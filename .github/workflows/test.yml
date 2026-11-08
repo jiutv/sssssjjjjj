@@ -73,20 +73,6 @@ jobs:
             "platforms;android-33" \
             "build-tools;33.0.2"
 
-      - name: Restore signing keystore (if provided)
-        run: |
-          if [ -n "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" ]; then
-            echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 -d \
-              > "${GITHUB_WORKSPACE}/TVBoxOSC.jks"
-            echo "SIGNING_STORE_FILE=${GITHUB_WORKSPACE}/TVBoxOSC.jks" >> "$GITHUB_ENV"
-            echo "SIGNING_STORE_PASSWORD=${{ secrets.SIGNING_STORE_PASSWORD }}" >> "$GITHUB_ENV"
-            echo "SIGNING_KEY_ALIAS=${{ secrets.SIGNING_KEY_ALIAS }}" >> "$GITHUB_ENV"
-            echo "SIGNING_KEY_PASSWORD=${{ secrets.SIGNING_KEY_PASSWORD }}" >> "$GITHUB_ENV"
-            echo "✓ Keystore restored from secrets"
-          else
-            echo "⚠ No SIGNING_KEYSTORE_BASE64 secret — 构建将使用默认签名（非正式签名）。"
-          fi
-
       - name: Build APK
         env:
           # 网络抖动自动重试 5 次，每次最多 30s 超时
