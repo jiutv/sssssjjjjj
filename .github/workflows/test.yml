@@ -28,6 +28,7 @@ jobs:
           set -e
           # AGP 8+ 要求 SDK 路径只能通过 ANDROID_HOME 注入，不能有 ANDROID_SDK_ROOT 冲突
           unset ANDROID_SDK_ROOT
+          echo "ANDROID_SDK_ROOT=" >> "$GITHUB_ENV"
 
           ANDROID_HOME="${GITHUB_WORKSPACE}/android-sdk"
           echo "ANDROID_HOME=${ANDROID_HOME}" >> "$GITHUB_ENV"
@@ -68,6 +69,7 @@ jobs:
 
       - name: Build APK
         run: |
+          unset ANDROID_SDK_ROOT
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon --stacktrace
 
