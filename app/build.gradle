@@ -8,8 +8,10 @@ android {
         applicationId 'com.github.tvbox.osc'
         minSdkVersion 24
         targetSdkVersion 30
-        versionCode 31
-        versionName '1.1.1'
+        // CI 构建：gradle -PVERSION_CODE=xxx -PVERSION_NAME=xxx 注入
+        // 本地开发：用硬编码 fallback
+        versionCode (project.hasProperty('VERSION_CODE') ? (project.property('VERSION_CODE') as Integer) : 31)
+        versionName (project.hasProperty('VERSION_NAME') ? project.property('VERSION_NAME') : '1.1.1')
         multiDexEnabled true
         //设置room的Schema的位置
         javaCompileOptions {

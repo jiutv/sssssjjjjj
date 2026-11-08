@@ -2,12 +2,18 @@ name: Build & Release APK
 
 on:
   push:
+    branches:
+      - main           # 推 main 也自动构建
     tags:
-      - 'v*'          # 打 tag 触发，如 v1.1.1
-  workflow_dispatch:  # 也可手动触发
+      - 'v*'           # 打 tag 也触发（正式发版）
+  workflow_dispatch:    # 也可手动触发
 
 permissions:
   contents: write    # 必须，才能创建 Release
+
+env:
+  # Release tag：日期，如 20261109-01
+  RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || format('nightly-{0}', github.run_number) }}
 
 jobs:
   build-release:
@@ -16,12 +22,25 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 需要完整历史算 versionCode
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
+
+      - name: Compute version
+        run: |
+          # versionCode = 仓库总 commit 数（每天自动递增）
+          VERSION_CODE=$(git rev-list --count HEAD)
+          # versionName = 日期 yyyy.MM.dd
+          VERSION_NAME=$(date +%Y.%m.%d)
+          echo "VERSION_CODE=${VERSION_CODE}" >> "$GITHUB_ENV"
+          echo "VERSION_NAME=${VERSION_NAME}" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG=${RELEASE_TAG}" >> "$GITHUB_ENV"
+          echo "→ versionCode=${VERSION_CODE}  versionName=${VERSION_NAME}  tag=${RELEASE_TAG}"
 
       - name: Set up Android SDK
         run: |
@@ -71,7 +90,9 @@ jobs:
         run: |
           unset ANDROID_SDK_ROOT
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          ./gradlew assembleRelease --no-daemon --stacktrace \
+            -PVERSION_CODE="${VERSION_CODE}" \
+            -PVERSION_NAME="${VERSION_NAME}"
 
       - name: Collect APK files
         run: |
@@ -83,7 +104,7 @@ jobs:
       - name: Upload APK to Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: Release ${{ env.VERSION_NAME }} (${{ env.RELEASE_TAG }})
           generate_release_notes: true
           files: apk/*.apk
