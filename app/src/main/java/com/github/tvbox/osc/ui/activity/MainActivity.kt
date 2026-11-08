@@ -1,5 +1,6 @@
 package com.github.tvbox.osc.ui.activity
 
+import android.content.Intent
 import android.os.Process
 import android.view.MenuItem
 import androidx.fragment.app.Fragment
@@ -17,13 +18,15 @@ import kotlin.system.exitProcess
 
 class MainActivity : BaseVbActivity<ActivityMainBinding>() {
 
-    var fragments = listOf(HomeFragment(),MyFragment())
-    var useCacheConfig = false
+    var fragments = listOf(HomeFragment(), MyFragment())
+    private val POS_HOME = 0
+    private val POS_MY = 4    // 我的：底部第 5 个位置
     private var exitTime = 0L
 
     override fun init() {
 
-        useCacheConfig = intent.extras?.getBoolean(IntentKey.CACHE_CONFIG_CHANGED, false)?:false
+        // 默认选中首页
+        mBinding.bottomNav.selectedItemId = R.id.navigation_home
 
         mBinding.vp.adapter = object : FragmentPagerAdapter(supportFragmentManager) {
             override fun getItem(position: Int): Fragment {
@@ -34,36 +37,54 @@ class MainActivity : BaseVbActivity<ActivityMainBinding>() {
                 return fragments.size
             }
         }
+        mBinding.vp.offscreenPageLimit = fragments.size
 
         mBinding.bottomNav.setOnNavigationItemSelectedListener { menuItem: MenuItem ->
-            mBinding.vp.setCurrentItem(menuItem.order, false)
-            true
-        }
-        mBinding.vp.addOnPageChangeListener(object : SimpleOnPageChangeListener() {
-            override fun onPageSelected(position: Int) {
-                mBinding.bottomNav.menu.getItem(position).setChecked(true)
+            when (menuItem.itemId) {
+                R.id.navigation_home -> {
+                    mBinding.vp.currentItem = 0
+                    true
+                }
+                R.id.navigation_live -> {
+                    startActivity(Intent(this, LiveActivity::class.java))
+                    false   // 不切换选中（保持之前的高亮）
+                }
+                R.id.navigation_favorite -> {
+                    startActivity(Intent(this, CollectActivity::class.java))
+                    false
+                }
+                R.id.navigation_history -> {
+                    startActivity(Intent(this, HistoryActivity::class.java))
+                    false
+                }
+                R.id.navigation_my -> {
+                    mBinding.vp.currentItem = 1
+                    true
+                }
+                else -> false
             }
-        })
+        }
     }
 
     override fun onBackPressed() {
         if (mBinding.vp.currentItem == 1) {
+            mBinding.bottomNav.selectedItemId = R.id.navigation_home
             mBinding.vp.currentItem = 0
             return
         }
         val homeFragment = fragments[0] as HomeFragment
-        if (!homeFragment.isAdded) { // 资源不足销毁重建时未挂载到activity时getChildFragmentManager会崩溃
+        if (!homeFragment.isAdded) {
             confirmExit()
             return
         }
         val childFragments = homeFragment.allFragments
-        if (childFragments.isEmpty()) { //加载中(没有tab)
+        if (childFragments.isEmpty()) {
             confirmExit()
             return
         }
         val fragment: Fragment = childFragments[homeFragment.tabIndex]
-        if (fragment is GridFragment) { // 首页数据源动态加载的tab
-            if (!fragment.restoreView()) { // 有回退的view,先回退(AList等文件夹列表),没有可回退的,返到主页tab
+        if (fragment is GridFragment) {
+            if (!fragment.restoreView()) {
                 if (!homeFragment.scrollToFirstTab()) {
                     confirmExit()
                 }
@@ -77,6 +98,7 @@ class MainActivity : BaseVbActivity<ActivityMainBinding>() {
         if (System.currentTimeMillis() - exitTime > 2000) {
             ToastUtils.showShort("再按一次退出程序")
             exitTime = System.currentTimeMillis()
+            exitProcess(0)
         } else {
             ActivityUtils.finishAllActivities(true)
             Process.killProcess(Process.myPid())
