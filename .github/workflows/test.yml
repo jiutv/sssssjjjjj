@@ -73,6 +73,10 @@ jobs:
             "platforms;android-33" \
             "build-tools;33.0.2"
 
+      - name: Copy signing keystore
+        run: |
+          cp -v .github/workflows/TVBoxOSC.jks app/TVBoxOSC.jks
+
       - name: Build APK
         env:
           # 网络抖动自动重试 5 次，每次最多 30s 超时
