@@ -68,9 +68,12 @@ android {
         }
 
         release {
-            // 有正式签名文件就用，没有就用 debug 默认签名（能装就行）
             if (hasReleaseKeystore) {
                 signingConfig signingConfigs.config
+            } else {
+                // 没有正式签名文件 → fallback 到 Gradle 内置 debug 签名（能装就行）
+                // 不能留空！空的话 AGP 会输出 unsigned APK，装不上！
+                signingConfig signingConfigs.debug
             }
             minifyEnabled false
         }
