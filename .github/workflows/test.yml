@@ -26,6 +26,9 @@ jobs:
       - name: Set up Android SDK
         run: |
           set -e
+          # AGP 8+ 要求 SDK 路径只能通过 ANDROID_HOME 注入，不能有 ANDROID_SDK_ROOT 冲突
+          unset ANDROID_SDK_ROOT
+
           ANDROID_HOME="${GITHUB_WORKSPACE}/android-sdk"
           echo "ANDROID_HOME=${ANDROID_HOME}" >> "$GITHUB_ENV"
 
