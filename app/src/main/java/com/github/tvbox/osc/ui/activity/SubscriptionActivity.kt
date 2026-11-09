@@ -1,6 +1,7 @@
 package com.github.tvbox.osc.ui.activity
 
 import android.content.Intent
+import android.net.Uri
 import android.text.TextUtils
 import android.view.Gravity
 import android.view.View
@@ -34,6 +35,7 @@ import com.lzy.okgo.callback.AbsCallback
 import com.lzy.okgo.model.Response
 import com.obsez.android.lib.filechooser.ChooserDialog
 import com.orhanobut.hawk.Hawk
+import org.apache.commons.lang3.StringUtils
 import java.util.function.Consumer
 
 class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
@@ -175,6 +177,9 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
                 showLongClickMenu(item, position, isLive = true, anchorView = view.findViewById(R.id.tv_name))
                 true
             }
+
+        // ========== 自动从点播订阅源解析直播源 ==========
+        tryLoadLiveFromVodSource()
     }
 
     // ========== Tab 初始化 ==========
@@ -211,6 +216,95 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
             mBinding.rvLive.visibility = View.VISIBLE
             mBinding.ivUseTip.visibility = View.GONE
         }
+    }
+
+    // ========== 从当前点播订阅源自动提取直播源 ==========
+    private fun tryLoadLiveFromVodSource() {
+        if (TextUtils.isEmpty(mSelectedUrl)) return
+        val apiUrl = mSelectedUrl
+        val configUrl: String = when {
+            apiUrl.startsWith("clan") -> apiUrl
+            apiUrl.startsWith("http") -> apiUrl
+            else -> "http://$apiUrl"
+        }
+
+        OkGo.get<String>(configUrl)
+            .tag("load_live_from_vod")
+            .execute(object : AbsCallback<String?>() {
+                override fun onSuccess(response: Response<String?>) {
+                    try {
+                        val json = JsonParser.parseString(response.body()).asJsonObject
+                        if (!json.has("lives")) return
+
+                        val livesArray = json.getAsJsonArray("lives")
+                        if (livesArray == null || livesArray.size() == 0) return
+
+                        // 从 lives 数组里提取所有直播 URL
+                        val liveUrls = mutableListOf<String>()
+                        for (element in livesArray) {
+                            try {
+                                val livesObj = element.asJsonObject
+                                // 格式1: proxy://...?ext=xxx (ext 是 base64 或 http/clan URL)
+                                if (livesObj.has("proxy")) {
+                                    val proxyUrl = livesObj.get("proxy").asString
+                                    val index = proxyUrl.indexOf("proxy://")
+                                    if (index != -1) {
+                                        val endIndex = proxyUrl.lastIndexOf("\"")
+                                        val url = if (endIndex != -1) proxyUrl.substring(index, endIndex) else proxyUrl.substring(index)
+                                        val extUrl = Uri.parse(url).getQueryParameter("ext")
+                                        if (!extUrl.isNullOrEmpty()) {
+                                            if (extUrl.startsWith("http") || extUrl.startsWith("clan://")) {
+                                                liveUrls.add(extUrl)
+                                            } else {
+                                                // base64 编码的 URL
+                                                try {
+                                                    val decoded = android.util.Base64.decode(extUrl, android.util.Base64.DEFAULT or android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP)
+                                                        .toString(Charsets.UTF_8)
+                                                    liveUrls.add(decoded)
+                                                } catch (_: Throwable) {}
+                                            }
+                                        }
+                                    }
+                                }
+                                // 格式2: FengMi type=0, 直接 url 字段
+                                if (livesObj.has("type") && livesObj.get("type").asString == "0") {
+                                    val url = livesObj.get("url").asString
+                                    if (url.startsWith("http")) liveUrls.add(url)
+                                }
+                                // 格式3: 直接 lives 数组里就是 channels (FongMi 格式)
+                                if (!livesObj.has("type") && livesObj.has("channels")) {
+                                    // 这种是内置直播，不需要外部 URL
+                                }
+                            } catch (_: Throwable) {}
+                        }
+
+                        // 把解析到的直播 URL 加到列表里(已存在则跳过)
+                        for (liveUrl in liveUrls) {
+                            val exists = mLiveSubscriptions.any { it.url == liveUrl }
+                            if (!exists) {
+                                val name = "直播源: ${mLiveSubscriptions.size + 1}"
+                                val sub = Subscription(name, liveUrl)
+                                mLiveSubscriptions.add(sub)
+                            }
+                        }
+
+                        // 自动选中第一个(如果当前没选中的)
+                        if (TextUtils.isEmpty(mSelectedLiveUrl) && mLiveSubscriptions.isNotEmpty()) {
+                            mLiveSubscriptions.firstOrNull { !it.isDisabled }?.let {
+                                it.setChecked(true)
+                                mSelectedLiveUrl = it.url
+                            }
+                        }
+                        mLiveSubscriptionAdapter.setNewData(mLiveSubscriptions)
+                    } catch (_: Throwable) {
+                        // 解析失败不影响现有列表
+                    }
+                }
+
+                override fun onError(response: Response<String?>) {
+                    // 网络失败不影响，保留用户已添加的直播源
+                }
+            })
     }
 
     // ========== 添加点播订阅 (原有逻辑) ==========
