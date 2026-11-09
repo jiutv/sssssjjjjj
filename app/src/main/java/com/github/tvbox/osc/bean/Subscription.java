@@ -16,6 +16,8 @@ public class Subscription {
     boolean isChecked;
     //置顶
     private boolean top;
+    //禁用
+    private boolean disabled;
 
     public boolean isTop() {
         return top;
@@ -48,6 +50,15 @@ public class Subscription {
 
     public void setUrl(String url) {
         this.url = url;
+    }
+
+    public boolean isDisabled() {
+        return disabled;
+    }
+
+    public Subscription setDisabled(boolean disabled) {
+        this.disabled = disabled;
+        return this;
     }
 
 }

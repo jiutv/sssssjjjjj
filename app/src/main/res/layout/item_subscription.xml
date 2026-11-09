@@ -1,71 +1,119 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/item"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/item"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="horizontal"
-    android:padding="10dp">
+    android:layout_marginHorizontal="10dp"
+    android:layout_marginBottom="10dp"
+    android:background="@drawable/bg_sub_card"
+    android:padding="14dp">
 
-    <CheckBox
+    <!-- 源图标容器 -->
+    <FrameLayout
+        android:id="@+id/fl_icon"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@android:color/white"
+        android:layout_marginEnd="12dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <ImageView
+            android:id="@+id/iv_sub_icon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_sub_source" />
+    </FrameLayout>
+
+    <!-- 名称行：名称 + 禁用标签 -->
+    <TextView
+        android:id="@+id/tv_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_foreground"
+        tools:text="我的订阅 ✨"
+        app:layout_constraintStart_toEndOf="@id/fl_icon"
+        app:layout_constraintEnd_toStartOf="@id/cb"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tv_disabled"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="#20FF3B30"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="1dp"
+        android:text="已停用"
+        android:textColor="#FF3B30"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        android:layout_marginStart="6dp"
+        app:layout_constraintStart_toEndOf="@id/tv_name"
+        app:layout_constraintTop_toTopOf="@id/tv_name"
+        app:layout_constraintBottom_toBottomOf="@id/tv_name" />
+
+    <!-- URL 行 -->
+    <TextView
+        android:id="@+id/tv_url"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:singleLine="true"
+        android:ellipsize="middle"
+        android:textSize="12sp"
+        android:textColor="@color/gray_darker"
+        tools:text="https://my-config.example.com/api.json"
+        android:layout_marginTop="3dp"
+        app:layout_constraintStart_toEndOf="@id/fl_icon"
+        app:layout_constraintEnd_toStartOf="@id/iv_pushpin"
+        app:layout_constraintTop_toBottomOf="@id/tv_name" />
+
+    <!-- Switch 开关 (保留 id=cb, Adapter 用 setChecked) -->
+    <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/cb"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:clickable="false"
-        android:checked="false"
-        android:focusable="false"/>
+        android:focusable="false"
+        android:layout_marginStart="8dp"
+        app:layout_constraintEnd_toStartOf="@id/iv_pushpin"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
-    <TextView
-        android:id="@+id/tv_name"
-        android:layout_width="200dp"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:singleLine="true"
-        android:textSize="16dp"
-        android:ellipsize="end"
-        android:marqueeRepeatLimit="marquee_forever"
-        tools:text="小账订阅小账订阅小账订阅"
-        android:textColor="@color/text_foreground"
-        android:layout_toRightOf="@+id/cb"
-        />
-
-    <TextView
-        android:id="@+id/tv_url"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:ellipsize="middle"
-        android:singleLine="true"
-        android:layout_below="@+id/tv_name"
-        android:layout_marginTop="8dp"
-        tools:text="https://"
-        android:layout_toRightOf="@+id/cb"/>
-
-    <ImageView
-        android:id="@+id/iv_del"
-        android:layout_width="30dp"
-        android:layout_height="30dp"
-        android:layout_marginStart="@dimen/dp_5"
-        android:layout_marginLeft="@dimen/dp_5"
-        android:paddingHorizontal="6dp"
-        android:src="@drawable/dkplayer_ic_action_close"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentTop="true"
-        app:tint="@color/red"/>
-
+    <!-- 置顶图标 -->
     <ImageView
         android:id="@+id/iv_pushpin"
-        android:layout_width="30dp"
-        android:layout_height="30dp"
-        android:layout_marginStart="@dimen/dp_5"
-        android:layout_marginLeft="@dimen/dp_5"
-        android:paddingHorizontal="6dp"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:paddingHorizontal="5dp"
         android:src="@drawable/ic_pushpin"
-        android:layout_toLeftOf="@+id/iv_del"
-        app:tint="@color/red"
         android:visibility="gone"
-        tools:visibility="visible"/>
+        android:layout_marginStart="6dp"
+        app:tint="@color/colorPrimary"
+        app:layout_constraintEnd_toStartOf="@id/iv_del"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:visibility="visible" />
 
-</RelativeLayout>
+    <!-- 删除按钮 -->
+    <ImageView
+        android:id="@+id/iv_del"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:paddingHorizontal="6dp"
+        android:src="@drawable/dkplayer_ic_action_close"
+        app:tint="@color/red"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
+</androidx.constraintlayout.widget.ConstraintLayout>

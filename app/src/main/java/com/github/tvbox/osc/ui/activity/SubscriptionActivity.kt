@@ -114,6 +114,10 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
         }
 
         mSubscriptionAdapter.setOnItemClickListener { _: BaseQuickAdapter<*, *>?, _: View?, position: Int ->
+            val clicked = mSubscriptions[position]
+            if (clicked.isDisabled) {
+                clicked.setDisabled(false)
+            }
             for (i in mSubscriptions.indices) {
                 val subscription = mSubscriptions[i]
                 if (i == position) {
@@ -149,6 +153,10 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
         }
 
         mLiveSubscriptionAdapter.setOnItemClickListener { _: BaseQuickAdapter<*, *>?, _: View?, position: Int ->
+            val clicked = mLiveSubscriptions[position]
+            if (clicked.isDisabled) {
+                clicked.setDisabled(false)
+            }
             for (i in mLiveSubscriptions.indices) {
                 val subscription = mLiveSubscriptions[i]
                 if (i == position) {
@@ -176,15 +184,23 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
         tabConfigView.bottomMargin = 15
 
         val tab0 = TextView(this)
-        tab0.text = "配置订阅"
+        tab0.text = "点播"
         tab0.gravity = Gravity.CENTER
         tab0.setPadding(20, 10, 20, 10)
+        val vodIcon = resources.getDrawable(R.drawable.ic_sub_source, null)
+        vodIcon?.setBounds(0, 0, 24, 24)
+        tab0.setCompoundDrawables(null, vodIcon, null, null)
+        tab0.compoundDrawablePadding = 4
         mBinding.tabLayout.addView(tab0, tabConfigView)
 
         val tab1 = TextView(this)
-        tab1.text = "直播订阅"
+        tab1.text = "直播"
         tab1.gravity = Gravity.CENTER
         tab1.setPadding(20, 10, 20, 10)
+        val liveIcon = resources.getDrawable(R.drawable.ic_sub_source, null)
+        liveIcon?.setBounds(0, 0, 24, 24)
+        tab1.setCompoundDrawables(null, liveIcon, null, null)
+        tab1.compoundDrawablePadding = 4
         mBinding.tabLayout.addView(tab1, tabConfigView)
 
         mBinding.tabLayout.setCurrentItem(0, true, false)
@@ -192,7 +208,7 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
         mBinding.tabLayout.configTabLayoutConfig {
             onSelectViewChange = { _, selectViewList, _, _ ->
                 val selectedTab = (selectViewList.first() as? TextView)?.text?.toString()
-                currentTab = if (selectedTab == "直播订阅") 1 else 0
+                currentTab = if (selectedTab == "直播") 1 else 0
                 if (currentTab == 0) {
                     mBinding.rv.visibility = View.VISIBLE
                     mBinding.rvLive.visibility = View.GONE
@@ -362,18 +378,18 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
     ) {
         val adapter = if (isLive) mLiveSubscriptionAdapter else mSubscriptionAdapter
         val list = if (isLive) mLiveSubscriptions else mSubscriptions
-        val listName = if (isLive) mSelectedLiveUrl else mSelectedUrl
+
+        val menuItems = arrayOf(
+            if (item.isTop) "取消置顶" else "置顶",
+            "重命名",
+            "复制地址",
+            if (item.isDisabled) "启用源" else "停用源"
+        )
 
         XPopup.Builder(this)
             .atView(anchorView)
             .hasShadowBg(false)
-            .asAttachList(
-                arrayOf(
-                    if (item.isTop) "取消置顶" else "置顶",
-                    "重命名",
-                    "复制地址"
-                ), null
-            ) { index: Int, _: String? ->
+            .asAttachList(menuItems, null) { index: Int, _: String? ->
                 when (index) {
                     0 -> {
                         item.isTop = !item.isTop
@@ -404,6 +420,19 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
                     2 -> {
                         ClipboardUtils.copyText(list[position].url)
                         ToastUtils.showLong("已复制")
+                    }
+                    3 -> {
+                        // 停用/启用
+                        if (!item.isDisabled && item.isChecked) {
+                            ToastUtils.showShort("请先切换到其他订阅再停用")
+                            return@asAttachList
+                        }
+                        item.setDisabled(!item.isDisabled)
+                        if (item.isDisabled) {
+                            item.setChecked(false)
+                        }
+                        list[position] = item
+                        adapter.setNewData(list)
                     }
                 }
             }.show()

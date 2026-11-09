@@ -37,21 +37,21 @@
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv"
-        android:background="@drawable/bg_large_round_gray"
-        android:layout_margin="10dp"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingTop="4dp"
         tools:listitem="@layout/item_subscription"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_live"
-        android:background="@drawable/bg_large_round_gray"
-        android:layout_margin="10dp"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingTop="4dp"
         android:visibility="gone"
         tools:listitem="@layout/item_subscription"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
