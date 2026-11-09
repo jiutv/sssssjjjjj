@@ -177,48 +177,39 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
             }
     }
 
-    // ========== TabLayout 初始化 ==========
+    // ========== Tab 初始化 ==========
     private fun initTabLayout() {
-        val tabConfigView = DslTabLayout.LayoutParams(-2, -2)
-        tabConfigView.topMargin = 15
-        tabConfigView.bottomMargin = 15
+        selectTab(0)
+        mBinding.tabVod.setOnClickListener { selectTab(0) }
+        mBinding.tabLive.setOnClickListener { selectTab(1) }
+    }
 
-        val tab0 = TextView(this)
-        tab0.text = "点播"
-        tab0.gravity = Gravity.CENTER
-        tab0.setPadding(20, 10, 20, 10)
-        val vodIcon = resources.getDrawable(R.drawable.ic_sub_source, null)
-        vodIcon?.setBounds(0, 0, 24, 24)
-        tab0.setCompoundDrawables(null, vodIcon, null, null)
-        tab0.compoundDrawablePadding = 4
-        mBinding.tabLayout.addView(tab0, tabConfigView)
-
-        val tab1 = TextView(this)
-        tab1.text = "直播"
-        tab1.gravity = Gravity.CENTER
-        tab1.setPadding(20, 10, 20, 10)
-        val liveIcon = resources.getDrawable(R.drawable.ic_sub_source, null)
-        liveIcon?.setBounds(0, 0, 24, 24)
-        tab1.setCompoundDrawables(null, liveIcon, null, null)
-        tab1.compoundDrawablePadding = 4
-        mBinding.tabLayout.addView(tab1, tabConfigView)
-
-        mBinding.tabLayout.setCurrentItem(0, true, false)
-
-        mBinding.tabLayout.configTabLayoutConfig {
-            onSelectViewChange = { _, selectViewList, _, _ ->
-                val selectedTab = (selectViewList.first() as? TextView)?.text?.toString()
-                currentTab = if (selectedTab == "直播") 1 else 0
-                if (currentTab == 0) {
-                    mBinding.rv.visibility = View.VISIBLE
-                    mBinding.rvLive.visibility = View.GONE
-                    mBinding.ivUseTip.visibility = View.VISIBLE
-                } else {
-                    mBinding.rv.visibility = View.GONE
-                    mBinding.rvLive.visibility = View.VISIBLE
-                    mBinding.ivUseTip.visibility = View.GONE
-                }
-            }
+    private fun selectTab(index: Int) {
+        currentTab = index
+        val selectedTextColor = resources.getColor(R.color.title_fouse_n, null)
+        val unselectedTextColor = resources.getColor(R.color.gray_darker, null)
+        if (index == 0) {
+            // 配置订阅
+            mBinding.tabVodText.setTextColor(selectedTextColor)
+            mBinding.tabVodText.setTypeface(null, android.graphics.Typeface.BOLD)
+            mBinding.tabVodIndicator.alpha = 1f
+            mBinding.tabLiveText.setTextColor(unselectedTextColor)
+            mBinding.tabLiveText.setTypeface(null, android.graphics.Typeface.NORMAL)
+            mBinding.tabLiveIndicator.alpha = 0f
+            mBinding.rv.visibility = View.VISIBLE
+            mBinding.rvLive.visibility = View.GONE
+            mBinding.ivUseTip.visibility = View.VISIBLE
+        } else {
+            // 直播订阅
+            mBinding.tabLiveText.setTextColor(selectedTextColor)
+            mBinding.tabLiveText.setTypeface(null, android.graphics.Typeface.BOLD)
+            mBinding.tabLiveIndicator.alpha = 1f
+            mBinding.tabVodText.setTextColor(unselectedTextColor)
+            mBinding.tabVodText.setTypeface(null, android.graphics.Typeface.NORMAL)
+            mBinding.tabVodIndicator.alpha = 0f
+            mBinding.rv.visibility = View.GONE
+            mBinding.rvLive.visibility = View.VISIBLE
+            mBinding.ivUseTip.visibility = View.GONE
         }
     }
 

@@ -5,7 +5,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center_horizontal"
     tools:context=".ui.activity.SubscriptionActivity">
 
     <com.hjq.bar.TitleBar
@@ -25,15 +24,71 @@
             android:layout_marginRight="50dp"/>
     </com.hjq.bar.TitleBar>
 
-    <com.angcyo.tablayout.DslTabLayout
-        android:id="@+id/tab_layout"
+    <!-- ========== 横向均分 Tab ========== -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_large_round_gray"
-        android:layout_marginHorizontal="10dp"
-        android:layout_marginTop="6dp"
-        />
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
 
+        <!-- 配置订阅 Tab -->
+        <LinearLayout
+            android:id="@+id/tab_vod"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingVertical="10dp">
+
+            <TextView
+                android:id="@+id/tab_vod_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="配置订阅"
+                android:textColor="@color/title_fouse_n"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <View
+                android:id="@+id/tab_vod_indicator"
+                android:layout_width="36dp"
+                android:layout_height="2.5dp"
+                android:layout_marginTop="4dp"
+                android:background="@color/title_fouse_n" />
+        </LinearLayout>
+
+        <!-- 直播订阅 Tab -->
+        <LinearLayout
+            android:id="@+id/tab_live"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingVertical="10dp">
+
+            <TextView
+                android:id="@+id/tab_live_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="直播订阅"
+                android:textColor="@color/gray_darker"
+                android:textSize="15sp" />
+
+            <View
+                android:id="@+id/tab_live_indicator"
+                android:layout_width="36dp"
+                android:layout_height="2.5dp"
+                android:layout_marginTop="4dp"
+                android:background="@color/title_fouse_n"
+                android:alpha="0" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ========== 内容区 ========== -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
