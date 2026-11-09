@@ -32,7 +32,7 @@ class HistoryActivity : BaseVbActivity<ActivityHistoryBinding>() {
 
     private var historyAdapter: HistoryAdapter? = null
     private val collectAdapter = CollectAdapter()
-    private var collectLoadService: LoadService? = null
+    private var collectLoadService: LoadService<*>? = null
     private var currentTab = 0 // 0=历史 1=收藏
 
     override fun init() {
