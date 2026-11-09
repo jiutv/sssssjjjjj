@@ -50,10 +50,6 @@ class MainActivity : BaseVbActivity<ActivityMainBinding>() {
                     startActivity(Intent(this, LiveActivity::class.java))
                     false   // 不切换选中（保持之前的高亮）
                 }
-                R.id.navigation_favorite -> {
-                    startActivity(Intent(this, CollectActivity::class.java))
-                    false
-                }
                 R.id.navigation_history -> {
                     startActivity(Intent(this, HistoryActivity::class.java))
                     false
