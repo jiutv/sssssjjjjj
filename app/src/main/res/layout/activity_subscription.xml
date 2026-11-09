@@ -26,12 +26,33 @@
             android:layout_marginRight="50dp"/>
     </com.hjq.bar.TitleBar>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:background="@drawable/bg_large_round_gray"
-        android:layout_margin="10dp"
-        android:id="@+id/rv"
+    <com.angcyo.tablayout.DslTabLayout
+        android:id="@+id/tab_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@drawable/bg_large_round_gray"
+        android:layout_marginHorizontal="10dp"
+        android:layout_marginTop="6dp"
+        />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv"
+        android:background="@drawable/bg_large_round_gray"
+        android:layout_margin="10dp"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        tools:listitem="@layout/item_subscription"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_live"
+        android:background="@drawable/bg_large_round_gray"
+        android:layout_margin="10dp"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:visibility="gone"
         tools:listitem="@layout/item_subscription"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
 </LinearLayout>
