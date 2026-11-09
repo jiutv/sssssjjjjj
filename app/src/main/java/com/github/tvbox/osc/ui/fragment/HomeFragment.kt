@@ -97,12 +97,6 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
         mBinding.search.setOnClickListener {
             jumpActivity(FastSearchActivity::class.java)
         }
-        mBinding.ivHistory.setOnClickListener {
-            jumpActivity(HistoryActivity::class.java)
-        }
-        mBinding.ivCollect.setOnClickListener {
-            jumpActivity(CollectActivity::class.java)
-        }
         setLoadSir(mBinding.contentLayout)
         initViewModel()
         initData()

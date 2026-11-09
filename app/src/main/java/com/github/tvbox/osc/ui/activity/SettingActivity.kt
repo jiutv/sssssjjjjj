@@ -50,8 +50,6 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
 
         mBinding.tvDns.text = OkGoHelper.dnsHttpsList[Hawk.get(HawkConfig.DOH_URL, 0)]
         mBinding.tvHomeRec.text = getHomeRecName(Hawk.get(HawkConfig.HOME_REC, 0))
-        mBinding.tvHistoryNum.text =
-            HistoryHelper.getHistoryNumName(Hawk.get(HawkConfig.HISTORY_NUM, 0))
         mBinding.tvScaleType.text = PlayerHelper.getScaleName(Hawk.get(HawkConfig.PLAY_SCALE, 0))
         mBinding.tvPlay.text = PlayerHelper.getPlayerName(Hawk.get(HawkConfig.PLAY_TYPE, 0))
         mBinding.tvRenderType.text =
@@ -62,13 +60,6 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
             val newConfig = !Hawk.get(HawkConfig.PRIVATE_BROWSING, false)
             mBinding.switchPrivateBrowsing.setChecked(newConfig)
             Hawk.put(HawkConfig.PRIVATE_BROWSING, newConfig)
-        }
-
-        mBinding.llLiveApi.setOnClickListener {
-            XPopup.Builder(mContext)
-                .autoFocusEditText(false)
-                .asCustom(LiveApiDialog(this))
-                .show()
         }
 
         val defaultBgPlayTypePos = Hawk.get(HawkConfig.BACKGROUND_PLAY_TYPE, 0)
@@ -336,35 +327,6 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
             dialog.show()
         }
         
-        mBinding.llHistoryNum.setOnClickListener { v: View? ->
-            FastClickCheckUtil.check(v)
-            val defaultPos = Hawk.get(HawkConfig.HISTORY_NUM, 0)
-            val types = ArrayList<Int>()
-            types.add(0)
-            types.add(1)
-            types.add(2)
-            val dialog = SelectDialog<Int>(this@SettingActivity)
-            dialog.setTip("保留历史记录数量")
-            dialog.setAdapter(object : SelectDialogInterface<Int?> {
-                override fun click(value: Int?, pos: Int) {
-                    Hawk.put(HawkConfig.HISTORY_NUM, value)
-                    mBinding.tvHistoryNum.text = HistoryHelper.getHistoryNumName(value?:0)
-                }
-
-                override fun getDisplay(value: Int?): String {
-                    return HistoryHelper.getHistoryNumName(value?:0)
-                }
-            }, object : DiffUtil.ItemCallback<Int>() {
-                override fun areItemsTheSame(oldItem: Int, newItem: Int): Boolean {
-                    return oldItem == newItem
-                }
-
-                override fun areContentsTheSame(oldItem: Int, newItem: Int): Boolean {
-                    return oldItem == newItem
-                }
-            }, types, defaultPos)
-            dialog.show()
-        }
         mBinding.llClearCache.setOnClickListener { view: View ->
             XPopup.Builder(this)
                 .isDarkTheme(Utils.isDarkTheme())
