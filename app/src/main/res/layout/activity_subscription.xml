@@ -12,47 +12,128 @@
         android:id="@+id/title_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:title="订阅管理"
-        app:rightIcon="@drawable/ic_add_24"
-        >
+        app:title="订阅管理">
 
+        <!-- 点播帮助图标 (只在点播部分有意义) -->
         <ImageView
             android:id="@+id/iv_use_tip"
             android:layout_width="wrap_content"
             android:layout_height="20dp"
-            android:src="@drawable/ic_use_description_24"
+            android:layout_marginRight="80dp"
             android:layout_gravity="end|center_vertical"
             android:paddingLeft="20dp"
-            android:layout_marginRight="50dp"/>
+            android:src="@drawable/ic_use_description_24" />
+
+        <!-- 直播源添加按钮 -->
+        <ImageView
+            android:id="@+id/iv_add_live"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="15dp"
+            android:layout_gravity="end|center_vertical"
+            android:padding="8dp"
+            android:src="@drawable/ic_add_24" />
+
+        <!-- 点播订阅添加按钮 -->
+        <ImageView
+            android:id="@+id/iv_add_vod"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|center_vertical"
+            android:padding="8dp"
+            android:src="@drawable/ic_add_24" />
     </com.hjq.bar.TitleBar>
 
-    <com.angcyo.tablayout.DslTabLayout
-        android:id="@+id/tab_layout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@drawable/bg_large_round_gray"
-        android:layout_marginHorizontal="10dp"
-        android:layout_marginTop="6dp"
-        />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv"
+    <!-- ========== 上半部分: 点播订阅 ========== -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:clipToPadding="false"
-        android:paddingTop="4dp"
-        tools:listitem="@layout/item_subscription"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+        android:orientation="vertical">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_live"
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="6dp">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_sub_source" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="点播订阅"
+                android:textColor="@color/text_foreground"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingBottom="4dp"
+            tools:listitem="@layout/item_subscription"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+    </LinearLayout>
+
+    <!-- 分隔线 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/light_gray_color"
+        android:layout_marginHorizontal="16dp" />
+
+    <!-- ========== 下半部分: 直播订阅 ========== -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:clipToPadding="false"
-        android:paddingTop="4dp"
-        android:visibility="gone"
-        tools:listitem="@layout/item_subscription"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="6dp">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_sub_source" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="直播订阅"
+                android:textColor="@color/text_foreground"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_live"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingBottom="4dp"
+            tools:listitem="@layout/item_subscription"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+    </LinearLayout>
 </LinearLayout>
