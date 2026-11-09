@@ -14,21 +14,15 @@
         android:title="直播"/>
 
     <item
-        android:id="@+id/navigation_favorite"
-        android:icon="@drawable/ic_colloct_18"
-        android:orderInCategory="2"
-        android:title="收藏"/>
-
-    <item
         android:id="@+id/navigation_history"
         android:icon="@drawable/ic_history_48"
-        android:orderInCategory="3"
+        android:orderInCategory="2"
         android:title="历史"/>
 
     <item
         android:id="@+id/navigation_my"
         android:icon="@drawable/ic_my"
-        android:orderInCategory="4"
+        android:orderInCategory="3"
         android:title="我的"/>
 
 </menu>
