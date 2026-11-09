@@ -231,6 +231,10 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
         OkGo.get<String>(configUrl)
             .tag("load_live_from_vod")
             .execute(object : AbsCallback<String?>() {
+                override fun convertResponse(response: okhttp3.Response): String? {
+                    return response.body()?.string()
+                }
+
                 override fun onSuccess(response: Response<String?>) {
                     try {
                         val json = JsonParser.parseString(response.body()).asJsonObject
