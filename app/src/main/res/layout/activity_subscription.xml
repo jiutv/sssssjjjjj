@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="?attr/skin_page"
     android:orientation="vertical"
     tools:context=".ui.activity.SubscriptionActivity">
 
@@ -48,7 +49,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="配置订阅"
-                android:textColor="@color/title_fouse_n"
+                android:textColor="?attr/skin_accent"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
@@ -57,7 +58,7 @@
                 android:layout_width="36dp"
                 android:layout_height="2.5dp"
                 android:layout_marginTop="4dp"
-                android:background="@color/title_fouse_n" />
+                android:background="?attr/skin_accent" />
         </LinearLayout>
 
         <!-- 直播订阅 Tab -->
@@ -75,7 +76,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="直播订阅"
-                android:textColor="@color/gray_darker"
+                android:textColor="?attr/skin_text_secondary"
                 android:textSize="15sp" />
 
             <View
@@ -83,7 +84,7 @@
                 android:layout_width="36dp"
                 android:layout_height="2.5dp"
                 android:layout_marginTop="4dp"
-                android:background="@color/title_fouse_n"
+                android:background="?attr/skin_accent"
                 android:alpha="0" />
         </LinearLayout>
     </LinearLayout>

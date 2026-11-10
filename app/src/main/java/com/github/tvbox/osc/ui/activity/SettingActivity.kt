@@ -335,21 +335,28 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             mBinding.llTheme.visibility = View.GONE
         }
-        val oldTheme = Hawk.get(HawkConfig.THEME_TAG, 0)
-        val themes = arrayOf("跟随系统", "浅色", "深色")
+        val oldTheme = currentThemeIndexOf()
+        val themes = arrayOf("跟随系统", "浅色", "深色", "极简线框", "暗黑霓虹", "分段卡片")
         mBinding.tvTheme.text = themes[oldTheme]
         mBinding.llTheme.setOnClickListener(View.OnClickListener { view: View? ->
             FastClickCheckUtil.check(view)
             val types = ArrayList<Int>()
-            types.add(0)
-            types.add(1)
-            types.add(2)
+            for (i in themes.indices) types.add(i)
             val dialog = SelectDialog<Int>(this@SettingActivity)
             dialog.setTip("请选择")
             dialog.setAdapter(object : SelectDialogInterface<Int?> {
                 override fun click(value: Int?, pos: Int) {
-                    mBinding.tvTheme.text = themes[value?:0]
-                    Hawk.put(HawkConfig.THEME_TAG, value)
+                    val v = value ?: 0
+                    when (v) {
+                        0, 1, 2 -> {
+                            Hawk.put(HawkConfig.THEME_TAG, v)
+                            Hawk.put(HawkConfig.SKIN_TAG, 0)
+                        }
+                        3 -> Hawk.put(HawkConfig.SKIN_TAG, 1)
+                        4 -> Hawk.put(HawkConfig.SKIN_TAG, 2)
+                        5 -> Hawk.put(HawkConfig.SKIN_TAG, 3)
+                    }
+                    mBinding.tvTheme.text = themes[v]
                 }
 
                 override fun getDisplay(value: Int?): String {
@@ -365,7 +372,7 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
                 }
             }, types, oldTheme)
             dialog.setOnDismissListener { dialog1: DialogInterface? ->
-                if (oldTheme != Hawk.get(HawkConfig.THEME_TAG, 0)) {
+                if (oldTheme != currentThemeIndexOf()) {
                     Utils.initTheme()
                     val bundle = Bundle()
                     bundle.putBoolean(IntentKey.CACHE_CONFIG_CHANGED, true)
@@ -409,6 +416,19 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
             overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
         } else {
             super.onBackPressed()
+        }
+    }
+
+    /**
+     * 主题颜色当前选中项的索引：
+     * 0跟随系统 1浅色 2深色 3极简线框 4暗黑霓虹 5分段卡片
+     */
+    private fun currentThemeIndexOf(): Int {
+        return when (Hawk.get<Int>(HawkConfig.SKIN_TAG, 0)) {
+            1 -> 3
+            2 -> 4
+            3 -> 5
+            else -> Hawk.get<Int>(HawkConfig.THEME_TAG, 0)
         }
     }
 

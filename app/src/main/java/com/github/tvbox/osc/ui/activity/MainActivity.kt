@@ -1,6 +1,7 @@
 package com.github.tvbox.osc.ui.activity
 
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.os.Process
 import android.view.MenuItem
 import androidx.fragment.app.Fragment
@@ -25,6 +26,8 @@ class MainActivity : BaseVbActivity<ActivityMainBinding>() {
 
     override fun init() {
         useCacheConfig = intent.extras?.getBoolean(IntentKey.CACHE_CONFIG_CHANGED, false)?:false
+
+        applySkinToNav()
 
         // 默认选中首页
         mBinding.bottomNav.selectedItemId = R.id.navigation_home
@@ -89,6 +92,24 @@ class MainActivity : BaseVbActivity<ActivityMainBinding>() {
         } else {
             confirmExit()
         }
+    }
+
+    /** 底部导航跟随皮肤主色 */
+    private fun applySkinToNav() {
+        val accent = attrColor(R.attr.skin_accent)
+        val muted = attrColor(R.attr.skin_text_secondary)
+        val colors = ColorStateList(
+            arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+            intArrayOf(accent, muted)
+        )
+        mBinding.bottomNav.itemIconTintList = colors
+        mBinding.bottomNav.itemTextColor = colors
+    }
+
+    private fun attrColor(attr: Int): Int {
+        val tv = android.util.TypedValue()
+        theme.resolveAttribute(attr, tv, true)
+        return if (tv.resourceId != 0) androidx.core.content.ContextCompat.getColor(this, tv.resourceId) else tv.data
     }
 
     private fun confirmExit() {

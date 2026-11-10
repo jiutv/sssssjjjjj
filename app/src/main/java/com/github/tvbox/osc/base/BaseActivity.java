@@ -54,6 +54,10 @@ public abstract class BaseActivity extends AppCompatActivity implements CustomAd
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        int skinRes = Utils.getSkinThemeRes();
+        if (skinRes != 0 && !"SplashActivity".equals(getClass().getSimpleName())) {
+            setTheme(skinRes);
+        }
         super.onCreate(savedInstanceState);
         EventBus.getDefault().register(this);
 

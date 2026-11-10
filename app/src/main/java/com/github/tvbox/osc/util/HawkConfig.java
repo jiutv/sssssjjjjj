@@ -50,6 +50,10 @@ public class HawkConfig {
      */
     public static final String THEME_TAG = "theme_tag";
     /**
+     * UI 皮肤,0默认,1极简线框,2暗黑霓虹,3分段卡片
+     */
+    public static final String SKIN_TAG = "skin_tag";
+    /**
      * 后台播放模式 0 关闭,1 开启,2 画中画
      */
     public static final String BACKGROUND_PLAY_TYPE = "background_play_type";

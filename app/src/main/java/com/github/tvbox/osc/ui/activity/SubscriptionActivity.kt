@@ -191,8 +191,8 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
 
     private fun selectTab(index: Int) {
         currentTab = index
-        val selectedTextColor = resources.getColor(R.color.title_fouse_n, null)
-        val unselectedTextColor = resources.getColor(R.color.gray_darker, null)
+        val selectedTextColor = attrColor(R.attr.skin_accent)
+        val unselectedTextColor = attrColor(R.attr.skin_text_secondary)
         if (index == 0) {
             // 配置订阅
             mBinding.tabVodText.setTextColor(selectedTextColor)
@@ -216,6 +216,13 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
             mBinding.rvLive.visibility = View.VISIBLE
             mBinding.ivUseTip.visibility = View.GONE
         }
+    }
+
+    /** 读取当前皮肤主题里的颜色 token */
+    private fun attrColor(attr: Int): Int {
+        val tv = android.util.TypedValue()
+        theme.resolveAttribute(attr, tv, true)
+        return if (tv.resourceId != 0) androidx.core.content.ContextCompat.getColor(this, tv.resourceId) else tv.data
     }
 
     // ========== 从当前点播订阅源自动提取直播源 ==========

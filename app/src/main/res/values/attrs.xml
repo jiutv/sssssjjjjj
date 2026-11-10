@@ -48,4 +48,14 @@
         <attr name="endColor" />
         <attr name="topDelta" />
     </declare-styleable>
+
+    <!-- ===== UI 皮肤 token（随「主题颜色」切换） ===== -->
+    <attr name="skin_page" format="color" />
+    <attr name="skin_card" format="color" />
+    <attr name="skin_card_border" format="color" />
+    <attr name="skin_text_primary" format="color" />
+    <attr name="skin_text_secondary" format="color" />
+    <attr name="skin_accent" format="color" />
+    <attr name="skin_accent_soft" format="color" />
+    <attr name="skin_on_accent" format="color" />
 </resources>

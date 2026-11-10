@@ -69,4 +69,31 @@
     <color name="color_59353744">#59353744</color>
     <color name="color_80FF0057">#66FF0057</color>
 
+    <!-- ===== UI 皮肤：极简线框 ===== -->
+    <color name="skin_min_page">#FFFFFF</color>
+    <color name="skin_min_card">#FFFFFF</color>
+    <color name="skin_min_border">#E6E6EA</color>
+    <color name="skin_min_text">#171717</color>
+    <color name="skin_min_text_2">#7A7A82</color>
+    <color name="skin_min_accent">#171717</color>
+    <color name="skin_min_accent_soft">#F1F1F4</color>
+
+    <!-- ===== UI 皮肤：暗黑霓虹 ===== -->
+    <color name="skin_neon_page">#151517</color>
+    <color name="skin_neon_card">#1D1D20</color>
+    <color name="skin_neon_border">#26FFFFFF</color>
+    <color name="skin_neon_text">#ECECEF</color>
+    <color name="skin_neon_text_2">#9B9BA3</color>
+    <color name="skin_neon_accent">#8B7CFF</color>
+    <color name="skin_neon_accent_soft">#2A2350</color>
+
+    <!-- ===== UI 皮肤：分段卡片 ===== -->
+    <color name="skin_card_page">#F4F4F7</color>
+    <color name="skin_card_bg">#FFFFFF</color>
+    <color name="skin_card_border">#E6E6EA</color>
+    <color name="skin_card_text">#171717</color>
+    <color name="skin_card_text_2">#6B6B73</color>
+    <color name="skin_card_accent">#4B3FE3</color>
+    <color name="skin_card_accent_soft">#EDEAFF</color>
+
 </resources>

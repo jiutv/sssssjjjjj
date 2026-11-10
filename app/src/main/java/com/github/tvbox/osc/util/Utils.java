@@ -7,6 +7,7 @@ import android.provider.MediaStore;
 
 import androidx.appcompat.app.AppCompatDelegate;
 
+import com.github.tvbox.osc.R;
 import com.github.tvbox.osc.base.App;
 import com.github.tvbox.osc.bean.VideoInfo;
 import com.github.tvbox.osc.bean.VodInfo;
@@ -101,6 +102,15 @@ public class Utils {
     }
 
     public static void initTheme(){
+        int skin = getSkinTag();
+        if (skin == 1 || skin == 3) {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+            return;
+        }
+        if (skin == 2) {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+            return;
+        }
         switch (Hawk.get(HawkConfig.THEME_TAG,0)) {
             case 0:
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
@@ -111,6 +121,29 @@ public class Utils {
             case 2:
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
                 break;
+        }
+    }
+
+    /**
+     * 当前 UI 皮肤, 0默认/1极简线框/2暗黑霓虹/3分段卡片
+     */
+    public static int getSkinTag() {
+        return Hawk.get(HawkConfig.SKIN_TAG, 0);
+    }
+
+    /**
+     * 当前皮肤对应的主题资源, 0 表示沿用默认 AppTheme
+     */
+    public static int getSkinThemeRes() {
+        switch (getSkinTag()) {
+            case 1:
+                return R.style.SkinMinimal;
+            case 2:
+                return R.style.SkinNeon;
+            case 3:
+                return R.style.SkinCard;
+            default:
+                return 0;
         }
     }
 }
