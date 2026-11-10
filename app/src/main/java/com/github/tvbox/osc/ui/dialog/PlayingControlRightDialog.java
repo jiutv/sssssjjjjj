@@ -118,6 +118,7 @@ public class PlayingControlRightDialog extends DrawerPopupView {
             mBinding.danmu.setText(open ? "弹幕开" : "弹幕关");
             EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_SET_DANMU_SETTINGS, true));
         });
+        mBinding.danmuSetting.setOnClickListener(view -> dismissWith(() -> new DanmuSettingDialog(getContext()).show()));
         mBinding.download.setOnClickListener(view -> dismissWith(mDetailActivity::use1DMDownload));
     }
 
