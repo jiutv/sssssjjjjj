@@ -142,6 +142,7 @@ public class VodController extends BaseController {
     TextView mVideoSize;
     public SimpleSubtitleView mSubtitleView;
     public TextView mZimuBtn;
+    public TextView mDanmuBtn;
     public TextView mAudioTrackBtn;
     public TextView mLandscapePortraitBtn;
     private ImageView mIvPlayStatus;
@@ -226,6 +227,7 @@ public class VodController extends BaseController {
         mVideoSize = findViewById(R.id.tv_videosize);
         mSubtitleView = findViewById(R.id.subtitle_view);
         mZimuBtn = findViewById(R.id.zimu_select);
+        mDanmuBtn = findViewById(R.id.danmu_setting);
         mAudioTrackBtn = findViewById(R.id.audio_track_select);
         mLandscapePortraitBtn = findViewById(R.id.landscape_portrait);
         mIvPlayStatus = findViewById(R.id.play_status);
@@ -747,6 +749,11 @@ public class VodController extends BaseController {
             mNextBtn.setVisibility(GONE);
             mChooseSeries.setVisibility(GONE);
         }
+    }
+
+    public void setHasDanmu(boolean hasDanmu) {
+        if (mDanmuBtn == null) return;
+        mDanmuBtn.setAlpha(hasDanmu ? 1.0f : 0.6f);
     }
 
     public interface VodControlListener {

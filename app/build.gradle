@@ -165,4 +165,6 @@ dependencies {
     implementation 'org.jupnp:org.jupnp:2.5.1'
     // Lifecycles only (without ViewModel or LiveData)
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.2.0"
+    //弹幕
+    implementation 'com.github.ctiao:DanmakuFlameMaster:0.9.25'
 }
