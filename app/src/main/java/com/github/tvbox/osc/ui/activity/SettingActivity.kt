@@ -15,6 +15,7 @@ import com.github.tvbox.osc.databinding.ActivitySettingBinding
 import com.github.tvbox.osc.ui.adapter.SelectDialogAdapter
 import com.github.tvbox.osc.ui.adapter.SelectDialogAdapter.SelectDialogInterface
 import com.github.tvbox.osc.ui.dialog.BackupDialog
+import com.github.tvbox.osc.ui.dialog.DanmuSettingDialog
 import com.github.tvbox.osc.ui.dialog.LiveApiDialog
 import com.github.tvbox.osc.ui.dialog.SelectDialog
 import com.github.tvbox.osc.util.FastClickCheckUtil
@@ -54,6 +55,18 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
         mBinding.tvPlay.text = PlayerHelper.getPlayerName(Hawk.get(HawkConfig.PLAY_TYPE, 0))
         mBinding.tvRenderType.text =
             PlayerHelper.getRenderName(Hawk.get(HawkConfig.PLAY_RENDER, 0))
+
+        mBinding.tvDanmuState.text =
+            if (Hawk.get(HawkConfig.DANMU_OPEN, true)) "已开启" else "已关闭"
+        mBinding.llDanmuSetting.setOnClickListener {
+            val dialog = DanmuSettingDialog(this)
+            dialog.setSearchEnabled(false)
+            dialog.setOnDismissListener {
+                mBinding.tvDanmuState.text =
+                    if (Hawk.get(HawkConfig.DANMU_OPEN, true)) "已开启" else "已关闭"
+            }
+            dialog.show()
+        }
 
         mBinding.switchPrivateBrowsing.setChecked(Hawk.get(HawkConfig.PRIVATE_BROWSING, false))
         mBinding.llPrivateBrowsing.setOnClickListener { view: View? ->

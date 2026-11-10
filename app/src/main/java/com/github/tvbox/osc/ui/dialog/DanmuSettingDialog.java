@@ -104,6 +104,11 @@ public class DanmuSettingDialog extends BaseDialog {
         this.searchWord = word;
     }
 
+    public void setSearchEnabled(boolean enabled) {
+        View v = findViewById(R.id.danmuSearch);
+        if (v != null) v.setVisibility(enabled ? View.VISIBLE : View.GONE);
+    }
+
     public void refreshValues() {
         openView.setText(DanmuHelper.isOpen() ? "开" : "关");
         speedView.setText(String.format(Locale.getDefault(), "%.1f", DanmuHelper.getSpeed()));
