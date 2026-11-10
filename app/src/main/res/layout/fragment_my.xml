@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="?attr/skin_page"
     android:orientation="vertical">
 
     <LinearLayout
@@ -63,7 +64,7 @@
                     android:gravity="center"
                     android:text="订阅管理"
                     android:textAlignment="gravity"
-                    android:textColor="@color/text_foreground"
+                    android:textColor="?attr/skin_text_primary"
                     android:textSize="16sp" />
 
                 <Space
@@ -77,7 +78,7 @@
                     android:layout_gravity="center"
                     android:alpha="0.75"
                     android:src="@drawable/icon_pre"
-                    app:tint="@color/text_foreground" />
+                    app:tint="?attr/skin_text_primary" />
 
             </LinearLayout>
 
@@ -106,7 +107,7 @@
                     android:gravity="center"
                     android:text="本地视频"
                     android:textAlignment="gravity"
-                    android:textColor="@color/text_foreground"
+                    android:textColor="?attr/skin_text_primary"
                     android:textSize="16sp" />
 
                 <Space
@@ -120,7 +121,7 @@
                     android:layout_gravity="center"
                     android:alpha="0.75"
                     android:src="@drawable/icon_pre"
-                    app:tint="@color/text_foreground" />
+                    app:tint="?attr/skin_text_primary" />
 
             </LinearLayout>
 
@@ -150,7 +151,7 @@
                     android:gravity="center"
                     android:text="播放链接"
                     android:textAlignment="gravity"
-                    android:textColor="@color/text_foreground"
+                    android:textColor="?attr/skin_text_primary"
                     android:textSize="16sp" />
 
                 <Space
@@ -164,7 +165,7 @@
                     android:layout_gravity="center"
                     android:alpha="0.75"
                     android:src="@drawable/icon_pre"
-                    app:tint="@color/text_foreground" />
+                    app:tint="?attr/skin_text_primary" />
 
             </LinearLayout>
 
@@ -193,7 +194,7 @@
                     android:gravity="center"
                     android:text="关于"
                     android:textAlignment="gravity"
-                    android:textColor="@color/text_foreground"
+                    android:textColor="?attr/skin_text_primary"
                     android:textSize="16sp" />
 
                 <Space
@@ -207,7 +208,7 @@
                     android:layout_gravity="center"
                     android:alpha="0.75"
                     android:src="@drawable/icon_pre"
-                    app:tint="@color/text_foreground" />
+                    app:tint="?attr/skin_text_primary" />
 
             </LinearLayout>
 
@@ -236,7 +237,7 @@
                     android:gravity="center"
                     android:text="设置"
                     android:textAlignment="gravity"
-                    android:textColor="@color/text_foreground"
+                    android:textColor="?attr/skin_text_primary"
                     android:textSize="16sp" />
 
                 <Space
@@ -250,7 +251,7 @@
                     android:layout_gravity="center"
                     android:alpha="0.75"
                     android:src="@drawable/icon_pre"
-                    app:tint="@color/text_foreground" />
+                    app:tint="?attr/skin_text_primary" />
 
             </LinearLayout>
 
@@ -266,7 +267,7 @@
         android:layout_gravity="center_horizontal"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="@color/gray_darker"
+        android:textColor="?attr/skin_text_secondary"
         />
 </LinearLayout>
 

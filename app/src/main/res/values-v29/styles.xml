@@ -11,13 +11,13 @@
         <item name="android:forceDarkAllowed">true</item>
 
         <!-- 皮肤 token 必须与 values/styles.xml 保持一致，否则 API29+ 解析 ?attr/skin_* 会崩溃 -->
-        <item name="skin_page">@color/windowBackground</item>
-        <item name="skin_card">@color/white</item>
-        <item name="skin_card_border">@color/light_gray_color</item>
-        <item name="skin_text_primary">@color/text_foreground</item>
-        <item name="skin_text_secondary">@color/text_sub_foreground</item>
+        <item name="skin_page">@color/skin_default_page</item>
+        <item name="skin_card">@color/skin_default_card</item>
+        <item name="skin_card_border">@color/skin_default_border</item>
+        <item name="skin_text_primary">@color/skin_default_text</item>
+        <item name="skin_text_secondary">@color/skin_default_text_2</item>
         <item name="skin_accent">@color/title_fouse_n</item>
-        <item name="skin_accent_soft">@color/bg_gray</item>
+        <item name="skin_accent_soft">@color/skin_default_accent_soft</item>
         <item name="skin_on_accent">@color/white</item>
     </style>
 </resources>
