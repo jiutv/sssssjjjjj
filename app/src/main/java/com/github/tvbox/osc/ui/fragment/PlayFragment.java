@@ -169,10 +169,12 @@ public class PlayFragment extends BaseLazyFragment {
                 applyDanmu((String) event.obj);
             } else if (mDanmuController != null) {
                 boolean reload = event.obj instanceof Boolean && (Boolean) event.obj;
-                mDanmuController.applySettings(reload);
-                if (!DanmuHelper.isOpen()) {
-                    ToastUtils.showShort("弹幕已关闭");
+                if (DanmuHelper.isOpen() && !mDanmuController.hasDanmu()) {
+                    searchDanmu();
+                } else {
+                    mDanmuController.applySettings(reload);
                 }
+                ToastUtils.showShort(DanmuHelper.isOpen() ? "弹幕已开启" : "弹幕已关闭");
             }
         }
     }

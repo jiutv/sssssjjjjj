@@ -9,11 +9,14 @@ import androidx.annotation.NonNull;
 import com.blankj.utilcode.util.ColorUtils;
 import com.github.tvbox.osc.R;
 import com.github.tvbox.osc.databinding.DialogPlayingControlBinding;
+import com.github.tvbox.osc.event.RefreshEvent;
 import com.github.tvbox.osc.player.MyVideoView;
 import com.github.tvbox.osc.player.controller.VodController;
 import com.github.tvbox.osc.ui.activity.DetailActivity;
+import com.github.tvbox.osc.util.DanmuHelper;
 import com.lxj.xpopup.core.DrawerPopupView;
 
+import org.greenrobot.eventbus.EventBus;
 import org.jetbrains.annotations.NotNull;
 
 public class PlayingControlRightDialog extends DrawerPopupView {
@@ -51,6 +54,7 @@ public class PlayingControlRightDialog extends DrawerPopupView {
         mBinding.playTimeEnd.setText(mController.mPlayerTimeSkipBtn.getText());
         mBinding.player.setText(mController.mPlayerBtn.getText());
         mBinding.decode.setText(mController.mPlayerIJKBtn.getText());
+        mBinding.danmu.setText(DanmuHelper.isOpen() ? "弹幕开" : "弹幕关");
         //全屏的设置弹窗显示
         mBinding.landscapePortrait.setVisibility(View.VISIBLE);
         mBinding.download.setVisibility(View.VISIBLE);
@@ -108,6 +112,12 @@ public class PlayingControlRightDialog extends DrawerPopupView {
         mBinding.refresh.setOnClickListener(view -> changeAndUpdateText(null,mController.mPlayRefresh));
         mBinding.subtitle.setOnClickListener(view -> dismissWith(() -> changeAndUpdateText(null,mController.mZimuBtn)));
         mBinding.voice.setOnClickListener(view -> dismissWith(() -> changeAndUpdateText(null,mController.mAudioTrackBtn)));
+        mBinding.danmu.setOnClickListener(view -> {
+            boolean open = !DanmuHelper.isOpen();
+            DanmuHelper.setOpen(open);
+            mBinding.danmu.setText(open ? "弹幕开" : "弹幕关");
+            EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_SET_DANMU_SETTINGS, true));
+        });
         mBinding.download.setOnClickListener(view -> dismissWith(mDetailActivity::use1DMDownload));
     }
 
