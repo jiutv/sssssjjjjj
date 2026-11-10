@@ -42,7 +42,7 @@
             android:layout_height="40dp"
             android:padding="4dp"
             android:src="@drawable/ic_filter_list"
-            app:tint="@color/text_foreground"
+            app:tint="?attr/skin_text_primary"
             android:layout_marginRight="4dp"/>
 
         <View
@@ -56,7 +56,7 @@
             android:layout_height="40dp"
             android:src="@drawable/ic_search_48"
             android:paddingHorizontal="6dp"
-            app:tint="@color/text_foreground"/>
+            app:tint="?attr/skin_text_primary"/>
     </LinearLayout>
     <LinearLayout
         android:id="@+id/llSearchSuggest"
@@ -95,7 +95,7 @@
                     android:layout_height="24dp"
                     android:paddingVertical="4dp"
                     android:src="@drawable/ic_clear"
-                    app:tint="@color/gray_darker"
+                    app:tint="?attr/skin_text_secondary"
                     />
             </LinearLayout>
 

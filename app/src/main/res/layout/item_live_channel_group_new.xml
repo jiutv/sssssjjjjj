@@ -19,6 +19,6 @@
         android:gravity="center"
         android:marqueeRepeatLimit="marquee_forever"
         android:singleLine="true"
-        android:textColor="@color/text_foreground"
+        android:textColor="?attr/skin_text_primary"
         tools:text="中央频道"/>
 </LinearLayout>
