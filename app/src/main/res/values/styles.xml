@@ -10,11 +10,11 @@
         <item name="android:windowBackground">@color/windowBackground</item>
 
         <!-- 默认皮肤 token（不选皮肤时保持 APP 原有深色风格） -->
-        <item name="skin_page">@color/skin_default_page</item>
-        <item name="skin_card">@color/skin_default_card</item>
+        <item name="skin_page">@color/windowBackground</item>
+        <item name="skin_card">@color/bg_popup</item>
         <item name="skin_card_border">@color/skin_default_border</item>
-        <item name="skin_text_primary">@color/skin_default_text</item>
-        <item name="skin_text_secondary">@color/skin_default_text_2</item>
+        <item name="skin_text_primary">@color/text_foreground</item>
+        <item name="skin_text_secondary">@color/text_sub_foreground</item>
         <item name="skin_accent">@color/title_fouse_n</item>
         <item name="skin_accent_soft">@color/skin_default_accent_soft</item>
         <item name="skin_on_accent">@color/white</item>
@@ -31,6 +31,8 @@
         <item name="skin_accent">@color/skin_min_accent</item>
         <item name="skin_accent_soft">@color/skin_min_accent_soft</item>
         <item name="skin_on_accent">@color/white</item>
+        <item name="colorAccent">@color/skin_min_accent</item>
+        <item name="colorPrimary">@color/skin_min_accent</item>
     </style>
 
     <style name="SkinNeon" parent="AppTheme">
@@ -43,6 +45,8 @@
         <item name="skin_accent">@color/skin_neon_accent</item>
         <item name="skin_accent_soft">@color/skin_neon_accent_soft</item>
         <item name="skin_on_accent">@color/white</item>
+        <item name="colorAccent">@color/skin_neon_accent</item>
+        <item name="colorPrimary">@color/skin_neon_accent</item>
     </style>
 
     <style name="SkinCard" parent="AppTheme">
@@ -55,6 +59,8 @@
         <item name="skin_accent">@color/skin_card_accent</item>
         <item name="skin_accent_soft">@color/skin_card_accent_soft</item>
         <item name="skin_on_accent">@color/white</item>
+        <item name="colorAccent">@color/skin_card_accent</item>
+        <item name="colorPrimary">@color/skin_card_accent</item>
     </style>
 
     <style name="SplashTheme" parent="AppTheme">

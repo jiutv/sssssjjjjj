@@ -69,13 +69,9 @@
     <color name="color_59353744">#59353744</color>
     <color name="color_80FF0057">#66FF0057</color>
 
-    <!-- ===== UI 皮肤：默认（沿用 APP 现有深色风格） ===== -->
-    <color name="skin_default_page">#0E0E10</color>
-    <color name="skin_default_card">#1C1C1F</color>
-    <color name="skin_default_border">#26FFFFFF</color>
-    <color name="skin_default_text">#ECECEF</color>
-    <color name="skin_default_text_2">#9B9BA3</color>
-    <color name="skin_default_accent_soft">#2A2416</color>
+    <!-- ===== UI 皮肤：默认（跟随 APP 原有明暗逻辑） ===== -->
+    <color name="skin_default_border">#1A000000</color>
+    <color name="skin_default_accent_soft">#FFF4DC</color>
 
     <!-- ===== UI 皮肤：极简线框 ===== -->
     <color name="skin_min_page">#FFFFFF</color>
