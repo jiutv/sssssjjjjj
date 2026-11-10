@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.angcyo.tablayout.DslTabLayout
 import com.chad.library.adapter.base.BaseQuickAdapter
 import com.github.tvbox.osc.api.ApiConfig
+import com.github.tvbox.osc.R
 import com.github.tvbox.osc.base.BaseVbActivity
 import com.github.tvbox.osc.bean.VodInfo
 import com.github.tvbox.osc.cache.RoomDataManger
@@ -18,6 +19,7 @@ import com.github.tvbox.osc.cache.VodCollect
 import com.github.tvbox.osc.databinding.ActivityHistoryBinding
 import com.github.tvbox.osc.ui.adapter.CollectAdapter
 import com.github.tvbox.osc.ui.adapter.HistoryAdapter
+import com.github.tvbox.osc.util.BottomNavHelper
 import com.github.tvbox.osc.util.FastClickCheckUtil
 import com.github.tvbox.osc.util.Utils
 import com.lxj.xpopup.XPopup
@@ -35,6 +37,7 @@ class HistoryActivity : BaseVbActivity<ActivityHistoryBinding>() {
         initTabLayout()
         initGridView()
         loadAllData()
+        BottomNavHelper.attach(this, findViewById(R.id.bottom_nav), R.id.navigation_history)
     }
 
     // ========== TabLayout ==========

@@ -49,4 +49,8 @@
         android:paddingTop="10dp"
         tools:listitem="@layout/item_grid" />
 
+    <include
+        android:id="@+id/bottom_nav"
+        layout="@layout/view_bottom_nav" />
+
 </LinearLayout>

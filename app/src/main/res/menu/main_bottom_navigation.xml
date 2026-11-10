@@ -17,7 +17,7 @@
         android:id="@+id/navigation_history"
         android:icon="@drawable/ic_history_48"
         android:orderInCategory="2"
-        android:title="历史"/>
+        android:title="记录"/>
 
     <item
         android:id="@+id/navigation_my"

@@ -16,6 +16,7 @@ import com.github.tvbox.osc.databinding.ActivityMainBinding
 import com.github.tvbox.osc.ui.fragment.GridFragment
 import com.github.tvbox.osc.ui.fragment.HomeFragment
 import com.github.tvbox.osc.ui.fragment.MyFragment
+import com.github.tvbox.osc.util.BottomNavHelper
 import kotlin.system.exitProcess
 
 class MainActivity : BaseVbActivity<ActivityMainBinding>() {
@@ -63,6 +64,19 @@ class MainActivity : BaseVbActivity<ActivityMainBinding>() {
                 }
                 else -> false
             }
+        }
+
+        if (intent.getBooleanExtra(BottomNavHelper.EXTRA_OPEN_MY, false)) {
+            mBinding.bottomNav.selectedItemId = R.id.navigation_my
+            mBinding.vp.currentItem = 1
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.getBooleanExtra(BottomNavHelper.EXTRA_OPEN_MY, false)) {
+            mBinding.bottomNav.selectedItemId = R.id.navigation_my
+            mBinding.vp.currentItem = 1
         }
     }
 

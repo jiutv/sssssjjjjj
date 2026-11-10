@@ -246,4 +246,8 @@
         android:textStyle="bold"
         android:visibility="gone" />
 
+    <include
+        android:id="@+id/bottom_nav"
+        layout="@layout/view_bottom_nav" />
+
 </LinearLayout>
