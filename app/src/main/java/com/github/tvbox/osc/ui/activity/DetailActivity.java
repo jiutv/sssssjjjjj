@@ -878,9 +878,16 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
     public void enterPip() {
         if (Utils.supportsPiPMode()) {
             // 创建一个Intent对象，模拟按下Home键
-            Intent intent = new Intent(Intent.ACTION_MAIN);
-            intent.addCategory(Intent.CATEGORY_HOME);
-            startActivity(intent);
+            // 部分机型（如三星 Android 13）会抛 IllegalStateException: Can't change activity type once set，
+            // 此时跳过模拟Home直接进入画中画即可，避免崩溃
+            try {
+                Intent intent = new Intent(Intent.ACTION_MAIN);
+                intent.addCategory(Intent.CATEGORY_HOME);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
 
             // Calculate Video Resolution
             int vWidth = playFragment.getPlayer().getVideoSize()[0];
