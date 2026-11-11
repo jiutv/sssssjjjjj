@@ -1,34 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 方案5 暖橙怀旧：深棕黑底 + 暖橙余光 + 轻微胶片颗粒 -->
+<!-- 方案5 暖橙怀旧：深棕黑 + 暖橙余光 -->
+<!-- 去掉 <bitmap tileMode> 以兼容部分机型 InflateException -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item>
         <shape android:shape="rectangle">
             <gradient
                 android:angle="270"
-                android:startColor="#1A140D"
+                android:startColor="#18120C"
                 android:centerColor="#14100B"
-                android:endColor="#100C08" />
+                android:endColor="#0E0A07" />
         </shape>
     </item>
 
+    <!-- 右下暖橙余光 -->
     <item>
         <shape android:shape="rectangle">
             <gradient
                 android:type="radial"
-                android:centerX="0.5"
-                android:centerY="0.0"
+                android:centerX="1.0"
+                android:centerY="1.0"
                 android:gradientRadius="460dp"
-                android:startColor="#1AFF8A4C"
+                android:startColor="#1BFF8A4C"
                 android:endColor="#00FF8A4C" />
         </shape>
     </item>
 
-    <!-- 胶片颗粒 -->
-    <item>
-        <bitmap
-            android:src="@drawable/bg_film_grain"
-            android:tileMode="repeat"
-            android:alpha="0.5" />
-    </item>
 </layer-list>

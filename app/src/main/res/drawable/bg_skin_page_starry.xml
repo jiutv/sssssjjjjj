@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 方案1 深色磨砂满天星：深黑渐变底 + 顶部柔光 + 星光噪点平铺 -->
+<!-- 方案1 深色磨砂满天星：深黑渐变 + 顶部柔光 -->
+<!-- 去掉 <bitmap tileMode> 以兼容部分机型（三星 Android 13 等）InflateException -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item>
@@ -12,7 +13,7 @@
         </shape>
     </item>
 
-    <!-- 顶部柔光，营造磨砂毛玻璃氛围 -->
+    <!-- 顶部柔光 -->
     <item>
         <shape android:shape="rectangle">
             <gradient
@@ -25,11 +26,4 @@
         </shape>
     </item>
 
-    <!-- 星光噪点 -->
-    <item>
-        <bitmap
-            android:src="@drawable/bg_star_dots"
-            android:tileMode="repeat"
-            android:alpha="0.75" />
-    </item>
 </layer-list>

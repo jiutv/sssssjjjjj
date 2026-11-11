@@ -155,46 +155,6 @@
                 </LinearLayout>
 
                 <LinearLayout
-                    android:id="@+id/llTheme"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_60"
-                    android:layout_weight="1"
-                    android:focusable="true"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="40dp"
-                    android:foreground="?android:selectableItemBackground"
-                    >
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="主题颜色"
-                        android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp"
-                        />
-
-                    <Space
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1" />
-
-                    <TextView
-                        android:id="@+id/tvTheme"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        />
-
-                    <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_gravity="center"
-                        android:alpha="0.75"
-                        android:src="@drawable/icon_pre"
-                        app:tint="?attr/skin_text_primary"/>
-                </LinearLayout>
-
-                <LinearLayout
                     android:id="@+id/llPrivateBrowsing"
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/dp_60"
