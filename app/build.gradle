@@ -174,5 +174,9 @@ configurations.all {
     resolutionStrategy {
         force 'com.squareup.okhttp3:okhttp:3.12.11'
         force 'com.squareup.okio:okio:2.8.0'
+        // Media3 需要 Kotlin 1.8 的 stdlib，统一版本避免与旧 jdk7/jdk8 包重复类
+        force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.0'
+        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.0'
+        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0'
     }
 }
