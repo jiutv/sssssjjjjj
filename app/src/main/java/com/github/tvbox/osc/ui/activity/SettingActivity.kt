@@ -347,9 +347,6 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
                 .isDarkTheme(Utils.isDarkTheme())
                 .asConfirm("提示", "确定清空吗？") { onClickClearCache(view) }.show()
         }
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            mBinding.llTheme.visibility = View.GONE
-        }
         val oldTheme = currentThemeIndexOf()
         val themes = arrayOf(
             "跟随系统", "浅色", "深色",
