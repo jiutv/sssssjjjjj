@@ -166,7 +166,7 @@ dependencies {
     // Lifecycles only (without ViewModel or LiveData)
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.2.0"
     //弹幕
-    implementation 'com.github.ctiao:DanmakuFlameMaster:0.9.28'
+    implementation 'com.github.ctiao:DanmakuFlameMaster:0.9.25'
 }
 
 // Media3 的 okhttp 数据源默认会拉高 okhttp 版本，这里锁回项目原有版本，避免影响 OkGo 等网络库
