@@ -8,25 +8,26 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 
 import androidx.annotation.NonNull;
-
-import com.google.android.exoplayer2.DefaultLoadControl;
-import com.google.android.exoplayer2.DefaultRenderersFactory;
-import com.google.android.exoplayer2.ExoPlayer;
-import com.google.android.exoplayer2.LoadControl;
-import com.google.android.exoplayer2.PlaybackException;
-import com.google.android.exoplayer2.PlaybackParameters;
-import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.Tracks;
-import com.google.android.exoplayer2.source.MediaSource;
-import com.google.android.exoplayer2.source.TrackGroupArray;
-import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
-import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
-import com.google.android.exoplayer2.video.VideoSize;
+import androidx.media3.common.PlaybackException;
+import androidx.media3.common.PlaybackParameters;
+import androidx.media3.common.Player;
+import androidx.media3.common.Tracks;
+import androidx.media3.common.VideoSize;
+import androidx.media3.exoplayer.DefaultLoadControl;
+import androidx.media3.exoplayer.DefaultRenderersFactory;
+import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.LoadControl;
+import androidx.media3.exoplayer.source.MediaSource;
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector;
 
 import java.util.Map;
 
 import xyz.doikki.videoplayer.player.AbstractPlayer;
 
+/**
+ * 基于官方 Media3 的播放内核实现。
+ * 移除 ExoPlayer2，接口与 AbstractPlayer 完全兼容，上层播放逻辑无需改动。
+ */
 public class ExoMediaPlayer extends AbstractPlayer implements Player.Listener {
 
     protected Context mAppContext;
@@ -34,7 +35,6 @@ public class ExoMediaPlayer extends AbstractPlayer implements Player.Listener {
     protected MediaSource mMediaSource;
     protected ExoMediaSourceHelper mMediaSourceHelper;
     protected ExoTrackNameProvider trackNameProvider;
-    protected TrackSelectionArray mTrackSelections;
     private PlaybackParameters mSpeedPlaybackParameters;
     private boolean mIsPreparing;
 
@@ -56,23 +56,22 @@ public class ExoMediaPlayer extends AbstractPlayer implements Player.Listener {
         if (mRenderersFactory == null) {
             mRenderersFactory = new DefaultRenderersFactory(mAppContext);
         }
-        mRenderersFactory.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER);
+        // 硬解优先，硬解失败自动回退软解（保留原有硬解能力）
+        mRenderersFactory.setEnableDecoderFallback(true);
+        mRenderersFactory.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF);
         if (mTrackSelector == null) {
             mTrackSelector = new DefaultTrackSelector(mAppContext);
         }
         if (mLoadControl == null) {
-            mLoadControl = new DefaultLoadControl();
+            // 加大缓冲，直播/弱网下减少卡顿与花屏：最小15s，最大50s
+            mLoadControl = new DefaultLoadControl.Builder()
+                    .setBufferDurationsMs(15000, 50000, 1500, 3000)
+                    .setPrioritizeTimeOverSizeThresholds(true)
+                    .build();
         }
-        mTrackSelector.setParameters(mTrackSelector.getParameters().buildUpon().setTunnelingEnabled(true));
-        /*mMediaPlayer = new SimpleExoPlayer.Builder(
-                mAppContext,
-                mRenderersFactory,
-                mTrackSelector,
-                new DefaultMediaSourceFactory(mAppContext),
-                mLoadControl,
-                DefaultBandwidthMeter.getSingletonInstance(mAppContext),
-                new AnalyticsCollector(Clock.DEFAULT))
-                .build();*/
+        mTrackSelector.setParameters(
+                mTrackSelector.buildUponParameters().setTunnelingEnabled(true));
+
         mMediaPlayer = new ExoPlayer.Builder(mAppContext)
                 .setLoadControl(mLoadControl)
                 .setRenderersFactory(mRenderersFactory)
@@ -232,6 +231,9 @@ public class ExoMediaPlayer extends AbstractPlayer implements Player.Listener {
         mMediaPlayer.setPlayWhenReady(true);
     }
 
+    /**
+     * 倍速调节（Media3 原生支持）
+     */
     @Override
     public void setSpeed(float speed) {
         PlaybackParameters playbackParameters = new PlaybackParameters(speed);
@@ -281,7 +283,7 @@ public class ExoMediaPlayer extends AbstractPlayer implements Player.Listener {
     }
 
     @Override
-    public void onTracksChanged(Tracks tracks) {
+    public void onTracksChanged(@NonNull Tracks tracks) {
         if (trackNameProvider == null)
             trackNameProvider = new ExoTrackNameProvider(mAppContext.getResources());
     }

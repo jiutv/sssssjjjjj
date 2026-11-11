@@ -186,8 +186,8 @@
 -dontwarn tv.danmaku.ijk.**
 
 # ExoPlayer
--keep class com.google.android.exoplayer2.** { *; }
--dontwarn com.google.android.exoplayer2.**
+-keep class androidx.media3.** { *; }
+-dontwarn androidx.media3.**
 
 # 实体类
 -keep class com.github.tvbox.osc.bean.** { *; }

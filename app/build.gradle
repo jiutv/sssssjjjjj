@@ -8,8 +8,8 @@ android {
         applicationId 'com.github.tvbox.osc'
         minSdkVersion 24
         targetSdkVersion 30
-        versionCode 33
-        versionName '1.2.1'
+        versionCode 34
+        versionName '1.2.2'
         multiDexEnabled true
         //设置room的Schema的位置
         javaCompileOptions {
@@ -167,4 +167,12 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.2.0"
     //弹幕
     implementation 'com.github.ctiao:DanmakuFlameMaster:0.9.25'
+}
+
+// Media3 的 okhttp 数据源默认会拉高 okhttp 版本，这里锁回项目原有版本，避免影响 OkGo 等网络库
+configurations.all {
+    resolutionStrategy {
+        force 'com.squareup.okhttp3:okhttp:3.12.11'
+        force 'com.squareup.okio:okio:2.8.0'
+    }
 }

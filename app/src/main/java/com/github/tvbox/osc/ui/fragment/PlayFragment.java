@@ -83,8 +83,9 @@ import com.github.tvbox.osc.util.VideoParseRuler;
 import com.github.tvbox.osc.util.thunder.Jianpian;
 import com.github.tvbox.osc.util.thunder.Thunder;
 import com.github.tvbox.osc.viewmodel.SourceViewModel;
-import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.text.Cue;
+import androidx.media3.common.text.CueGroup;
+import androidx.media3.common.Player;
+import androidx.media3.common.text.Cue;
 import com.gyf.immersionbar.BarHide;
 import com.gyf.immersionbar.ImmersionBar;
 import com.lxj.xpopup.XPopup;
@@ -973,7 +974,8 @@ public class PlayFragment extends BaseLazyFragment {
             }
             ((EXOmPlayer) (mVideoView.getMediaPlayer())).setOnTimedTextListener(new Player.Listener() {
                 @Override
-                public void onCues(@NonNull List<Cue> cues) {
+                public void onCues(@NonNull CueGroup cueGroup) {
+                    List<Cue> cues = cueGroup.cues;
                     if (cues.size() > 0) {
                         CharSequence ss = cues.get(0).text;
                         if (ss != null && mController.mSubtitleView.isInternal) {
