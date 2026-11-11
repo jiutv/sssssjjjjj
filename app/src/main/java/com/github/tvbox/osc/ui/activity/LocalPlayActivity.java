@@ -43,6 +43,10 @@ import xyz.doikki.videoplayer.player.VideoView;
 
 public class LocalPlayActivity extends BaseVbActivity<ActivityLocalPlayBinding> {
 
+    @Override
+    protected ActivityLocalPlayBinding vbInflate(android.view.LayoutInflater inflater, android.view.ViewGroup parent, boolean attachToRoot) {
+        return ActivityLocalPlayBinding.inflate(inflater, parent, attachToRoot);
+    }
 
     private MyVideoView mVideoView;
     LocalVideoController mController;

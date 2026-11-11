@@ -108,6 +108,11 @@ import java.util.concurrent.Executors;
  */
 
 public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
+    @Override
+    protected ActivityDetailBinding vbInflate(android.view.LayoutInflater inflater, android.view.ViewGroup parent, boolean attachToRoot) {
+        return ActivityDetailBinding.inflate(inflater, parent, attachToRoot);
+    }
+
     private PlayFragment playFragment = null;
     private SourceViewModel sourceViewModel;
     private Movie.Video mVideo;
