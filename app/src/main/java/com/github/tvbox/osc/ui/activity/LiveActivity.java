@@ -158,8 +158,8 @@ public class LiveActivity extends BaseActivity {
                 .fitsSystemWindows(true)
                 .hideBar(BarHide.FLAG_HIDE_NAVIGATION_BAR)
                 .init();
-        context = this;
-        sInstanceRef = new android.lang.ref.WeakReference<>(this);
+        // P0 fix: 只保留 WeakReference，删掉原来的 static Context context 赋值
+        sInstanceRef = new java.lang.ref.WeakReference<>(this);
         epgStringAddress = Hawk.get(HawkConfig.EPG_URL,"");
         if(epgStringAddress == null || epgStringAddress.length()<5)
             epgStringAddress = "http://epg.51zmt.top:8000/api/diyp/";
