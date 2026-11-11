@@ -19,5 +19,8 @@
         <item name="skin_accent">@color/title_fouse_n</item>
         <item name="skin_accent_soft">@color/skin_default_accent_soft</item>
         <item name="skin_on_accent">@color/white</item>
+        <item name="skin_glow">@color/skin_default_accent_soft</item>
+        <item name="skin_page_bg">@drawable/bg_skin_page_default</item>
+        <item name="skin_card_bg">@drawable/bg_large_round_gray</item>
     </style>
 </resources>

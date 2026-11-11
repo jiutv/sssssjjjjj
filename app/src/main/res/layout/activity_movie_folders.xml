@@ -9,6 +9,7 @@
     <com.hjq.bar.TitleBar
         android:id="@+id/title_bar"
         app:title="本地视频"
+        app:titleColor="?attr/skin_text_primary"
         android:layout_width="match_parent"
         android:layout_height="44dp"
         />

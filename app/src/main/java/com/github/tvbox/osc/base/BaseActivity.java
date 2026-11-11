@@ -83,17 +83,35 @@ public abstract class BaseActivity extends AppCompatActivity implements CustomAd
 
 
     private void initStatusBar(){
+        boolean dark = Utils.isDarkTheme();
+        int skinPage = getSkinColor(R.attr.skin_page);
         ImmersionBar.with(this)
-                .statusBarDarkFont(!Utils.isDarkTheme())
+                .statusBarDarkFont(!dark)
                 .titleBar(findTitleBar(getWindow().getDecorView().findViewById(android.R.id.content)))
-                .navigationBarColor(R.color.white)
+                // 深色主题下状态栏/导航栏跟随皮肤底色，避免顶部/底部出现白边
+                .statusBarColorInt(dark ? skinPage : android.graphics.Color.WHITE)
+                .navigationBarColorInt(dark ? skinPage : android.graphics.Color.WHITE)
                 .init();
     }
 
     private void initTitleBar(){
         if (getTitleBar() != null) {
+            // 标题栏跟随当前皮肤：避免各机型默认白色底在深色主题下出现白边
+            getTitleBar().setBackgroundColor(getSkinColor(R.attr.skin_page));
             getTitleBar().setOnTitleBarListener(this);
         }
+    }
+
+    /** 读取当前主题中 skin_* 属性的颜色值 */
+    private int getSkinColor(int attr) {
+        android.util.TypedValue tv = new android.util.TypedValue();
+        if (getTheme().resolveAttribute(attr, tv, true)) {
+            if (tv.resourceId != 0) {
+                return androidx.core.content.ContextCompat.getColor(this, tv.resourceId);
+            }
+            return tv.data;
+        }
+        return android.graphics.Color.TRANSPARENT;
     }
 
     /**

@@ -13,6 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:title="订阅管理"
+        app:titleColor="?attr/skin_text_primary"
         app:rightIcon="@drawable/ic_add_24">
 
         <ImageView
