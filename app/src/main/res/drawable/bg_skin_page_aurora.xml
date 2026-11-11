@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 方案4 蓝紫沉浸：深靛蓝到暗紫的斜向渐变 + 右上蓝紫光晕 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="135"
+                android:startColor="#17103A"
+                android:centerColor="#0D0A22"
+                android:endColor="#080814" />
+        </shape>
+    </item>
+
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:centerX="0.8"
+                android:centerY="0.0"
+                android:gradientRadius="520dp"
+                android:startColor="#268C7BFF"
+                android:endColor="#008C7BFF" />
+        </shape>
+    </item>
+</layer-list>

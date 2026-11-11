@@ -73,31 +73,74 @@
     <color name="skin_default_border">#1A000000</color>
     <color name="skin_default_accent_soft">#FFF4DC</color>
 
-    <!-- ===== UI 皮肤：极简线框 ===== -->
-    <color name="skin_min_page">#FFFFFF</color>
-    <color name="skin_min_card">#FFFFFF</color>
-    <color name="skin_min_border">#E6E6EA</color>
-    <color name="skin_min_text">#171717</color>
-    <color name="skin_min_text_2">#7A7A82</color>
-    <color name="skin_min_accent">#171717</color>
-    <color name="skin_min_accent_soft">#F1F1F4</color>
+    <!-- ===================================================================
+         主题方案 1：深色磨砂满天星（Starry）
+         深黑底 + 星光噪点 + 毛玻璃卡片，大圆角、白色柔光高亮
+         =================================================================== -->
+    <color name="skin_starry_page">#06070B</color>
+    <color name="skin_starry_card">#1AFFFFFF</color>
+    <color name="skin_starry_border">#33FFFFFF</color>
+    <color name="skin_starry_text">#F5F6FA</color>
+    <color name="skin_starry_text_2">#A9AEBC</color>
+    <color name="skin_starry_accent">#FFFFFF</color>
+    <color name="skin_starry_accent_soft">#2BFFFFFF</color>
+    <color name="skin_starry_on_accent">#0A0B0F</color>
+    <color name="skin_starry_glow">#66FFFFFF</color>
 
-    <!-- ===== UI 皮肤：暗黑霓虹 ===== -->
-    <color name="skin_neon_page">#151517</color>
-    <color name="skin_neon_card">#1D1D20</color>
-    <color name="skin_neon_border">#26FFFFFF</color>
-    <color name="skin_neon_text">#ECECEF</color>
-    <color name="skin_neon_text_2">#9B9BA3</color>
-    <color name="skin_neon_accent">#8B7CFF</color>
-    <color name="skin_neon_accent_soft">#2A2350</color>
+    <!-- ===================================================================
+         主题方案 2：黑金凤雅（Gold）
+         深黑底 + 香槟金，金色描边与按钮，实色卡片、克制高级
+         =================================================================== -->
+    <color name="skin_gold_page">#080604</color>
+    <color name="skin_gold_card">#16120C</color>
+    <color name="skin_gold_border">#4DD9B36A</color>
+    <color name="skin_gold_text">#F3E9D6</color>
+    <color name="skin_gold_text_2">#A08F72</color>
+    <color name="skin_gold_accent">#D9B36A</color>
+    <color name="skin_gold_accent_soft">#26D9B36A</color>
+    <color name="skin_gold_on_accent">#17110A</color>
+    <color name="skin_gold_glow">#66D9B36A</color>
 
-    <!-- ===== UI 皮肤：分段卡片 ===== -->
-    <color name="skin_card_page">#F4F4F7</color>
-    <color name="skin_card_bg">#FFFFFF</color>
-    <color name="skin_card_border">#E6E6EA</color>
-    <color name="skin_card_text">#171717</color>
-    <color name="skin_card_text_2">#6B6B73</color>
-    <color name="skin_card_accent">#4B3FE3</color>
-    <color name="skin_card_accent_soft">#EDEAFF</color>
+    <!-- ===================================================================
+         主题方案 3：青黑科技（Tech）
+         深黑底 + 暗青孔雀绿，青色渐变点缀，青色柔光选中
+         =================================================================== -->
+    <color name="skin_tech_page">#04100E</color>
+    <color name="skin_tech_card">#0D1A18</color>
+    <color name="skin_tech_border">#3300E5C8</color>
+    <color name="skin_tech_text">#E6FBF7</color>
+    <color name="skin_tech_text_2">#7FA39D</color>
+    <color name="skin_tech_accent">#2BE3C8</color>
+    <color name="skin_tech_accent_soft">#1F2BE3C8</color>
+    <color name="skin_tech_on_accent">#04120F</color>
+    <color name="skin_tech_glow">#662BE3C8</color>
+
+    <!-- ===================================================================
+         主题方案 4：蓝紫沉浸（Aurora）
+         深靛蓝 + 暗紫渐变，毛玻璃卡片，蓝紫霓虹描边与光晕
+         =================================================================== -->
+    <color name="skin_aurora_page">#0A0A1C</color>
+    <color name="skin_aurora_card">#16162E</color>
+    <color name="skin_aurora_border">#667C6BFF</color>
+    <color name="skin_aurora_text">#EDEDFF</color>
+    <color name="skin_aurora_text_2">#9A9AC2</color>
+    <color name="skin_aurora_accent">#8C7BFF</color>
+    <color name="skin_aurora_accent_soft">#338C7BFF</color>
+    <color name="skin_aurora_on_accent">#0A0A1C</color>
+    <color name="skin_aurora_glow">#668C7BFF</color>
+
+    <!-- ===================================================================
+         主题方案 5：暖橙怀旧（Retro）
+         深棕黑底 + 暖橙，轻微胶片颗粒，复古圆角卡片
+         =================================================================== -->
+    <color name="skin_retro_page">#14100B</color>
+    <color name="skin_retro_card">#221A13</color>
+    <color name="skin_retro_border">#33FF9A52</color>
+    <color name="skin_retro_text">#F6E9DC</color>
+    <color name="skin_retro_text_2">#B39B85</color>
+    <color name="skin_retro_accent">#FF8A4C</color>
+    <color name="skin_retro_accent_soft">#33FF8A4C</color>
+    <color name="skin_retro_on_accent">#1A0E06</color>
+    <color name="skin_retro_glow">#66FF8A4C</color>
 
 </resources>

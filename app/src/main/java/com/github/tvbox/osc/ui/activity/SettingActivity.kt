@@ -349,7 +349,10 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
             mBinding.llTheme.visibility = View.GONE
         }
         val oldTheme = currentThemeIndexOf()
-        val themes = arrayOf("跟随系统", "浅色", "深色", "极简线框", "暗黑霓虹", "分段卡片")
+        val themes = arrayOf(
+            "跟随系统", "浅色", "深色",
+            "深色磨砂满天星", "黑金凤雅", "青黑科技", "蓝紫沉浸", "暖橙怀旧"
+        )
         mBinding.tvTheme.text = themes[oldTheme]
         mBinding.llTheme.setOnClickListener(View.OnClickListener { view: View? ->
             FastClickCheckUtil.check(view)
@@ -361,13 +364,15 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
                 override fun click(value: Int?, pos: Int) {
                     val v = value ?: 0
                     when (v) {
+                        // 0~2 为默认明暗模式，不使用皮肤
                         0, 1, 2 -> {
                             Hawk.put(HawkConfig.THEME_TAG, v)
                             Hawk.put(HawkConfig.SKIN_TAG, 0)
                         }
-                        3 -> Hawk.put(HawkConfig.SKIN_TAG, 1)
-                        4 -> Hawk.put(HawkConfig.SKIN_TAG, 2)
-                        5 -> Hawk.put(HawkConfig.SKIN_TAG, 3)
+                        // 3~7 对应 5 套主题方案
+                        in 3..7 -> {
+                            Hawk.put(HawkConfig.SKIN_TAG, v - 2)
+                        }
                     }
                     mBinding.tvTheme.text = themes[v]
                 }
@@ -434,13 +439,15 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
 
     /**
      * 主题颜色当前选中项的索引：
-     * 0跟随系统 1浅色 2深色 3极简线框 4暗黑霓虹 5分段卡片
+     * 0跟随系统 1浅色 2深色 3深色磨砂满天星 4黑金凤雅 5青黑科技 6蓝紫沉浸 7暖橙怀旧
      */
     private fun currentThemeIndexOf(): Int {
         return when (Hawk.get<Int>(HawkConfig.SKIN_TAG, 0)) {
             1 -> 3
             2 -> 4
             3 -> 5
+            4 -> 6
+            5 -> 7
             else -> Hawk.get<Int>(HawkConfig.THEME_TAG, 0)
         }
     }

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 方案3 青黑科技：深黑底 + 左上暗青孔雀绿渐变辉光，清爽科技感 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#061714"
+                android:centerColor="#041210"
+                android:endColor="#040C0B" />
+        </shape>
+    </item>
+
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:centerX="0.15"
+                android:centerY="0.05"
+                android:gradientRadius="560dp"
+                android:startColor="#2900E5C8"
+                android:endColor="#0000E5C8" />
+        </shape>
+    </item>
+
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:centerX="1.0"
+                android:centerY="1.0"
+                android:gradientRadius="420dp"
+                android:startColor="#1A2BE3C8"
+                android:endColor="#002BE3C8" />
+        </shape>
+    </item>
+</layer-list>

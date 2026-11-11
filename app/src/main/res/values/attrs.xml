@@ -58,4 +58,10 @@
     <attr name="skin_accent" format="color" />
     <attr name="skin_accent_soft" format="color" />
     <attr name="skin_on_accent" format="color" />
+    <!-- 选中态柔光 / 描边光晕 -->
+    <attr name="skin_glow" format="color" />
+    <!-- 页面整体背景（各主题不同的渐变/噪点/颗粒 drawable） -->
+    <attr name="skin_page_bg" format="reference" />
+    <!-- 卡片容器背景（各主题不同的圆角 drawable） -->
+    <attr name="skin_card_bg" format="reference" />
 </resources>

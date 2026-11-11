@@ -97,17 +97,17 @@ public class Utils {
     }
 
     public static boolean isDarkTheme(){
+        // 5 套主题方案均为深色系，选中任意皮肤时按深色处理（状态栏用浅色图标）
+        if (getSkinTag() > 0) {
+            return true;
+        }
         int currentNightMode = App.getInstance().getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
         return currentNightMode == Configuration.UI_MODE_NIGHT_YES || AppCompatDelegate.getDefaultNightMode()==AppCompatDelegate.MODE_NIGHT_YES;
     }
 
     public static void initTheme(){
-        int skin = getSkinTag();
-        if (skin == 1 || skin == 3) {
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
-            return;
-        }
-        if (skin == 2) {
+        // 5 套主题方案全部为深色，直接锁定深色模式，避免系统浅色时控件配色错乱
+        if (getSkinTag() > 0) {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
             return;
         }
@@ -125,23 +125,28 @@ public class Utils {
     }
 
     /**
-     * 当前 UI 皮肤, 0默认/1极简线框/2暗黑霓虹/3分段卡片
+     * 当前主题方案：0 默认（跟随系统明暗），
+     * 1 深色磨砂满天星 / 2 黑金凤雅 / 3 青黑科技 / 4 蓝紫沉浸 / 5 暖橙怀旧
      */
     public static int getSkinTag() {
         return Hawk.get(HawkConfig.SKIN_TAG, 0);
     }
 
     /**
-     * 当前皮肤对应的主题资源, 0 表示沿用默认 AppTheme
+     * 当前主题方案对应的主题资源, 0 表示沿用默认 AppTheme
      */
     public static int getSkinThemeRes() {
         switch (getSkinTag()) {
             case 1:
-                return R.style.SkinMinimal;
+                return R.style.SkinStarry;
             case 2:
-                return R.style.SkinNeon;
+                return R.style.SkinGold;
             case 3:
-                return R.style.SkinCard;
+                return R.style.SkinTech;
+            case 4:
+                return R.style.SkinAurora;
+            case 5:
+                return R.style.SkinRetro;
             default:
                 return 0;
         }

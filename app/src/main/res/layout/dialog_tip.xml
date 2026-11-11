@@ -22,8 +22,8 @@
             app:leftTitle="提示"
             app:leftTitleStyle="bold"
             app:leftTitleSize="16sp"
-            app:leftTitleColor="@color/text_foreground"
-            app:titleColor="@color/text_foreground"
+            app:leftTitleColor="?attr/skin_text_primary"
+            app:titleColor="?attr/skin_text_primary"
             app:rightTitle="切换订阅"
             app:rightTitleColor="@color/colorPrimary">
 

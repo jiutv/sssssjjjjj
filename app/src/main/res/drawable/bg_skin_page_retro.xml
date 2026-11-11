@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 方案5 暖橙怀旧：深棕黑底 + 暖橙余光 + 轻微胶片颗粒 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#1A140D"
+                android:centerColor="#14100B"
+                android:endColor="#100C08" />
+        </shape>
+    </item>
+
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:centerX="0.5"
+                android:centerY="0.0"
+                android:gradientRadius="460dp"
+                android:startColor="#1AFF8A4C"
+                android:endColor="#00FF8A4C" />
+        </shape>
+    </item>
+
+    <!-- 胶片颗粒 -->
+    <item>
+        <bitmap
+            android:src="@drawable/bg_film_grain"
+            android:tileMode="repeat"
+            android:alpha="0.5" />
+    </item>
+</layer-list>

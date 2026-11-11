@@ -4,7 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:background="?attr/skin_page_bg">
 
     <com.hjq.bar.TitleBar
         android:id="@+id/title_bar"
@@ -12,7 +13,7 @@
         android:layout_height="45dp"
         app:title="设置"
         app:titleStyle="bold"
-        app:titleColor="@color/black"
+        app:titleColor="?attr/skin_text_primary"
         app:lineVisible="false"/>
 
     <ScrollView
@@ -33,7 +34,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:paddingVertical="20dp"
-                android:background="@drawable/bg_large_round_gray">
+                android:background="?attr/skin_card_bg">
 
                 <LinearLayout
                     android:id="@+id/llHomeRec"
@@ -194,7 +195,7 @@
                 android:orientation="vertical"
                 android:paddingVertical="20dp"
                 android:layout_marginTop="14dp"
-                android:background="@drawable/bg_large_round_gray">
+                android:background="?attr/skin_card_bg">
                 <LinearLayout
                     android:id="@+id/llPlay"
                     android:layout_width="match_parent"
@@ -532,7 +533,7 @@
                 android:orientation="vertical"
                 android:paddingVertical="20dp"
                 android:layout_marginTop="14dp"
-                android:background="@drawable/bg_large_round_gray">
+                android:background="?attr/skin_card_bg">
 
                 <LinearLayout
                     android:id="@+id/llBackup"
