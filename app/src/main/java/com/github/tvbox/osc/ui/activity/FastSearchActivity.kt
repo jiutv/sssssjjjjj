@@ -59,6 +59,8 @@ import java.util.concurrent.atomic.AtomicInteger
 
 class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatcher {
 
+    override fun vbInflate(inflater: android.view.LayoutInflater, parent: android.view.ViewGroup?, attachToRoot: Boolean) = ActivityFastSearchBinding.inflate(inflater, parent, attachToRoot)
+
     companion object {
         private var mCheckSources: HashMap<String, String>? = null
         fun setCheckedSourcesForSearch(checkedSources: HashMap<String, String>?) {

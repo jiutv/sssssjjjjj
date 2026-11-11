@@ -40,6 +40,8 @@ import java.io.File
  * @description:
  */
 class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
+    override fun vbInflate(inflater: android.view.LayoutInflater, parent: android.view.ViewGroup?, attachToRoot: Boolean) = ActivitySettingBinding.inflate(inflater, parent, attachToRoot)
+
 
     private var homeRec = Hawk.get(HawkConfig.HOME_REC, 0)
     private var dnsOpt = Hawk.get(HawkConfig.DOH_URL, 0)

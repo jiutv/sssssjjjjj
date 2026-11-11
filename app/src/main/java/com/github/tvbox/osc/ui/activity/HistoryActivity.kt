@@ -28,6 +28,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class HistoryActivity : BaseVbActivity<ActivityHistoryBinding>() {
+    override fun vbInflate(inflater: android.view.LayoutInflater, parent: android.view.ViewGroup?, attachToRoot: Boolean) = ActivityHistoryBinding.inflate(inflater, parent, attachToRoot)
+
 
     private val historyAdapter = HistoryAdapter()
     private val collectAdapter = CollectAdapter()

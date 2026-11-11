@@ -20,6 +20,8 @@ import com.github.tvbox.osc.util.BottomNavHelper
 import kotlin.system.exitProcess
 
 class MainActivity : BaseVbActivity<ActivityMainBinding>() {
+    override fun vbInflate(inflater: android.view.LayoutInflater, parent: android.view.ViewGroup?, attachToRoot: Boolean) = ActivityMainBinding.inflate(inflater, parent, attachToRoot)
+
 
     var fragments = listOf(HomeFragment(), MyFragment())
     var useCacheConfig = false

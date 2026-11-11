@@ -39,6 +39,8 @@ import org.apache.commons.lang3.StringUtils
 import java.util.function.Consumer
 
 class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
+    override fun vbInflate(inflater: android.view.LayoutInflater, parent: android.view.ViewGroup?, attachToRoot: Boolean) = ActivitySubscriptionBinding.inflate(inflater, parent, attachToRoot)
+
 
     private var mBeforeUrl = Hawk.get(HawkConfig.API_URL, "")
     private var mSelectedUrl = ""

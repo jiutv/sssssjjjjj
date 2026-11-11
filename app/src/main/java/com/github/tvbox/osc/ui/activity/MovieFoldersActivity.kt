@@ -13,6 +13,8 @@ import java.util.function.Function
 import java.util.stream.Collectors
 
 class MovieFoldersActivity : BaseVbActivity<ActivityMovieFoldersBinding>() {
+    override fun vbInflate(inflater: android.view.LayoutInflater, parent: android.view.ViewGroup?, attachToRoot: Boolean) = ActivityMovieFoldersBinding.inflate(inflater, parent, attachToRoot)
+
 
     private var mFolderAdapter = FolderAdapter()
     override fun init() {

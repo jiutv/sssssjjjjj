@@ -25,6 +25,8 @@ import kotlinx.coroutines.withContext
 import java.util.stream.Collectors
 
 class VideoListActivity : BaseVbActivity<ActivityMovieFoldersBinding>() {
+    override fun vbInflate(inflater: android.view.LayoutInflater, parent: android.view.ViewGroup?, attachToRoot: Boolean) = ActivityMovieFoldersBinding.inflate(inflater, parent, attachToRoot)
+
     private var mBucketDisplayName = ""
     private var mLocalVideoAdapter = LocalVideoAdapter()
     private var mSelectedCount = 0

@@ -22,6 +22,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class CollectActivity : BaseVbActivity<ActivityCollectBinding>() {
+    override fun vbInflate(inflater: android.view.LayoutInflater, parent: android.view.ViewGroup?, attachToRoot: Boolean) = ActivityCollectBinding.inflate(inflater, parent, attachToRoot)
+
 
     private var collectAdapter  = CollectAdapter()
     override fun init() {

@@ -8,6 +8,8 @@ import com.github.tvbox.osc.base.BaseVbActivity
 import com.github.tvbox.osc.databinding.ActivitySplashBinding
 
 class SplashActivity : BaseVbActivity<ActivitySplashBinding>() {
+    override fun vbInflate(inflater: android.view.LayoutInflater, parent: android.view.ViewGroup?, attachToRoot: Boolean) = ActivitySplashBinding.inflate(inflater, parent, attachToRoot)
+
     override fun init() {
         App.getInstance().isNormalStart = true
 
