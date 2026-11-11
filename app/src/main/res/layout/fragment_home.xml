@@ -23,38 +23,44 @@
             android:id="@+id/nameContainer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
             android:orientation="horizontal">
 
+            <!-- 站点名称不再限制最大宽度，文字完整显示不截断 -->
             <TextView
                 android:id="@+id/tvName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:maxWidth="110dp"
                 android:text="@string/app_name"
                 android:textAlignment="gravity"
                 android:textColor="?attr/skin_text_primary"
                 android:textSize="16dp"
                 android:drawablePadding="6dp"
                 android:singleLine="true"
+                android:ellipsize="none"
                 android:drawableRight="@drawable/ic_arrow_down"
-                android:ellipsize="marquee"
-                android:marqueeRepeatLimit="marquee_forever"
                 android:focusable="true"
                 android:focusableInTouchMode="true"
                 />
 
         </LinearLayout>
 
+        <!-- 占位撑开，让搜索框只占剩余空间的一小部分 -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1.2" />
+
         <TextView
             android:id="@+id/search"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
+            android:layout_weight="1"
             android:layout_height="36dp"
             android:background="@drawable/bg_skin_field"
             android:gravity="center_vertical"
             android:paddingHorizontal="12sp"
             android:hint="搜索"
             android:drawableTint="?attr/skin_text_secondary"
-            android:layout_marginLeft="10dp"
             android:drawableRight="@drawable/ic_search_18"/>
 
     </LinearLayout>
