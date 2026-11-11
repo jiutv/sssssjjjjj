@@ -89,7 +89,9 @@ import xyz.doikki.videoplayer.player.VideoView;
  * @description:
  */
 public class LiveActivity extends BaseActivity {
-    public static Context context;
+    // P0 fix: 静态 Activity 引用改为弱引用，避免旋转/退后台后泄漏
+    private static volatile android.lang.ref.WeakReference<LiveActivity> sInstanceRef;
+
     private VideoView mVideoView;
     private TextView tvChannelInfo;
     private LinearLayout tvLeftChannelListLayout;
@@ -106,7 +108,8 @@ public class LiveActivity extends BaseActivity {
     private List<LiveSettingGroup> liveSettingGroupList = new ArrayList<>();
 
     public static  int currentChannelGroupIndex = 0;
-    private Handler mHandler = new Handler();
+    // P0 fix: 显式指定主 Looper，避免后台线程 new Handler() 崩溃
+    private final Handler mHandler = new Handler(Looper.getMainLooper());
 
     private List<LiveChannelGroup> liveChannelGroupList = new ArrayList<>();
     private int currentLiveChannelIndex = -1;
@@ -156,6 +159,7 @@ public class LiveActivity extends BaseActivity {
                 .hideBar(BarHide.FLAG_HIDE_NAVIGATION_BAR)
                 .init();
         context = this;
+        sInstanceRef = new android.lang.ref.WeakReference<>(this);
         epgStringAddress = Hawk.get(HawkConfig.EPG_URL,"");
         if(epgStringAddress == null || epgStringAddress.length()<5)
             epgStringAddress = "http://epg.51zmt.top:8000/api/diyp/";

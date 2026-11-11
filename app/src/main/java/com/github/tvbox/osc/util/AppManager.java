@@ -2,15 +2,22 @@ package com.github.tvbox.osc.util;
 
 import android.app.Activity;
 
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Stack;
 
 /**
  * @author pj567
  * @date :2020/12/23
  * @description:
+ *
+ * P0 fix: 栈里只存 Activity 的弱引用，避免异常路径下 Activity 销毁但 Stack 仍持有导致泄漏。
+ * 所有取值入口统一过滤 null / isFinishing / isDestroyed。
  */
 public class AppManager {
-    private static Stack<Activity> activityStack;
+    private static Stack<WeakReference<Activity>> activityStack;
 
     private AppManager() {
     }
@@ -28,41 +35,72 @@ public class AppManager {
      */
     public void addActivity(Activity activity) {
         if (activityStack == null) {
-            activityStack = new Stack<Activity>();
+            activityStack = new Stack<>();
         }
-        activityStack.add(activity);
+        // 先把已失效的清理掉
+        pruneDeadActivities();
+        activityStack.add(new WeakReference<>(activity));
+    }
+
+    /** 清理掉弱引用已失效 / Activity 已 finish 的条目 */
+    private void pruneDeadActivities() {
+        if (activityStack == null) return;
+        Iterator<WeakReference<Activity>> it = activityStack.iterator();
+        while (it.hasNext()) {
+            WeakReference<Activity> ref = it.next();
+            Activity a = ref.get();
+            if (a == null || a.isFinishing() || isActivityDestroyed(a)) {
+                it.remove();
+            }
+        }
+    }
+
+    private static boolean isActivityDestroyed(Activity activity) {
+        try {
+            return activity.isDestroyed();
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     /**
      * 是否有activity
      */
     public boolean isActivity() {
-        if (activityStack != null) {
-            return !activityStack.isEmpty();
-        }
-        return false;
+        pruneDeadActivities();
+        return activityStack != null && !activityStack.isEmpty();
     }
 
     /**
      * 获取当前Activity（堆栈中最后一个压入的）
      */
     public Activity currentActivity() {
-        Activity activity = activityStack.lastElement();
-        return activity;
+        pruneDeadActivities();
+        if (activityStack == null || activityStack.isEmpty()) return null;
+        WeakReference<Activity> ref = activityStack.lastElement();
+        return ref == null ? null : ref.get();
     }
 
     /**
      * 结束当前Activity（堆栈中最后一个压入的）
      */
     public void finishActivity() {
-        Activity activity = activityStack.lastElement();
-        if (!activity.isFinishing()) {
+        Activity activity = currentActivity();
+        if (activity != null && !activity.isFinishing()) {
             activity.finish();
         }
     }
 
     public void finishActivity(Activity activity) {
-        activityStack.remove(activity);
+        if (activityStack == null) return;
+        Iterator<WeakReference<Activity>> it = activityStack.iterator();
+        while (it.hasNext()) {
+            Activity a = it.next().get();
+            if (a == activity) {
+                it.remove();
+                break;
+            }
+        }
     }
 
 
@@ -70,24 +108,31 @@ public class AppManager {
      * 结束指定类名的Activity
      */
     public void finishActivity(Class<?> cls) {
-        for (Activity activity : activityStack) {
-            if (activity.getClass().equals(cls)) {
-                if (!activity.isFinishing()) {
-                    activity.finish();
+        if (activityStack == null) return;
+        Iterator<WeakReference<Activity>> it = activityStack.iterator();
+        while (it.hasNext()) {
+            WeakReference<Activity> ref = it.next();
+            Activity a = ref.get();
+            if (a != null && a.getClass().equals(cls)) {
+                if (!a.isFinishing()) {
+                    a.finish();
                 }
+                it.remove();
                 break;
             }
         }
     }
 
     public void backActivity(Class<?> cls) {
+        if (activityStack == null) return;
         while (!activityStack.empty()) {
-            Activity activity = activityStack.pop();
-            if (activity.getClass().equals(cls)) {
-                activityStack.push(activity);
+            WeakReference<Activity> ref = activityStack.pop();
+            Activity a = ref == null ? null : ref.get();
+            if (a != null && a.getClass().equals(cls)) {
+                activityStack.push(ref);
                 break;
-            } else {
-                activity.finish();
+            } else if (a != null && !a.isFinishing()) {
+                a.finish();
             }
         }
     }
@@ -98,11 +143,10 @@ public class AppManager {
     public void finishAllActivity() {
         if (activityStack != null && activityStack.size() > 0) {
             for (int i = 0, size = activityStack.size(); i < size; i++) {
-                Activity activity = activityStack.get(i);
-                if (null != activityStack.get(i)) {
-                    if (!activity.isFinishing()) {
-                        activity.finish();
-                    }
+                WeakReference<Activity> ref = activityStack.get(i);
+                Activity activity = ref == null ? null : ref.get();
+                if (activity != null && !activity.isFinishing()) {
+                    activity.finish();
                 }
             }
             activityStack.clear();
@@ -113,11 +157,12 @@ public class AppManager {
      * 获取指定的Activity
      */
     public Activity getActivity(Class<?> cls) {
-        if (activityStack != null) {
-            for (Activity activity : activityStack) {
-                if (activity.getClass().equals(cls)) {
-                    return activity;
-                }
+        pruneDeadActivities();
+        if (activityStack == null) return null;
+        for (WeakReference<Activity> ref : activityStack) {
+            Activity a = ref.get();
+            if (a != null && a.getClass().equals(cls)) {
+                return a;
             }
         }
         return null;
@@ -129,7 +174,7 @@ public class AppManager {
             android.os.Process.killProcess(android.os.Process.myPid());
             System.exit(code);
         } catch (Exception e) {
-            activityStack.clear();
+            if (activityStack != null) activityStack.clear();
             e.printStackTrace();
         }
     }

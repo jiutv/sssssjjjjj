@@ -554,7 +554,8 @@ public class PlayFragment extends BaseLazyFragment {
                     if (mediaPlayer instanceof EXOmPlayer) {
                         ((EXOmPlayer) mediaPlayer).selectExoTrack(value);
                     }
-                    new Handler().postDelayed(new Runnable() {
+                    // P0 fix: 使用类内已有的 mHandler，onDestroyView 会统一 remove
+                    mHandler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
                             mediaPlayer.seekTo(progress);
@@ -622,7 +623,7 @@ public class PlayFragment extends BaseLazyFragment {
 
                     if (mediaPlayer instanceof IjkMediaPlayer) {
                         ((IjkMediaPlayer)mediaPlayer).setTrack(value.trackId);
-                        new Handler().postDelayed(new Runnable() {
+                        mHandler.postDelayed(new Runnable() {
                             @Override
                             public void run() {
                                 mediaPlayer.seekTo(progress);
@@ -632,7 +633,7 @@ public class PlayFragment extends BaseLazyFragment {
                     }
                     if (mediaPlayer instanceof EXOmPlayer) {
                         ((EXOmPlayer)mediaPlayer).selectExoTrack(value);
-                        new Handler().postDelayed(new Runnable() {
+                        mHandler.postDelayed(new Runnable() {
                             @Override
                             public void run() {
                                 mediaPlayer.seekTo(progress);
@@ -1183,6 +1184,8 @@ public class PlayFragment extends BaseLazyFragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        // P0 fix: 移除所有 pending callbacks/runnables，防止退出后回调访问已 detach 的 View/Activity
+        if (mHandler != null) mHandler.removeCallbacksAndMessages(null);
         //手动注销
         sourceViewModel.playResult.removeObserver(mObserverPlayResult);
 
