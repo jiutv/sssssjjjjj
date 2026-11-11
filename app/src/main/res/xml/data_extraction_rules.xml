@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- P1 安全: 禁止 adb backup / 云备份把订阅地址、历史记录、收藏拉走 -->
+<!-- 仅 Android 12+ (API 31) 生效，低版本靠 allowBackup=false 兜底 -->
+<data-extraction-rules xmlns:android="http://schemas.android.com/apk/res/android"
+    backup:include="false"
+    cloud-backup:include="false"
+    xmlns:backup="http://schemas.android.com/apk/res-auto">
+    <cloud-backup />
+    <device-transfer />
+</data-extraction-rules>
