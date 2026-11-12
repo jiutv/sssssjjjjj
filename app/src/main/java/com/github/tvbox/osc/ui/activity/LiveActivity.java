@@ -90,7 +90,7 @@ import xyz.doikki.videoplayer.player.VideoView;
  */
 public class LiveActivity extends BaseActivity {
     // P0 fix: 静态 Activity 引用改为弱引用，避免旋转/退后台后泄漏
-    private static volatile android.lang.ref.WeakReference<LiveActivity> sInstanceRef;
+    private static volatile java.lang.ref.WeakReference<LiveActivity> sInstanceRef;
 
     private VideoView mVideoView;
     private TextView tvChannelInfo;
