@@ -17,6 +17,8 @@ import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Rational;
 import android.util.TypedValue;
@@ -72,6 +74,7 @@ import com.github.tvbox.osc.ui.widget.GridSpacingItemDecoration;
 import com.github.tvbox.osc.util.DefaultConfig;
 import com.github.tvbox.osc.util.FastClickCheckUtil;
 import com.github.tvbox.osc.util.HawkConfig;
+import com.github.tvbox.osc.util.PlayCache;
 import com.github.tvbox.osc.util.ScreenShotListenManager;
 import com.github.tvbox.osc.util.SearchHelper;
 import com.github.tvbox.osc.util.SubtitleHelper;
@@ -130,6 +133,26 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
     public String sourceKey;
     private View seriesFlagFocus = null;
     private boolean isReverse;
+    /** 需求4：选集布局模式 0=完整(单列) 1=紧凑(固定4列) 2=智能(按屏宽自适应) */
+    private int seriesLayoutMode = 2;
+    /** 需求2：详情缓存 key */
+    private String detailCacheKey;
+    /** 需求2：详情是否已加载完成（用于超时判断） */
+    private boolean detailLoaded;
+    private static final long DETAIL_TIMEOUT = 20000L;
+    private final Handler mTimeoutHandler = new Handler(Looper.getMainLooper());
+    /** 需求2：获取剧集列表超时提示，避免无限转圈 */
+    private final Runnable detailTimeoutRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (!detailLoaded) {
+                detailLoaded = true;
+                mBinding.tvLoadTip.setVisibility(View.GONE);
+                Toast.makeText(DetailActivity.this, "获取剧集列表超时，请重试", Toast.LENGTH_SHORT).show();
+                showEmpty();
+            }
+        }
+    };
     private String preFlag = "";
     private HashMap<String, String> mCheckSources = null;
     BatteryReceiver mBatteryReceiver = new BatteryReceiver();
@@ -182,12 +205,9 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         initDetailBackground();
 
         mBinding.mGridView.setHasFixedSize(true);
-        // 网格铺开：按屏幕宽度自适应列数（手机约 4 列，电视大屏更多列）
-        int spanCount = Math.max(4, ScreenUtils.getScreenWidth() / ConvertUtils.dp2px(110));
-        mBinding.mGridView.setLayoutManager(new GridLayoutManager(this.mContext, spanCount));
-        mBinding.mGridView.addItemDecoration(new GridSpacingItemDecoration(spanCount, ConvertUtils.dp2px(10), true));
-
         seriesAdapter = new SeriesAdapter(true);
+        // 需求4：初始化选集布局（默认"智能"，按屏幕宽度自适应列数）
+        applySeriesLayout();
         mBinding.mGridView.setAdapter(seriesAdapter);
         mBinding.mGridViewFlag.setHasFixedSize(true);
         seriesFlagAdapter = new SeriesFlagAdapter();
@@ -251,8 +271,11 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             }
         });
 
+        // 需求4：原"全部"按钮改为"布局"按钮，点击循环切换 完整/紧凑/智能 三种选集布局
+        updateSeriesLayoutLabel();
         mBinding.tvAllSeries.setOnClickListener(view -> {
-            showAllSeriesDialog();
+            seriesLayoutMode = (seriesLayoutMode + 1) % 3;
+            applySeriesLayout();
         });
 
         mBinding.tvSite.setOnClickListener(view -> {
@@ -380,6 +403,41 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
     }
 
     /**
+     * 需求4：应用当前选集布局（完整/紧凑/智能）
+     * 完整 = 单列铺满；紧凑 = 固定 4 列；智能 = 按屏幕宽度自适应列数
+     */
+    private void applySeriesLayout() {
+        int span;
+        switch (seriesLayoutMode) {
+            case 0:
+                span = 1;
+                break;
+            case 1:
+                span = 4;
+                break;
+            default:
+                span = Math.max(4, ScreenUtils.getScreenWidth() / ConvertUtils.dp2px(110));
+                break;
+        }
+        mBinding.mGridView.setLayoutManager(new GridLayoutManager(this.mContext, span));
+        // 间距装饰器依赖列数，切换布局时需要重建
+        while (mBinding.mGridView.getItemDecorationCount() > 0) {
+            mBinding.mGridView.removeItemDecorationAt(0);
+        }
+        mBinding.mGridView.addItemDecoration(new GridSpacingItemDecoration(span, ConvertUtils.dp2px(10), true));
+        updateSeriesLayoutLabel();
+        if (seriesAdapter != null) {
+            seriesAdapter.notifyDataSetChanged();
+        }
+    }
+
+    /** 需求4：更新"布局·xx"按钮文案 */
+    private void updateSeriesLayoutLabel() {
+        String[] labels = {"布局·完整", "布局·紧凑", "布局·智能"};
+        mBinding.tvAllSeries.setText(labels[seriesLayoutMode]);
+    }
+
+    /**
      * 排序(倒序)
      */
     public void sortSeries() {
@@ -390,6 +448,8 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             vodInfo.playIndex = (vodInfo.seriesMap.get(vodInfo.playFlag).size() - 1) - vodInfo.playIndex;
 //                    insertVod(sourceKey, vodInfo);
 
+            // 需求4：保留正序/倒序切换，并同步按钮文案
+            mBinding.tvSort.setText(vodInfo.reverseSort ? "倒序" : "正序");
             seriesAdapter.notifyDataSetChanged();
         }
     }
@@ -553,6 +613,24 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         sourceViewModel.detailResult.observe(this, new Observer<AbsXml>() {
             @Override
             public void onChanged(AbsXml absXml) {
+                // 需求2：收到结果，取消超时保护，隐藏"正在获取剧集列表"状态
+                detailLoaded = true;
+                mTimeoutHandler.removeCallbacks(detailTimeoutRunnable);
+                mBinding.tvLoadTip.setVisibility(View.GONE);
+                // 需求2：剧集列表写入本地缓存，短时间重复打开优先读缓存
+                if (absXml != null && absXml.movie != null && absXml.movie.videoList != null
+                        && absXml.movie.videoList.size() > 0 && detailCacheKey != null) {
+                    PlayCache.putDetail(detailCacheKey, absXml);
+                }
+                renderDetail(absXml);
+            }
+        });
+    }
+
+    /**
+     * 需求2：渲染详情数据（网络结果与本地缓存命中共用同一套渲染逻辑）
+     */
+    private void renderDetail(AbsXml absXml) {
                 if (absXml != null && absXml.movie != null && absXml.movie.videoList != null && absXml.movie.videoList.size() > 0) {
                     showSuccess();
                     mVideo = absXml.movie.videoList.get(0);
@@ -607,6 +685,8 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                         mBinding.mGridViewFlag.scrollToPosition(flagScrollTo);
 
                         refreshList();
+                        // 需求4：同步正序/倒序按钮文案
+                        mBinding.tvSort.setText(vodInfo.reverseSort ? "倒序" : "正序");
                         if (showPreview) {
                             jumpToPlay();
                             mBinding.previewPlayer.setVisibility(View.VISIBLE);
@@ -622,8 +702,6 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                     showEmpty();
                     mBinding.previewPlayer.setVisibility(View.GONE);
                 }
-            }
-        });
     }
 
     private String getHtml(String label, String content) {
@@ -645,15 +723,44 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         if (vid != null) {
             vodId = vid;
             sourceKey = key;
-            showLoading();
-            sourceViewModel.getDetail(sourceKey, vodId);
             boolean isVodCollect = RoomDataManger.isVodCollect(sourceKey, vodId);
-            if (isVodCollect) {
-                mBinding.tvCollect.setText("取消收藏");
-            } else {
-                mBinding.tvCollect.setText("加入收藏");
+            mBinding.tvCollect.setText(isVodCollect ? "取消收藏" : "加入收藏");
+            detailCacheKey = PlayCache.detailKey(sourceKey, vodId);
+
+            // 需求2：先渲染骨架占位，避免长时间转圈/白屏
+            showSuccess();
+            showDetailSkeleton();
+
+            // 需求2：短时间内重复打开同一视频，优先读取本地缓存的剧集列表
+            AbsXml cached = PlayCache.getDetail(detailCacheKey);
+            if (cached != null && cached.movie != null) {
+                detailLoaded = true;
+                mBinding.tvLoadTip.setVisibility(View.GONE);
+                renderDetail(cached);
+                return;
             }
+
+            // 需求2：缓存未命中 -> 后台请求剧集列表，显示"正在获取剧集列表"并加超时保护
+            detailLoaded = false;
+            mBinding.tvLoadTip.setText("正在获取剧集列表…");
+            mBinding.tvLoadTip.setVisibility(View.VISIBLE);
+            mTimeoutHandler.removeCallbacks(detailTimeoutRunnable);
+            mTimeoutHandler.postDelayed(detailTimeoutRunnable, DETAIL_TIMEOUT);
+            sourceViewModel.getDetail(sourceKey, vodId);
         }
+    }
+
+    /** 需求2：详情未返回前的骨架占位 */
+    private void showDetailSkeleton() {
+        mBinding.tvName.setText("加载中…");
+        mBinding.tvMeta.setText("");
+        mBinding.tvDirector.setVisibility(View.GONE);
+        mBinding.tvActor.setVisibility(View.GONE);
+        mBinding.tvNote.setVisibility(View.GONE);
+        mBinding.tvSite.setText("来源：");
+        mBinding.mGridViewFlag.setVisibility(View.GONE);
+        mBinding.mGridView.setVisibility(View.VISIBLE);
+        mBinding.mEmptyPlaylist.setVisibility(View.GONE);
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -823,6 +930,8 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
     @Override
     protected void onDestroy() {
         registerActionReceiver(false);
+        // 需求2：页面销毁时移除超时回调，避免泄漏
+        mTimeoutHandler.removeCallbacks(detailTimeoutRunnable);
         super.onDestroy();
         unregisterReceiver(mBatteryReceiver);
         // 注销广播接收器

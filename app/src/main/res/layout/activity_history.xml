@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    需求1：记录（历史 + 收藏）页面
+    1. 移除原顶部「历史 / 收藏」Tab，改为「记录」标题 + 单列表卡片布局（参考订阅管理页）
+    2. 右上角保留刷子（ic_clear）一键清空按钮
+    3. 列表由分组标题 + 卡片条目组成（历史记录 / 收藏 两个分组），卡片 UI 与订阅卡片一致
+    4. 空数据时由 LoadSir 的 EmptyCallback（暂无数据）占位，与订阅页一致
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -7,47 +14,60 @@
     android:background="?attr/skin_page_bg"
     android:orientation="vertical">
 
-    <FrameLayout
+    <!-- 需求1：页面标题栏（原 Tab 区域替换为标题 + 右上角清空按钮） -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:paddingHorizontal="20dp"
-        android:paddingVertical="8dp">
+        android:paddingTop="14dp"
+        android:paddingBottom="4dp">
 
-        <com.angcyo.tablayout.DslTabLayout
-            android:id="@+id/tab_layout"
-            android:layout_width="wrap_content"
+        <TextView
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_gravity="center" />
+            android:layout_weight="1"
+            android:text="记录"
+            android:textColor="?attr/skin_text_primary"
+            android:textSize="20sp"
+            android:textStyle="bold" />
 
+        <!-- 需求1：一键清空按钮（保留原 iv_delete id，逻辑改为清空历史 + 收藏） -->
         <ImageView
             android:id="@+id/iv_delete"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:layout_gravity="end|center_vertical"
+            android:contentDescription="清空"
             android:padding="4dp"
             android:src="@drawable/ic_clear"
-            app:tint="?attr/skin_text_secondary"
-            android:contentDescription="清空" />
+            app:tint="?attr/skin_text_secondary" />
+    </LinearLayout>
 
-    </FrameLayout>
-
+    <!-- 需求1：长按逐条删除的提示（有数据时显示，与原逻辑一致） -->
     <TextView
         android:id="@+id/top_tip"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginVertical="6dp"
+        android:layout_gravity="start"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginBottom="6dp"
+        android:text="长按条目可逐条删除"
+        android:textColor="?attr/skin_text_secondary"
+        android:textSize="11sp"
         android:visibility="gone"
         tools:visibility="visible" />
 
+    <!-- 需求1：单一列表（内部按分组渲染 历史记录 / 收藏），LinearLayoutManager 纵向卡片 -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/mGridView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:paddingHorizontal="10dp"
-        android:paddingTop="10dp"
-        tools:listitem="@layout/item_grid" />
+        android:clipToPadding="false"
+        android:paddingBottom="8dp"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        tools:listitem="@layout/item_record_card" />
 
     <include
         android:id="@+id/bottom_nav"

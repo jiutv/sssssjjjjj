@@ -47,30 +47,7 @@
                 android:orientation="vertical"
                 android:layout_height="wrap_content">
 
-                <!-- 顶部居中金色 logo -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:gravity="center_horizontal"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/tvDetailLogo"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:letterSpacing="0.32"
-                        android:text="MBox"
-                        android:textColor="#D9B36A"
-                        android:textSize="24sp"
-                        android:textStyle="bold" />
-
-                    <View
-                        android:layout_width="30dp"
-                        android:layout_height="2dp"
-                        android:layout_marginTop="6dp"
-                        android:background="#D9B36A" />
-                </LinearLayout>
+                <!-- 需求3：移除顶部居中 "MBox" 文字 Logo，其余样式不变 -->
 
                 <!-- 封面 + 剧集信息 -->
                 <LinearLayout
@@ -114,7 +91,6 @@
                                 android:layout_weight="1"
                                 android:ellipsize="end"
                                 android:maxLines="2"
-                                android:text="鬼灭之刃"
                                 android:textColor="?attr/skin_text_primary"
                                 android:textSize="20sp"
                                 android:textStyle="bold" />
@@ -177,6 +153,19 @@
                             tools:visibility="visible" />
                     </LinearLayout>
                 </LinearLayout>
+
+                <!-- 需求2：加载状态提示（区分"获取剧集列表"与"解析播放线路"） -->
+                <TextView
+                    android:id="@+id/tvLoadTip"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="14dp"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center"
+                    android:text="正在获取剧集列表…"
+                    android:textColor="?attr/skin_text_secondary"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -410,11 +399,12 @@
                         android:layout_height="14dp"
                         android:layout_marginHorizontal="10dp"
                         android:background="?attr/skin_card_border" />
+                    <!-- 需求4：原"全部"按钮改为"布局"按钮，点击循环切换 完整/紧凑/智能 三种选集布局 -->
                     <TextView
                         android:id="@+id/tv_all_series"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="全部"
+                        android:text="布局·智能"
                         android:drawableRight="@drawable/ic_expand_all_18"
                         android:textColor="?attr/skin_text_primary"
                         android:drawablePadding="4dp"

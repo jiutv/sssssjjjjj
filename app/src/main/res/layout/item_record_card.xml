@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    需求1：记录页卡片（历史 / 收藏通用）
+    布局对齐订阅管理页卡片：左封面 + 中间标题信息 + 右侧独立删除按钮
+    黑金深色主题：卡片背景复用 bg_sub_card（与订阅卡片同款）
+-->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="10dp"
+    android:layout_marginBottom="10dp"
+    android:background="@drawable/bg_sub_card"
+    android:padding="10dp">
+
+    <!-- 左侧封面（Picasso 圆角加载，失败显示占位图） -->
+    <ImageView
+        android:id="@+id/iv_cover"
+        android:layout_width="62dp"
+        android:layout_height="86dp"
+        android:contentDescription="封面"
+        android:scaleType="centerCrop"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:src="@drawable/img_loading_placeholder" />
+
+    <!-- 中间标题 -->
+    <TextView
+        android:id="@+id/tv_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="8dp"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:textColor="?attr/skin_text_primary"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toStartOf="@id/iv_del"
+        app:layout_constraintStart_toEndOf="@id/iv_cover"
+        app:layout_constraintTop_toTopOf="@id/iv_cover"
+        tools:text="鬼灭之刃" />
+
+    <!-- 中间副标题：来源 · 年份 -->
+    <TextView
+        android:id="@+id/tv_meta"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:textColor="?attr/skin_text_secondary"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toStartOf="@id/iv_del"
+        app:layout_constraintStart_toStartOf="@id/tv_name"
+        app:layout_constraintTop_toBottomOf="@id/tv_name"
+        tools:text="配置订阅 · 2024" />
+
+    <!-- 需求1：历史卡片播放进度标记（收藏卡片隐藏） -->
+    <TextView
+        android:id="@+id/tv_progress"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:textColor="?attr/skin_accent"
+        android:textSize="11sp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toStartOf="@id/iv_del"
+        app:layout_constraintStart_toStartOf="@id/tv_name"
+        app:layout_constraintTop_toBottomOf="@id/tv_meta"
+        tools:text="上次看到：第 3 集"
+        tools:visibility="visible" />
+
+    <!-- 需求1：右侧独立删除按钮（与订阅卡片删除按钮同款），长按整卡也可删除 -->
+    <ImageView
+        android:id="@+id/iv_del"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:contentDescription="删除"
+        android:padding="6dp"
+        android:src="@drawable/dkplayer_ic_action_close"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/red" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

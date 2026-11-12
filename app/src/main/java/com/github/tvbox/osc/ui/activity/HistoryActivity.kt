@@ -2,23 +2,20 @@ package com.github.tvbox.osc.ui.activity
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.Gravity
-import android.view.View
-import android.widget.TextView
+import android.view.LayoutInflater
+import android.view.ViewGroup
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.angcyo.tablayout.DslTabLayout
-import com.chad.library.adapter.base.BaseQuickAdapter
-import com.github.tvbox.osc.api.ApiConfig
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.github.tvbox.osc.R
+import com.github.tvbox.osc.api.ApiConfig
 import com.github.tvbox.osc.base.BaseVbActivity
 import com.github.tvbox.osc.bean.VodInfo
 import com.github.tvbox.osc.cache.RoomDataManger
 import com.github.tvbox.osc.cache.VodCollect
 import com.github.tvbox.osc.databinding.ActivityHistoryBinding
-import com.github.tvbox.osc.ui.adapter.CollectAdapter
-import com.github.tvbox.osc.ui.adapter.HistoryAdapter
+import com.github.tvbox.osc.event.RefreshEvent
+import com.github.tvbox.osc.ui.adapter.HistoryRecordAdapter
+import com.github.tvbox.osc.ui.adapter.RecordEntry
 import com.github.tvbox.osc.util.BottomNavHelper
 import com.github.tvbox.osc.util.FastClickCheckUtil
 import com.github.tvbox.osc.util.Utils
@@ -26,190 +23,214 @@ import com.lxj.xpopup.XPopup
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.greenrobot.eventbus.Subscribe
+import org.greenrobot.eventbus.ThreadMode
 
+/**
+ * 需求1：记录（历史 + 收藏）页面改造
+ *
+ * 1. 移除原「历史 / 收藏」Tab，改为单列表 + 分组标题（历史记录 / 收藏）
+ * 2. 卡片 UI 与订阅管理页一致：左封面 + 中间标题信息 + 右侧删除按钮
+ * 3. 右侧删除按钮与长按整卡删除两种方式共存
+ * 4. 历史、收藏在同一次统一读取中加载（修复部分手机端只显示历史、不显示收藏的问题）
+ * 5. 空数据时显示与订阅页一致的 LoadSir「暂无数据」占位
+ */
 class HistoryActivity : BaseVbActivity<ActivityHistoryBinding>() {
-    override fun vbInflate(inflater: android.view.LayoutInflater, parent: android.view.ViewGroup?, attachToRoot: Boolean) = ActivityHistoryBinding.inflate(inflater, parent, attachToRoot)
 
+    override fun vbInflate(
+        inflater: LayoutInflater,
+        parent: ViewGroup?,
+        attachToRoot: Boolean,
+    ) = ActivityHistoryBinding.inflate(inflater, parent, attachToRoot)
 
-    private val historyAdapter = HistoryAdapter()
-    private val collectAdapter = CollectAdapter()
-    private var currentTab = 0 // 0=历史 1=收藏
+    /** 历史记录原始数据（分组渲染 + 删除时共用） */
+    private val historyList = ArrayList<VodInfo>()
+
+    /** 收藏原始数据（分组渲染 + 删除时共用） */
+    private val collectList = ArrayList<VodCollect>()
+
+    private lateinit var recordAdapter: HistoryRecordAdapter
+
+    /** 首次进入由 init() 加载，后续 onResume 再刷新，避免重复加载 */
+    private var firstResume = true
 
     override fun init() {
-        initTabLayout()
-        initGridView()
+        initList()
+        initClearAction()
         loadAllData()
-        BottomNavHelper.attach(this, findViewById(R.id.bottom_nav), R.id.navigation_history)
+        BottomNavHelper.attach(this, mBinding.bottomNav, R.id.navigation_history)
     }
 
-    // ========== TabLayout ==========
-    private fun initTabLayout() {
-        val lp = DslTabLayout.LayoutParams(-2, -2)
-        lp.topMargin = 15
-        lp.bottomMargin = 15
-
-        val tab0 = TextView(this)
-        tab0.text = "历史"
-        tab0.gravity = Gravity.CENTER
-        tab0.setPadding(20, 10, 20, 10)
-        mBinding.tabLayout.addView(tab0, lp)
-
-        val tab1 = TextView(this)
-        tab1.text = "收藏"
-        tab1.gravity = Gravity.CENTER
-        tab1.setPadding(20, 10, 20, 10)
-        mBinding.tabLayout.addView(tab1, lp)
-
-        mBinding.tabLayout.setCurrentItem(0, true, false)
-
-        mBinding.tabLayout.configTabLayoutConfig {
-            onSelectViewChange = { _, selectViewList, _, _ ->
-                val selectedTab = (selectViewList.first() as? TextView)?.text?.toString()
-                switchTab(if (selectedTab == "收藏") 1 else 0)
-            }
-        }
-
-        mBinding.ivDelete.setOnClickListener {
-            if (currentTab == 0) clearHistory() else clearCollect()
-        }
-    }
-
-    // ========== 共用的 RecyclerView (GridLayoutManager 3列) ==========
-    private fun initGridView() {
+    /** 列表初始化：单 RecyclerView + 单适配器（不再切换 adapter，规避真机 Tab 切换失效问题） */
+    private fun initList() {
         setLoadSir(mBinding.mGridView)
-        mBinding.mGridView.setHasFixedSize(true)
-        mBinding.mGridView.layoutManager = GridLayoutManager(this, 3)
+        mBinding.mGridView.layoutManager = LinearLayoutManager(this)
+        mBinding.mGridView.setHasFixedSize(false)
+        recordAdapter = HistoryRecordAdapter(
+            // 点击卡片：跳转详情/播放（附带原播放进度由详情页读取）
+            onClick = { view, entry ->
+                FastClickCheckUtil.check(view)
+                openEntry(entry)
+            },
+            // 右侧删除按钮：逐条删除
+            onDelete = { entry -> deleteEntry(entry) },
+            // 长按整卡：保留原有长按逐条删除功能，与按钮删除共存
+            onLongClick = { entry -> deleteEntry(entry) }
+        )
+        mBinding.mGridView.adapter = recordAdapter
+    }
 
-        // 历史 adapter 点击/长按 (原 HistoryActivity 逻辑)
-        historyAdapter.onItemLongClickListener =
-            BaseQuickAdapter.OnItemLongClickListener { _: BaseQuickAdapter<*, *>?, view: View?, position: Int ->
-                FastClickCheckUtil.check(view)
-                val vodInfo = historyAdapter.data[position]
-                historyAdapter.remove(position)
-                RoomDataManger.deleteVodRecord(vodInfo.sourceKey, vodInfo)
-                if (currentTab == 0) refreshTopTip()
-                true
+    /** 右上角刷子：一键清空（历史 + 收藏） */
+    private fun initClearAction() {
+        mBinding.ivDelete.setOnClickListener {
+            val hasHistory = historyList.isNotEmpty()
+            val hasCollect = collectList.isNotEmpty()
+            if (!hasHistory && !hasCollect) return@setOnClickListener
+            val tip = when {
+                hasHistory && hasCollect -> "确定清空全部历史记录和收藏？"
+                hasHistory -> "确定清空全部历史记录？"
+                else -> "确定清空全部收藏？"
             }
-        historyAdapter.onItemClickListener =
-            BaseQuickAdapter.OnItemClickListener { _: BaseQuickAdapter<*, *>?, view: View?, position: Int ->
-                FastClickCheckUtil.check(view)
-                val vodInfo = historyAdapter.data[position]
-                val bundle = Bundle()
-                bundle.putString("id", vodInfo.id)
-                bundle.putString("sourceKey", vodInfo.sourceKey)
+            XPopup.Builder(this)
+                .isDarkTheme(Utils.isDarkTheme())
+                .asConfirm("提示", tip) {
+                    clearAll(hasHistory, hasCollect)
+                }.show()
+        }
+    }
+
+    /**
+     * 需求1 修复：历史、收藏统一在同一次 IO 读取中加载，
+     * 并在主线程渲染，模拟器 / 手机端行为一致。
+     */
+    private fun loadAllData() {
+        lifecycleScope.launch {
+            val data = withContext(Dispatchers.IO) {
+                // 历史：保留原 playNote -> note 的转换逻辑
+                val history = ArrayList(RoomDataManger.getAllVodRecord(100))
+                history.forEach { vod ->
+                    if (!vod.playNote.isNullOrEmpty()) vod.note = vod.playNote
+                }
+                // 收藏：与历史同一批读取，保证两端数据都能拿到
+                val collect = ArrayList(RoomDataManger.getAllVodCollect())
+                Pair(history, collect)
+            }
+            historyList.clear()
+            historyList.addAll(data.first)
+            collectList.clear()
+            collectList.addAll(data.second)
+            rebuildList()
+        }
+    }
+
+    /** 按分组重建列表：历史记录分组 + 收藏分组，两组都为空时显示空占位 */
+    private fun rebuildList() {
+        val entries = ArrayList<RecordEntry>()
+        if (historyList.isNotEmpty()) {
+            entries.add(RecordEntry.Group("历史记录", historyList.size))
+            historyList.forEach { entries.add(RecordEntry.History(it)) }
+        }
+        if (collectList.isNotEmpty()) {
+            entries.add(RecordEntry.Group("收藏", collectList.size))
+            collectList.forEach { entries.add(RecordEntry.Collect(it)) }
+        }
+        recordAdapter.submit(entries)
+        refreshState()
+    }
+
+    /** 有数据 -> 展示长按提示；无数据 -> LoadSir「暂无数据」占位（与订阅页一致） */
+    private fun refreshState() {
+        if (historyList.isEmpty() && collectList.isEmpty()) {
+            mBinding.topTip.visibility = android.view.View.GONE
+            showEmpty()
+        } else {
+            mBinding.topTip.visibility = android.view.View.VISIBLE
+            mBinding.topTip.text = "长按条目可逐条删除"
+            showSuccess()
+        }
+    }
+
+    /** 卡片点击：历史 -> 详情；收藏 -> 详情（源失效时回退快速搜索，保留原逻辑） */
+    private fun openEntry(entry: RecordEntry) {
+        when (entry) {
+            is RecordEntry.History -> {
+                val vod = entry.vod
+                val bundle = Bundle().apply {
+                    putString("id", vod.id)
+                    putString("sourceKey", vod.sourceKey)
+                }
                 jumpActivity(DetailActivity::class.java, bundle)
             }
 
-        // 收藏 adapter 点击/长按 (原 CollectActivity 逻辑)
-        collectAdapter.onItemLongClickListener =
-            BaseQuickAdapter.OnItemLongClickListener { _: BaseQuickAdapter<*, *>?, _: View?, position: Int ->
-                val vodInfo = collectAdapter.data[position]
-                if (vodInfo != null) {
-                    collectAdapter.remove(position)
-                    RoomDataManger.deleteVodCollect(vodInfo.id)
-                }
-                if (currentTab == 1) refreshTopTip()
-                true
-            }
-        collectAdapter.onItemClickListener =
-            BaseQuickAdapter.OnItemClickListener { _: BaseQuickAdapter<*, *>?, view: View?, position: Int ->
-                FastClickCheckUtil.check(view)
-                val vodInfo = collectAdapter.data[position]
-                if (vodInfo != null) {
-                    if (ApiConfig.get().getSource(vodInfo.sourceKey) != null) {
-                        val bundle = Bundle()
-                        bundle.putString("id", vodInfo.vodId)
-                        bundle.putString("sourceKey", vodInfo.sourceKey)
-                        jumpActivity(DetailActivity::class.java, bundle)
-                    } else {
-                        val newIntent = Intent(mContext, FastSearchActivity::class.java)
-                        newIntent.putExtra("title", vodInfo.name)
-                        newIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                        startActivity(newIntent)
+            is RecordEntry.Collect -> {
+                val vod = entry.vod
+                if (ApiConfig.get().getSource(vod.sourceKey) != null) {
+                    val bundle = Bundle().apply {
+                        putString("id", vod.vodId)
+                        putString("sourceKey", vod.sourceKey)
                     }
+                    jumpActivity(DetailActivity::class.java, bundle)
+                } else {
+                    // 收藏的源已被删除：走快速搜索（与原 Collect 适配器逻辑一致）
+                    val intent = Intent(this, FastSearchActivity::class.java)
+                    intent.putExtra("title", vod.name)
+                    startActivity(intent)
                 }
             }
-    }
 
-    // ========== 加载两个数据源 ==========
-    private fun loadAllData() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            // 并行加载历史
-            val allHistory = RoomDataManger.getAllVodRecord(100)
-            val historyList: MutableList<VodInfo> = ArrayList()
-            for (vodInfo in allHistory) {
-                if (vodInfo.playNote != null && vodInfo.playNote.isNotEmpty()) vodInfo.note = vodInfo.playNote
-                historyList.add(vodInfo)
-            }
-            historyAdapter.setNewData(historyList)
-
-            // 并行加载收藏
-            val allCollect = RoomDataManger.getAllVodCollect()
-            val collectList: MutableList<VodCollect> = ArrayList()
-            for (vodInfo in allCollect) collectList.add(vodInfo)
-            collectAdapter.setNewData(collectList)
-
-            withContext(Dispatchers.Main) {
-                switchTab(0) // 默认显示历史
-            }
+            else -> Unit
         }
     }
 
-    // ========== Tab 切换: 只有一个 Grid, 只有一个 LoadSir ==========
-    private fun switchTab(index: Int) {
-        currentTab = index
-        if (index == 0) {
-            mBinding.mGridView.adapter = historyAdapter as RecyclerView.Adapter<*>
+    /** 单条删除：同步移除内存数据 + 异步删除数据库（右侧按钮 / 长按共用） */
+    private fun deleteEntry(entry: RecordEntry) {
+        when (entry) {
+            is RecordEntry.History -> {
+                val vod = entry.vod
+                historyList.removeAll { it.sourceKey == vod.sourceKey && it.id == vod.id }
+                RoomDataManger.deleteVodRecord(vod.sourceKey, vod)
+                rebuildList()
+            }
+
+            is RecordEntry.Collect -> {
+                val vod = entry.vod
+                collectList.removeAll { it.id == vod.id }
+                RoomDataManger.deleteVodCollect(vod.id)
+                rebuildList()
+            }
+
+            else -> Unit
+        }
+    }
+
+    /** 一键清空：历史 + 收藏（按当前是否有数据分别清理） */
+    private fun clearAll(clearHistory: Boolean, clearCollect: Boolean) {
+        showLoadingDialog()
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                if (clearHistory) RoomDataManger.deleteVodRecordAll()
+                if (clearCollect) RoomDataManger.deleteVodCollectAll()
+            }
+            if (clearHistory) historyList.clear()
+            if (clearCollect) collectList.clear()
+            rebuildList()
+            dismissLoadingDialog()
+        }
+    }
+
+    /** 详情页收藏状态变化时刷新列表（避免返回记录页后收藏分组不更新） */
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onHistoryRefresh(event: RefreshEvent) {
+        if (event.type == RefreshEvent.TYPE_HISTORY_REFRESH) loadAllData()
+    }
+
+    /** 从播放页返回时刷新历史进度 */
+    override fun onResume() {
+        super.onResume()
+        if (firstResume) {
+            firstResume = false
         } else {
-            mBinding.mGridView.adapter = collectAdapter as RecyclerView.Adapter<*>
+            loadAllData()
         }
-        refreshTopTip()
-        refreshEmptyState()
-    }
-
-    private fun refreshTopTip() {
-        val hasData = if (currentTab == 0) historyAdapter.data.isNotEmpty() else collectAdapter.data.isNotEmpty()
-        mBinding.topTip.visibility = if (hasData) View.VISIBLE else View.GONE
-        mBinding.topTip.text = if (currentTab == 0) "长按记录逐条删除" else "长按取消收藏"
-    }
-
-    private fun refreshEmptyState() {
-        val hasData = if (currentTab == 0) historyAdapter.data.isNotEmpty() else collectAdapter.data.isNotEmpty()
-        if (hasData) showSuccess() else showEmpty()
-    }
-
-    // ========== 清空 ==========
-    private fun clearHistory() {
-        XPopup.Builder(this)
-            .isDarkTheme(Utils.isDarkTheme())
-            .asConfirm("提示", "确定清空?") {
-                showLoadingDialog()
-                lifecycleScope.launch(Dispatchers.IO) {
-                    RoomDataManger.deleteVodRecordAll()
-                    withContext(Dispatchers.Main) {
-                        dismissLoadingDialog()
-                        historyAdapter.setNewData(ArrayList())
-                        refreshTopTip()
-                        refreshEmptyState()
-                    }
-                }
-            }.show()
-    }
-
-    private fun clearCollect() {
-        XPopup.Builder(this)
-            .isDarkTheme(Utils.isDarkTheme())
-            .asConfirm("提示", "确定清空?") {
-                showLoadingDialog()
-                lifecycleScope.launch(Dispatchers.IO) {
-                    RoomDataManger.deleteVodCollectAll()
-                    withContext(Dispatchers.Main) {
-                        dismissLoadingDialog()
-                        collectAdapter.setNewData(ArrayList())
-                        refreshTopTip()
-                        refreshEmptyState()
-                    }
-                }
-            }.show()
     }
 }

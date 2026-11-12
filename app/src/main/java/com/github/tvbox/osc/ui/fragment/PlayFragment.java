@@ -79,6 +79,7 @@ import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.LOG;
 import com.github.tvbox.osc.util.MD5;
 import com.github.tvbox.osc.util.PlayerHelper;
+import com.github.tvbox.osc.util.PlayCache;
 import com.github.tvbox.osc.util.VideoParseRuler;
 import com.github.tvbox.osc.util.thunder.Jianpian;
 import com.github.tvbox.osc.util.thunder.Thunder;
@@ -135,6 +136,13 @@ public class PlayFragment extends BaseLazyFragment {
     private VodController mController;
     private SourceViewModel sourceViewModel;
     private Handler mHandler;
+
+    /** 需求2：播放线路超时时间（毫秒） */
+    private static final long PLAY_TIMEOUT = 20000L;
+    /** 需求2：当前播放线路缓存 key */
+    private String mPlayCacheKey;
+    /** 需求2：是否已收到播放线路结果（用于超时判断） */
+    private boolean playResultReceived;
 
     private final long videoDuration = -1;
     /**
@@ -223,6 +231,13 @@ public class PlayFragment extends BaseLazyFragment {
                     case 100:
                         stopParse();
                         errorWithRetry("嗅探错误", false);
+                        break;
+                    case 101:
+                        // 需求2：获取/解析播放线路超时，避免无限转圈
+                        if (!playResultReceived) {
+                            playResultReceived = true;
+                            errorWithRetry("解析播放线路超时，请重试或切换线路", true);
+                        }
                         break;
                 }
                 return false;
@@ -699,6 +714,11 @@ public class PlayFragment extends BaseLazyFragment {
     }
 
     void errorWithRetry(String err, boolean finish) {
+        // 需求2：解析失败时清除当前线路缓存，重试时重新请求，避免复用失效地址
+        if (mPlayCacheKey != null) {
+            PlayCache.remove(mPlayCacheKey);
+            mPlayCacheKey = null;
+        }
         if (!autoRetry() && isAdded()) {
             requireActivity().runOnUiThread(new Runnable() {
                 @Override
@@ -1041,7 +1061,13 @@ public class PlayFragment extends BaseLazyFragment {
     private final Observer<JSONObject> mObserverPlayResult= new Observer<JSONObject>() {
         @Override
         public void onChanged(JSONObject info) {
+            // 需求2：收到结果 -> 取消超时保护
+            cancelPlayTimeout();
             if (info != null) {
+                // 需求2：解析成功的播放线路写入本地缓存，短时间重复播放优先复用
+                if (mPlayCacheKey != null) {
+                    PlayCache.putPlay(mPlayCacheKey, info);
+                }
                 try {
                     progressKey = info.optString("proKey", null);
                     boolean parse = info.optString("parse", "1").equals("1");
@@ -1328,13 +1354,32 @@ public class PlayFragment extends BaseLazyFragment {
         loadFoundVideoUrlsHeader = new HashMap<String, HashMap<String, String>>();
     }
 
+    /** 需求2：启动播放线路超时保护 */
+    private void startPlayTimeout() {
+        playResultReceived = false;
+        if (mHandler != null) {
+            mHandler.removeMessages(101);
+            mHandler.sendEmptyMessageDelayed(101, PLAY_TIMEOUT);
+        }
+    }
+
+    /** 需求2：取消播放线路超时保护 */
+    private void cancelPlayTimeout() {
+        playResultReceived = true;
+        if (mHandler != null) {
+            mHandler.removeMessages(101);
+        }
+    }
+
     public void play(boolean reset) {
         if (mVodInfo == null) return;
         VodInfo.VodSeries vs = mVodInfo.seriesMap.get(mVodInfo.playFlag).get(mVodInfo.playIndex);
         EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_REFRESH, mVodInfo.playIndex));
         EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_REFRESH_NOTIFY, mVodInfo.name + "&&" + vs.name));
         String playTitleInfo = mVodInfo.name + " " + vs.name;
-        setTip("正在获取播放信息", true, false);
+        // 需求2：区分"解析播放线路"状态提示
+        setTip("正在解析播放线路", true, false);
+        cancelPlayTimeout();
         mController.setTitle(playTitleInfo);
 
         stopParse();
@@ -1380,6 +1425,16 @@ public class PlayFragment extends BaseLazyFragment {
             mController.showParse(false);
             return;
         }
+        // 需求2：短时间重复播放同一集，优先读取本地缓存的播放线路，避免重复解析
+        mPlayCacheKey = PlayCache.playKey(sourceKey, mVodInfo.id, mVodInfo.playFlag, mVodInfo.playIndex);
+        JSONObject cachedPlay = PlayCache.getPlay(mPlayCacheKey);
+        if (cachedPlay != null) {
+            cancelPlayTimeout();
+            mObserverPlayResult.onChanged(cachedPlay);
+            return;
+        }
+        // 需求2：增加超时保护，超时直接提示解析失败，禁止无限转圈
+        startPlayTimeout();
         sourceViewModel.getPlay(sourceKey, mVodInfo.playFlag, progressKey, vs.url, subtitleCacheKey);
     }
 
@@ -1499,7 +1554,7 @@ public class PlayFragment extends BaseLazyFragment {
             loadWebView(pb.getUrl() + webUrl);
 
         } else if (pb.getType() == 1) { // json 解析
-            setTip("正在解析播放地址", true, false);
+            setTip("正在解析播放线路", true, false);
             // 解析ext
             HttpHeaders reqHeaders = new HttpHeaders();
             try {
@@ -1565,7 +1620,7 @@ public class PlayFragment extends BaseLazyFragment {
                         }
                     });
         } else if (pb.getType() == 2) { // json 扩展
-            setTip("正在解析播放地址", true, false);
+            setTip("正在解析播放线路", true, false);
             parseThreadPool = Executors.newSingleThreadExecutor();
             LinkedHashMap<String, String> jxs = new LinkedHashMap<>();
             for (ParseBean p : ApiConfig.get().getParseBeanList()) {
@@ -1611,7 +1666,7 @@ public class PlayFragment extends BaseLazyFragment {
                 }
             });
         } else if (pb.getType() == 3) { // json 聚合
-            setTip("正在解析播放地址", true, false);
+            setTip("正在解析播放线路", true, false);
             parseThreadPool = Executors.newSingleThreadExecutor();
             LinkedHashMap<String, HashMap<String, String>> jxs = new LinkedHashMap<>();
             String extendName = "";
