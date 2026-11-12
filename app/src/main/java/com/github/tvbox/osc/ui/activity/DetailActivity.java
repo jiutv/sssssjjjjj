@@ -182,8 +182,10 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         initDetailBackground();
 
         mBinding.mGridView.setHasFixedSize(true);
-        mBinding.mGridView.setLayoutManager(new GridLayoutManager(this.mContext, 4));
-        mBinding.mGridView.addItemDecoration(new GridSpacingItemDecoration(4, ConvertUtils.dp2px(10), true));
+        // 网格铺开：按屏幕宽度自适应列数（手机约 4 列，电视大屏更多列）
+        int spanCount = Math.max(4, ScreenUtils.getScreenWidth() / ConvertUtils.dp2px(110));
+        mBinding.mGridView.setLayoutManager(new GridLayoutManager(this.mContext, spanCount));
+        mBinding.mGridView.addItemDecoration(new GridSpacingItemDecoration(spanCount, ConvertUtils.dp2px(10), true));
 
         seriesAdapter = new SeriesAdapter(true);
         mBinding.mGridView.setAdapter(seriesAdapter);
