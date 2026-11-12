@@ -141,15 +141,12 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
     private boolean detailLoaded;
     private static final long DETAIL_TIMEOUT = 20000L;
     private final Handler mTimeoutHandler = new Handler(Looper.getMainLooper());
-    /** 需求2：获取剧集列表超时提示，避免无限转圈 */
+    /** 需求2：获取剧集列表超时提示，只做页面内提示，不再整页覆盖空态 */
     private final Runnable detailTimeoutRunnable = new Runnable() {
         @Override
         public void run() {
             if (!detailLoaded) {
-                detailLoaded = true;
-                mBinding.tvLoadTip.setVisibility(View.GONE);
-                Toast.makeText(DetailActivity.this, "获取剧集列表超时，请重试", Toast.LENGTH_SHORT).show();
-                showEmpty();
+                showLoadFailed("获取剧集列表超时");
             }
         }
     };
@@ -613,16 +610,22 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         sourceViewModel.detailResult.observe(this, new Observer<AbsXml>() {
             @Override
             public void onChanged(AbsXml absXml) {
-                // 需求2：收到结果，取消超时保护，隐藏"正在获取剧集列表"状态
+                // 需求2：收到结果，取消超时保护
                 detailLoaded = true;
                 mTimeoutHandler.removeCallbacks(detailTimeoutRunnable);
-                mBinding.tvLoadTip.setVisibility(View.GONE);
-                // 需求2：剧集列表写入本地缓存，短时间重复打开优先读缓存
                 if (absXml != null && absXml.movie != null && absXml.movie.videoList != null
-                        && absXml.movie.videoList.size() > 0 && detailCacheKey != null) {
-                    PlayCache.putDetail(detailCacheKey, absXml);
+                        && absXml.movie.videoList.size() > 0) {
+                    // 剧集列表写入内存缓存，短时间内重复打开优先命中
+                    if (detailCacheKey != null) {
+                        PlayCache.putDetail(detailCacheKey, absXml);
+                    }
+                    mBinding.tvLoadTip.setVisibility(View.GONE);
+                    mBinding.tvLoadTip.setOnClickListener(null);
+                    renderDetail(absXml);
+                } else {
+                    // 请求失败/无数据：页面保持可见，只在页面内提示并支持点击重试
+                    showLoadFailed("获取剧集列表失败");
                 }
-                renderDetail(absXml);
             }
         });
     }
@@ -633,6 +636,8 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
     private void renderDetail(AbsXml absXml) {
                 if (absXml != null && absXml.movie != null && absXml.movie.videoList != null && absXml.movie.videoList.size() > 0) {
                     showSuccess();
+                    // 数据已到，恢复预览播放区（加载期间是隐藏的，避免黑屏转圈）
+                    mBinding.previewPlayerPlace.setVisibility(showPreview ? View.VISIBLE : View.GONE);
                     mVideo = absXml.movie.videoList.get(0);
                     vodInfo = new VodInfo();
                     vodInfo.setVideo(mVideo);
@@ -723,26 +728,33 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         if (vid == null) return;
         vodId = vid;
         sourceKey = key;
-        detailCacheKey = PlayCache.detailKey(sourceKey, vodId);
 
-        // 需求2：页面先渲染出来（骨架占位），不等待任何数据
+        // ===== 恢复旧版时序：先发请求，页面绝不等待网络 =====
+        detailCacheKey = PlayCache.detailKey(sourceKey, vodId);
+        // 纯内存缓存读取（微秒级），命中则不重复请求；未命中立刻发起请求
+        AbsXml cached = PlayCache.getDetail(detailCacheKey);
+        if (cached == null) {
+            sourceViewModel.getDetail(sourceKey, vodId);
+        }
+
+        // ===== 页面先渲染出来（封面 / 标题 / 线路 / 选集区域先占位）=====
         showSuccess();
         showDetailSkeleton();
 
-        // 需求2：内存缓存命中直接渲染（纯内存读取，无磁盘 IO / 无 JSON 序列化，不拖慢首屏）
-        AbsXml cached = PlayCache.getDetail(detailCacheKey);
         if (cached != null && cached.movie != null) {
+            // 内存缓存命中：直接把内容填进已渲染好的页面
             detailLoaded = true;
             mBinding.tvLoadTip.setVisibility(View.GONE);
+            mBinding.tvLoadTip.setOnClickListener(null);
             renderDetail(cached);
         } else {
-            // 缓存未命中：立即发起请求（恢复旧版快速加载逻辑），再显示状态与超时保护
+            // 缓存未命中：页面已在后台请求，这里只更新页面内的加载状态 + 超时保护
             detailLoaded = false;
+            mBinding.tvLoadTip.setOnClickListener(null);
             mBinding.tvLoadTip.setText("正在获取剧集列表…");
             mBinding.tvLoadTip.setVisibility(View.VISIBLE);
             mTimeoutHandler.removeCallbacks(detailTimeoutRunnable);
             mTimeoutHandler.postDelayed(detailTimeoutRunnable, DETAIL_TIMEOUT);
-            sourceViewModel.getDetail(sourceKey, vodId);
         }
 
         // 收藏状态放到请求之后查询，避免主线程数据库查询阻塞首屏请求
@@ -750,7 +762,28 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         mBinding.tvCollect.setText(isVodCollect ? "取消收藏" : "加入收藏");
     }
 
-    /** 需求2：详情未返回前的骨架占位 */
+    /**
+     * 需求2：加载失败/超时——只在页面内提示并可点击重试，
+     * 不再整页替换成"暂无数据"，也不再让播放器区域一直转圈。
+     */
+    private void showLoadFailed(String msg) {
+        detailLoaded = true;
+        mTimeoutHandler.removeCallbacks(detailTimeoutRunnable);
+        // 加载失败时不显示预览播放区（避免黑屏 + 无限转圈）
+        mBinding.previewPlayerPlace.setVisibility(View.GONE);
+        mBinding.tvLoadTip.setOnClickListener(v -> retryLoadDetail());
+        mBinding.tvLoadTip.setText(msg + "，点击重试");
+        mBinding.tvLoadTip.setVisibility(View.VISIBLE);
+    }
+
+    /** 需求2：点击页面内提示重试，清掉缓存后重新加载 */
+    private void retryLoadDetail() {
+        if (TextUtils.isEmpty(vodId)) return;
+        PlayCache.remove(PlayCache.detailKey(sourceKey, vodId));
+        loadDetail(vodId, sourceKey);
+    }
+
+    /** 需求2：详情未返回前的骨架占位（页面结构先出来，不阻塞渲染） */
     private void showDetailSkeleton() {
         mBinding.tvName.setText("加载中…");
         mBinding.tvMeta.setText("");
@@ -761,6 +794,8 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         mBinding.mGridViewFlag.setVisibility(View.GONE);
         mBinding.mGridView.setVisibility(View.VISIBLE);
         mBinding.mEmptyPlaylist.setVisibility(View.GONE);
+        // 加载完成前不显示预览播放区，避免顶部黑屏 + 一直转圈
+        mBinding.previewPlayerPlace.setVisibility(View.GONE);
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)

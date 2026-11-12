@@ -442,6 +442,8 @@ public class SourceViewModel extends ViewModel {
                         json(detailResult, sp.detailContent(ids), sourceBean.getKey());
                     } catch (Throwable th) {
                         th.printStackTrace();
+                        // 修复：爬虫异常时立即通知页面加载失败，避免页面一直等到超时才提示
+                        detailResult.postValue(null);
                     }
                 }
             });
