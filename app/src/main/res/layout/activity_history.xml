@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    需求1：记录（历史 + 收藏）页面
-    1. 移除原顶部「历史 / 收藏」Tab，改为「记录」标题 + 单列表卡片布局（参考订阅管理页）
-    2. 右上角保留刷子（ic_clear）一键清空按钮
-    3. 列表由分组标题 + 卡片条目组成（历史记录 / 收藏 两个分组），卡片 UI 与订阅卡片一致
+    记录（历史 + 收藏）页面
+    1. 顶部标题「记录」+ 右上角刷子一键清空按钮
+    2. 顶部 Tab【历史｜收藏】左右并排，样式与「订阅管理」页一致，切换查看历史 / 收藏
+    3. 列表卡片样式保持不变（item_record_card：左封面 + 中间标题信息 + 右侧删除按钮）
     4. 空数据时由 LoadSir 的 EmptyCallback（暂无数据）占位，与订阅页一致
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -14,7 +14,7 @@
     android:background="?attr/skin_page_bg"
     android:orientation="vertical">
 
-    <!-- 需求1：页面标题栏（原 Tab 区域替换为标题 + 右上角清空按钮） -->
+    <!-- 页面标题栏：标题 + 右上角清空按钮 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -33,7 +33,7 @@
             android:textSize="20sp"
             android:textStyle="bold" />
 
-        <!-- 需求1：一键清空按钮（保留原 iv_delete id，逻辑改为清空历史 + 收藏） -->
+        <!-- 右上角刷子：一键清空当前 Tab 的数据 -->
         <ImageView
             android:id="@+id/iv_delete"
             android:layout_width="32dp"
@@ -44,7 +44,71 @@
             app:tint="?attr/skin_text_secondary" />
     </LinearLayout>
 
-    <!-- 需求1：长按逐条删除的提示（有数据时显示，与原逻辑一致） -->
+    <!-- 横向均分 Tab：历史 / 收藏（与订阅管理页 Tab 同款样式） -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
+
+        <!-- 历史 Tab -->
+        <LinearLayout
+            android:id="@+id/tab_history"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingVertical="10dp">
+
+            <TextView
+                android:id="@+id/tab_history_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="历史"
+                android:textColor="?attr/skin_accent"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <View
+                android:id="@+id/tab_history_indicator"
+                android:layout_width="36dp"
+                android:layout_height="2.5dp"
+                android:layout_marginTop="4dp"
+                android:background="?attr/skin_accent" />
+        </LinearLayout>
+
+        <!-- 收藏 Tab -->
+        <LinearLayout
+            android:id="@+id/tab_collect"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingVertical="10dp">
+
+            <TextView
+                android:id="@+id/tab_collect_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="收藏"
+                android:textColor="?attr/skin_text_secondary"
+                android:textSize="15sp" />
+
+            <View
+                android:id="@+id/tab_collect_indicator"
+                android:layout_width="36dp"
+                android:layout_height="2.5dp"
+                android:layout_marginTop="4dp"
+                android:alpha="0"
+                android:background="?attr/skin_accent" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 长按逐条删除的提示（有数据时显示） -->
     <TextView
         android:id="@+id/top_tip"
         android:layout_width="wrap_content"
@@ -58,13 +122,14 @@
         android:visibility="gone"
         tools:visibility="visible" />
 
-    <!-- 需求1：单一列表（内部按分组渲染 历史记录 / 收藏），LinearLayoutManager 纵向卡片 -->
+    <!-- 当前 Tab 的卡片列表 -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/mGridView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
+        android:paddingTop="4dp"
         android:paddingBottom="8dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         tools:listitem="@layout/item_record_card" />

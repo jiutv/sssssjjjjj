@@ -1,20 +1,17 @@
 package com.github.tvbox.osc.util;
 
-import com.github.tvbox.osc.base.App;
 import com.github.tvbox.osc.bean.AbsXml;
-import com.google.gson.Gson;
 
 import org.json.JSONObject;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
- * 需求2：播放相关本地缓存（剧集列表 / 已解析播放线路）。
- * 采用文件缓存 + TTL（存活时间），短时间内重复打开同一视频时优先命中缓存，
- * 避免重复请求爬虫和重复解析，从而缩短首屏等待时间。
+ * 需求2：播放相关缓存（剧集列表 / 已解析播放线路）。
+ * 改为纯内存缓存 + TTL（存活时间）：
+ * 1. 不再做任何磁盘读写和 JSON 序列化，避免主线程卡顿（这是加载变慢的主要原因）；
+ * 2. 短时间内重复打开同一视频时优先命中缓存，避免重复请求爬虫、重复解析线路。
  */
 public class PlayCache {
 
@@ -22,13 +19,41 @@ public class PlayCache {
     private static final long DETAIL_TTL = 10 * 60 * 1000L;
     /** 播放线路缓存有效期：10 分钟（解析地址可能带时效，不宜过长） */
     private static final long PLAY_TTL = 10 * 60 * 1000L;
-    private static final String DIR_NAME = "play_cache";
-    private static final Gson GSON = new Gson();
+    /** 最多缓存的剧集条数（只有短时间来回切换才有意义） */
+    private static final int MAX_DETAIL = 4;
+    /** 最多缓存的播放线路条数 */
+    private static final int MAX_PLAY = 30;
 
-    private static File dir() {
-        File dir = new File(App.getInstance().getCacheDir(), DIR_NAME);
-        if (!dir.exists()) dir.mkdirs();
-        return dir;
+    /** LRU 内存缓存：剧集列表 */
+    private static final LinkedHashMap<String, CacheEntry<AbsXml>> DETAIL_CACHE =
+            new LinkedHashMap<String, CacheEntry<AbsXml>>(8, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, CacheEntry<AbsXml>> eldest) {
+                    return size() > MAX_DETAIL;
+                }
+            };
+
+    /** LRU 内存缓存：播放线路 */
+    private static final LinkedHashMap<String, CacheEntry<JSONObject>> PLAY_CACHE =
+            new LinkedHashMap<String, CacheEntry<JSONObject>>(16, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, CacheEntry<JSONObject>> eldest) {
+                    return size() > MAX_PLAY;
+                }
+            };
+
+    private static final class CacheEntry<T> {
+        final T value;
+        final long time;
+
+        CacheEntry(T value) {
+            this.value = value;
+            this.time = System.currentTimeMillis();
+        }
+
+        boolean expired(long ttl) {
+            return System.currentTimeMillis() - time > ttl;
+        }
     }
 
     /** 剧集列表缓存 key */
@@ -41,84 +66,46 @@ public class PlayCache {
         return "play_" + sourceKey + "_" + vodId + "_" + flag + "_" + index;
     }
 
-    /** 写入剧集列表缓存 */
-    public static void putDetail(String key, AbsXml xml) {
-        try {
-            write(key, GSON.toJson(xml));
-        } catch (Throwable ignored) {
-        }
+    /** 写入剧集列表缓存（纯内存，纳秒级，无 IO） */
+    public static synchronized void putDetail(String key, AbsXml xml) {
+        if (key == null || xml == null) return;
+        DETAIL_CACHE.put(key, new CacheEntry<>(xml));
     }
 
     /** 读取剧集列表缓存，过期或不存在返回 null */
-    public static AbsXml getDetail(String key) {
-        try {
-            String json = read(key, DETAIL_TTL);
-            return json == null ? null : GSON.fromJson(json, AbsXml.class);
-        } catch (Throwable t) {
+    public static synchronized AbsXml getDetail(String key) {
+        if (key == null) return null;
+        CacheEntry<AbsXml> entry = DETAIL_CACHE.get(key);
+        if (entry == null) return null;
+        if (entry.expired(DETAIL_TTL)) {
+            DETAIL_CACHE.remove(key);
             return null;
         }
+        return entry.value;
     }
 
-    /** 写入已解析播放线路缓存 */
-    public static void putPlay(String key, JSONObject info) {
-        try {
-            if (info != null) write(key, info.toString());
-        } catch (Throwable ignored) {
-        }
+    /** 写入已解析播放线路缓存（纯内存，无 IO） */
+    public static synchronized void putPlay(String key, JSONObject info) {
+        if (key == null || info == null) return;
+        PLAY_CACHE.put(key, new CacheEntry<>(info));
     }
 
     /** 读取播放线路缓存，过期或不存在返回 null */
-    public static JSONObject getPlay(String key) {
-        try {
-            String json = read(key, PLAY_TTL);
-            return json == null ? null : new JSONObject(json);
-        } catch (Throwable t) {
+    public static synchronized JSONObject getPlay(String key) {
+        if (key == null) return null;
+        CacheEntry<JSONObject> entry = PLAY_CACHE.get(key);
+        if (entry == null) return null;
+        if (entry.expired(PLAY_TTL)) {
+            PLAY_CACHE.remove(key);
             return null;
         }
+        return entry.value;
     }
 
-    public static void remove(String key) {
-        try {
-            fileOf(key).delete();
-        } catch (Throwable ignored) {
-        }
-    }
-
-    private static File fileOf(String key) {
-        // 用 hash + 长度作为文件名，避免中文/特殊字符导致文件创建失败
-        return new File(dir(), Integer.toHexString(key.hashCode()) + "_" + key.length() + ".cache");
-    }
-
-    private static void write(String key, String content) throws Exception {
-        File file = fileOf(key);
-        FileOutputStream fos = new FileOutputStream(file);
-        try {
-            fos.write(content.getBytes("UTF-8"));
-            fos.flush();
-        } finally {
-            fos.close();
-        }
-        file.setLastModified(System.currentTimeMillis());
-    }
-
-    private static String read(String key, long ttl) throws Exception {
-        File file = fileOf(key);
-        if (!file.exists()) return null;
-        if (System.currentTimeMillis() - file.lastModified() > ttl) {
-            file.delete();
-            return null;
-        }
-        FileInputStream fis = new FileInputStream(file);
-        try {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            byte[] buffer = new byte[4096];
-            int len;
-            while ((len = fis.read(buffer)) != -1) {
-                bos.write(buffer, 0, len);
-            }
-            return new String(bos.toByteArray(), "UTF-8");
-        } finally {
-            fis.close();
-        }
+    /** 移除单条缓存（解析失败时调用，避免复用失效地址） */
+    public static synchronized void remove(String key) {
+        if (key == null) return;
+        DETAIL_CACHE.remove(key);
+        PLAY_CACHE.remove(key);
     }
 }

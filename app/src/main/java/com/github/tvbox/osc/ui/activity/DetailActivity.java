@@ -720,27 +720,23 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
     }
 
     private void loadDetail(String vid, String key) {
-        if (vid != null) {
-            vodId = vid;
-            sourceKey = key;
-            boolean isVodCollect = RoomDataManger.isVodCollect(sourceKey, vodId);
-            mBinding.tvCollect.setText(isVodCollect ? "取消收藏" : "加入收藏");
-            detailCacheKey = PlayCache.detailKey(sourceKey, vodId);
+        if (vid == null) return;
+        vodId = vid;
+        sourceKey = key;
+        detailCacheKey = PlayCache.detailKey(sourceKey, vodId);
 
-            // 需求2：先渲染骨架占位，避免长时间转圈/白屏
-            showSuccess();
-            showDetailSkeleton();
+        // 需求2：页面先渲染出来（骨架占位），不等待任何数据
+        showSuccess();
+        showDetailSkeleton();
 
-            // 需求2：短时间内重复打开同一视频，优先读取本地缓存的剧集列表
-            AbsXml cached = PlayCache.getDetail(detailCacheKey);
-            if (cached != null && cached.movie != null) {
-                detailLoaded = true;
-                mBinding.tvLoadTip.setVisibility(View.GONE);
-                renderDetail(cached);
-                return;
-            }
-
-            // 需求2：缓存未命中 -> 后台请求剧集列表，显示"正在获取剧集列表"并加超时保护
+        // 需求2：内存缓存命中直接渲染（纯内存读取，无磁盘 IO / 无 JSON 序列化，不拖慢首屏）
+        AbsXml cached = PlayCache.getDetail(detailCacheKey);
+        if (cached != null && cached.movie != null) {
+            detailLoaded = true;
+            mBinding.tvLoadTip.setVisibility(View.GONE);
+            renderDetail(cached);
+        } else {
+            // 缓存未命中：立即发起请求（恢复旧版快速加载逻辑），再显示状态与超时保护
             detailLoaded = false;
             mBinding.tvLoadTip.setText("正在获取剧集列表…");
             mBinding.tvLoadTip.setVisibility(View.VISIBLE);
@@ -748,6 +744,10 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             mTimeoutHandler.postDelayed(detailTimeoutRunnable, DETAIL_TIMEOUT);
             sourceViewModel.getDetail(sourceKey, vodId);
         }
+
+        // 收藏状态放到请求之后查询，避免主线程数据库查询阻塞首屏请求
+        boolean isVodCollect = RoomDataManger.isVodCollect(sourceKey, vodId);
+        mBinding.tvCollect.setText(isVodCollect ? "取消收藏" : "加入收藏");
     }
 
     /** 需求2：详情未返回前的骨架占位 */

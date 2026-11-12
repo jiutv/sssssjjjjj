@@ -139,6 +139,8 @@ public class PlayFragment extends BaseLazyFragment {
 
     /** 需求2：播放线路超时时间（毫秒） */
     private static final long PLAY_TIMEOUT = 20000L;
+    /** 修复：视图未就绪时暂存的播放参数，等 init() 后补执行 */
+    private Bundle mPendingPlayBundle;
     /** 需求2：当前播放线路缓存 key */
     private String mPlayCacheKey;
     /** 需求2：是否已收到播放线路结果（用于超时判断） */
@@ -193,6 +195,12 @@ public class PlayFragment extends BaseLazyFragment {
         initView();
         initViewModel();
         initData();
+        // 修复：setData 可能在 Fragment 视图创建前被调用（详情页 commit 是异步的），这里补执行
+        if (mPendingPlayBundle != null) {
+            Bundle pending = mPendingPlayBundle;
+            mPendingPlayBundle = null;
+            setData(pending);
+        }
     }
 
     public long getSavedProgress(String url) {
@@ -1120,6 +1128,12 @@ public class PlayFragment extends BaseLazyFragment {
 
     public void setData(Bundle bundle) {
 //        mVodInfo = (VodInfo) bundle.getSerializable("VodInfo");
+        // 修复：控制器还没初始化好（视图尚未创建）时先缓存参数，等 init() 后再执行，
+        // 避免 initPlayerCfg/play 里 mController 为空导致一点开详情就闪退
+        if (mController == null) {
+            mPendingPlayBundle = bundle;
+            return;
+        }
         mVodInfo = App.getInstance().getVodInfo();
         sourceKey = bundle.getString("sourceKey");
         sourceBean = ApiConfig.get().getSource(sourceKey);
@@ -1164,6 +1178,10 @@ public class PlayFragment extends BaseLazyFragment {
             }
         } catch (Throwable th) {
 
+        }
+        // 修复：VodController 尚未初始化完成时不执行，杜绝空指针闪退
+        if (mController == null) {
+            return;
         }
         mController.setPlayerConfig(mVodPlayerCfg);
     }
