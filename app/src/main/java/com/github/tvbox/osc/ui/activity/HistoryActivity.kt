@@ -58,7 +58,8 @@ class HistoryActivity : BaseVbActivity<ActivityHistoryBinding>() {
         initList()
         initClearAction()
         loadAllData()
-        BottomNavHelper.attach(this, mBinding.bottomNav, R.id.navigation_history)
+        // include 布局带有 id 时 ViewBinding 生成的是子 Binding，这里沿用原 findViewById 方式
+        BottomNavHelper.attach(this, findViewById(R.id.bottom_nav), R.id.navigation_history)
     }
 
     /** 列表初始化：单 RecyclerView + 单适配器（不再切换 adapter，规避真机 Tab 切换失效问题） */
