@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.github.tvbox.osc">
     <!-- 在 Android 11 中，应用程序需要声明它们要使用的其他应用程序的包名 -->
     <queries>
@@ -29,6 +30,7 @@
         android:name=".base.App"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
+        tools:replace="android:allowBackup"
         android:configChanges="orientation|keyboardHidden|screenSize"
         android:hardwareAccelerated="true"
         android:icon="@drawable/app_icon"
