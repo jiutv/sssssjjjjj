@@ -78,8 +78,8 @@ public class AllVodSeriesRightDialog extends DrawerPopupView {
     @Override
     protected void onDismiss() {
         super.onDismiss();
-        if (mDetailActivity.seriesAdapter!=null){//重置状态,避免竖屏时显示异常
-            mDetailActivity.seriesAdapter.setGird(false);
+        if (mDetailActivity.seriesAdapter!=null){//详情页选集已改为网格铺开,保持网格状态
+            mDetailActivity.seriesAdapter.setGird(true);
             mDetailActivity.seriesAdapter.notifyDataSetChanged();
         }
     }

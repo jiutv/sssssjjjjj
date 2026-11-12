@@ -12,22 +12,26 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Rational;
+import android.util.TypedValue;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.GridLayoutManager;
 
 import com.blankj.utilcode.util.AppUtils;
 import com.blankj.utilcode.util.ConvertUtils;
@@ -51,6 +55,8 @@ import com.github.tvbox.osc.cache.RoomDataManger;
 import com.github.tvbox.osc.constant.IntentKey;
 import com.github.tvbox.osc.databinding.ActivityDetailBinding;
 import com.github.tvbox.osc.event.RefreshEvent;
+import com.github.tvbox.osc.picasso.BlurTransformation;
+import com.github.tvbox.osc.picasso.RoundTransformation;
 import com.github.tvbox.osc.receiver.BatteryReceiver;
 import com.github.tvbox.osc.service.PlayService;
 import com.github.tvbox.osc.ui.adapter.ParseAdapter;
@@ -62,7 +68,8 @@ import com.github.tvbox.osc.ui.dialog.CastListDialog;
 import com.github.tvbox.osc.ui.dialog.QuickSearchDialog;
 import com.github.tvbox.osc.ui.dialog.VideoDetailDialog;
 import com.github.tvbox.osc.ui.fragment.PlayFragment;
-import com.github.tvbox.osc.ui.widget.LinearSpacingItemDecoration;
+import com.github.tvbox.osc.ui.widget.GridSpacingItemDecoration;
+import com.github.tvbox.osc.util.DefaultConfig;
 import com.github.tvbox.osc.util.FastClickCheckUtil;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.ScreenShotListenManager;
@@ -82,7 +89,7 @@ import com.lzy.okgo.OkGo;
 import com.lzy.okgo.callback.AbsCallback;
 import com.lzy.okgo.model.Response;
 import com.orhanobut.hawk.Hawk;
-import com.owen.tvrecyclerview.widget.V7LinearLayoutManager;
+import com.squareup.picasso.Picasso;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -172,12 +179,13 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         mBinding.ivPrivateBrowsing.setVisibility(Hawk.get(HawkConfig.PRIVATE_BROWSING, false) ? View.VISIBLE : View.GONE);
         mBinding.ivPrivateBrowsing.setOnClickListener(view -> ToastUtils.showShort("当前为无痕浏览"));
         mBinding.previewPlayerPlace.setVisibility(showPreview ? View.VISIBLE : View.GONE);
+        initDetailBackground();
 
         mBinding.mGridView.setHasFixedSize(true);
-        mBinding.mGridView.setLayoutManager(new V7LinearLayoutManager(this.mContext, 0, false));
-        mBinding.mGridView.addItemDecoration(new LinearSpacingItemDecoration(20, false));
+        mBinding.mGridView.setLayoutManager(new GridLayoutManager(this.mContext, 4));
+        mBinding.mGridView.addItemDecoration(new GridSpacingItemDecoration(4, ConvertUtils.dp2px(10), true));
 
-        seriesAdapter = new SeriesAdapter(false);
+        seriesAdapter = new SeriesAdapter(true);
         mBinding.mGridView.setAdapter(seriesAdapter);
         mBinding.mGridViewFlag.setHasFixedSize(true);
         seriesFlagAdapter = new SeriesFlagAdapter();
@@ -285,6 +293,71 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         super.onPause();
         if (openBackgroundPlay) {
             playServerSwitch(true);
+        }
+    }
+
+    /**
+     * 背景遮罩：顶部半透明黑，向下渐变到页面底色
+     */
+    private void initDetailBackground() {
+        TypedValue value = new TypedValue();
+        int pageColor = 0xFF000000;
+        if (getTheme().resolveAttribute(R.attr.skin_page, value, true)) {
+            pageColor = value.data;
+        }
+        mBinding.bgScrim.setBackground(new GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{0x4D000000, pageColor}));
+    }
+
+    /**
+     * 绑定详情页封面、年份、导演、演员等信息
+     */
+    private void bindDetailInfo(Movie.Video video) {
+        String picUrl = DefaultConfig.checkReplaceProxy(video.pic);
+        if (!TextUtils.isEmpty(picUrl)) {
+            mBinding.ivDetailBg.setVisibility(View.VISIBLE);
+            Picasso.get().load(picUrl)
+                    .transform(new BlurTransformation())
+                    .into(mBinding.ivDetailBg);
+            Picasso.get().load(picUrl)
+                    .placeholder(R.drawable.img_loading_placeholder)
+                    .error(R.drawable.img_loading_placeholder)
+                    .transform(new RoundTransformation("detail_poster")
+                            .override(ConvertUtils.dp2px(104), ConvertUtils.dp2px(146))
+                            .roundRadius(ConvertUtils.dp2px(8), RoundTransformation.RoundType.ALL))
+                    .into(mBinding.ivPoster);
+        }
+
+        StringBuilder meta = new StringBuilder();
+        if (!TextUtils.isEmpty(video.area)) {
+            meta.append(video.area);
+        }
+        if (video.year > 0) {
+            if (meta.length() > 0) meta.append(" · ");
+            meta.append(video.year);
+        }
+        if (!TextUtils.isEmpty(video.type)) {
+            if (meta.length() > 0) meta.append(" · ");
+            meta.append(video.type);
+        }
+        mBinding.tvMeta.setText(meta.length() == 0 ? "暂无信息" : meta.toString());
+        bindDetailText(mBinding.tvDirector, "导演：", video.director);
+        bindDetailText(mBinding.tvActor, "演员：", video.actor);
+        if (TextUtils.isEmpty(video.note)) {
+            mBinding.tvNote.setVisibility(View.GONE);
+        } else {
+            mBinding.tvNote.setText(video.note);
+            mBinding.tvNote.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void bindDetailText(TextView view, String prefix, String value) {
+        if (TextUtils.isEmpty(value)) {
+            view.setVisibility(View.GONE);
+        } else {
+            view.setText(prefix + value);
+            view.setVisibility(View.VISIBLE);
         }
     }
 
@@ -486,8 +559,10 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                     vodInfo.sourceKey = mVideo.sourceKey;
 
                     mBinding.tvName.setText(TextUtils.isEmpty(mVideo.name) ? "暂无信息" : mVideo.name);
-                    String srcName = ApiConfig.get().getSource(mVideo.sourceKey).getName();
+                    SourceBean detailSource = ApiConfig.get().getSource(mVideo.sourceKey);
+                    String srcName = detailSource == null ? null : detailSource.getName();
                     mBinding.tvSite.setText("来源：" + (TextUtils.isEmpty(srcName) ? "未知" : srcName));
+                    bindDetailInfo(mVideo);
 
                     if (vodInfo.seriesMap != null && vodInfo.seriesMap.size() > 0) {//线路
                         mBinding.mGridViewFlag.setVisibility(View.VISIBLE);
