@@ -2,6 +2,8 @@ package com.github.tvbox.osc.api;
 
 import android.app.Activity;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Base64;
 
@@ -19,6 +21,7 @@ import com.github.tvbox.osc.util.AES;
 import com.github.tvbox.osc.util.AdBlocker;
 import com.github.tvbox.osc.util.DefaultConfig;
 import com.github.tvbox.osc.util.HawkConfig;
+import com.github.tvbox.osc.util.HeavyTaskUtil;
 import com.github.tvbox.osc.util.MD5;
 import com.github.tvbox.osc.util.VideoParseRuler;
 import com.google.gson.Gson;
@@ -133,16 +136,58 @@ public class ApiConfig {
             callback.error("-1");
             return;
         }
-        File cache = new File(App.getInstance().getFilesDir().getAbsolutePath() + "/" + MD5.encode(apiUrl));
-        if (useCache && cache.exists()) {
-            try {
-                parseJson(apiUrl, cache);
-                callback.success();
-                return;
-            } catch (Throwable th) {
-                th.printStackTrace();
-            }
+        final File cache = new File(App.getInstance().getFilesDir().getAbsolutePath() + "/" + MD5.encode(apiUrl));
+        // 优化（参考 AVBox 缓存优先）：有本地配置缓存就先解析缓存、立刻回调成功，
+        // 不再每次冷启动都等配置下载；解析放到后台线程，避免大配置卡住首屏。
+        if (cache.exists()) {
+            HeavyTaskUtil.getBigTaskExecutorService().execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        parseJson(apiUrl, cache);
+                        postMainSuccess(callback);
+                        if (!useCache) {
+                            // 冷启动：后台静默更新配置文件，下次启动生效，不影响本次速度
+                            refreshConfigCache(apiUrl, cache);
+                        }
+                    } catch (Throwable th) {
+                        th.printStackTrace();
+                        // 缓存损坏：退回网络加载
+                        new Handler(Looper.getMainLooper()).post(new Runnable() {
+                            @Override
+                            public void run() {
+                                doFetch(apiUrl, cache, callback);
+                            }
+                        });
+                    }
+                }
+            });
+            return;
         }
+        doFetch(apiUrl, cache, callback);
+    }
+
+    /** 回调统一切回主线程 */
+    private void postMainSuccess(final LoadConfigCallback callback) {
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                callback.success();
+            }
+        });
+    }
+
+    private void postError(final LoadConfigCallback callback, final String msg) {
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                callback.error(msg);
+            }
+        });
+    }
+
+    /** 解析 apiUrl，返回 [请求地址, 解密key] */
+    private String[] buildConfigUrl(String apiUrl) {
         String TempKey = null, configUrl = "", pk = ";pk;";
         if (apiUrl.contains(pk)) {
             String[] a = apiUrl.split(pk);
@@ -157,51 +202,114 @@ public class ApiConfig {
         } else if (apiUrl.startsWith("clan")) {
             configUrl = clanToAddress(apiUrl);
         } else if (!apiUrl.startsWith("http")) {
-            configUrl = "http://" + configUrl;
+            configUrl = "http://" + apiUrl;
         } else {
             configUrl = apiUrl;
         }
-        String configKey = TempKey;
+        return new String[]{configUrl, TempKey};
+    }
+
+    /** 写配置文件缓存 */
+    private void saveConfigCache(File cache, String json) {
+        try {
+            File cacheDir = cache.getParentFile();
+            if (!cacheDir.exists())
+                cacheDir.mkdirs();
+            if (cache.exists())
+                cache.delete();
+            FileOutputStream fos = new FileOutputStream(cache);
+            fos.write(json.getBytes("UTF-8"));
+            fos.flush();
+            fos.close();
+        } catch (Throwable th) {
+            th.printStackTrace();
+        }
+    }
+
+    /** 后台静默刷新配置文件（只更新缓存文件，不替换正在使用的内存配置） */
+    private void refreshConfigCache(final String apiUrl, final File cache) {
+        String[] urlInfo = buildConfigUrl(apiUrl);
+        String configUrl = urlInfo[0];
+        String configKey = urlInfo[1];
+        OkGo.<String>get(configUrl)
+                .headers("User-Agent", userAgent)
+                .headers("Accept", requestAccept)
+                .execute(new AbsCallback<String>() {
+                    @Override
+                    public String convertResponse(okhttp3.Response response) throws Throwable {
+                        if (response.body() == null) return "";
+                        String result = FindResult(response.body().string(), configKey);
+                        if (apiUrl.startsWith("clan")) {
+                            result = clanContentFix(clanToAddress(apiUrl), result);
+                        }
+                        return fixContentPath(apiUrl, result);
+                    }
+
+                    @Override
+                    public void onSuccess(Response<String> response) {
+                        final String json = response.body();
+                        if (TextUtils.isEmpty(json)) return;
+                        HeavyTaskUtil.getBigTaskExecutorService().execute(new Runnable() {
+                            @Override
+                            public void run() {
+                                saveConfigCache(cache, json);
+                            }
+                        });
+                    }
+                });
+    }
+
+    /** 网络拉取配置（无缓存或缓存损坏时） */
+    private void doFetch(final String apiUrl, final File cache, final LoadConfigCallback callback) {
+        String[] urlInfo = buildConfigUrl(apiUrl);
+        String configUrl = urlInfo[0];
+        String configKey = urlInfo[1];
         OkGo.<String>get(configUrl)
                 .headers("User-Agent", userAgent)
                 .headers("Accept", requestAccept)
                 .execute(new AbsCallback<String>() {
                     @Override
                     public void onSuccess(Response<String> response) {
-                        try {
-                            String json = response.body();
-                            parseJson(apiUrl, json);
-                            try {
-                                File cacheDir = cache.getParentFile();
-                                if (!cacheDir.exists())
-                                    cacheDir.mkdirs();
-                                if (cache.exists())
-                                    cache.delete();
-                                FileOutputStream fos = new FileOutputStream(cache);
-                                fos.write(json.getBytes("UTF-8"));
-                                fos.flush();
-                                fos.close();
-                            } catch (Throwable th) {
-                                th.printStackTrace();
+                        final String json = response.body();
+                        // 优化：解析 + 写缓存都放后台线程，完成后回主线程通知
+                        HeavyTaskUtil.getBigTaskExecutorService().execute(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    parseJson(apiUrl, json);
+                                    saveConfigCache(cache, json);
+                                    postMainSuccess(callback);
+                                } catch (Throwable th) {
+                                    th.printStackTrace();
+                                    new Handler(Looper.getMainLooper()).post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            callback.error("解析配置失败");
+                                        }
+                                    });
+                                }
                             }
-                            callback.success();
-                        } catch (Throwable th) {
-                            th.printStackTrace();
-                            callback.error("解析配置失败");
-                        }
+                        });
                     }
 
                     @Override
-                    public void onError(Response<String> response) {
+                    public void onError(final Response<String> response) {
                         super.onError(response);
                         if (cache.exists()) {
-                            try {
-                                parseJson(apiUrl, cache);
-                                callback.success();
-                                return;
-                            } catch (Throwable th) {
-                                th.printStackTrace();
-                            }
+                            // 网络失败回退本地缓存，解析同样放后台
+                            HeavyTaskUtil.getBigTaskExecutorService().execute(new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        parseJson(apiUrl, cache);
+                                        postMainSuccess(callback);
+                                    } catch (Throwable th) {
+                                        th.printStackTrace();
+                                        postError(callback, "拉取配置失败\n" + (response.getException() != null ? response.getException().getMessage() : ""));
+                                    }
+                                }
+                            });
+                            return;
                         }
                         callback.error("拉取配置失败\n" + (response.getException() != null ? response.getException().getMessage() : ""));
                     }

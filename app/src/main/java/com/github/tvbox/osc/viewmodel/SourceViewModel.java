@@ -82,6 +82,12 @@ public class SourceViewModel extends ViewModel {
      */
     public static final ExecutorService pageThreadPool = Executors.newSingleThreadExecutor();
     /**
+     * 首页分类列表专用线程池：
+     * 原来 getList 和详情/搜索共用 spThreadPool 单线程，首页多个分类首屏会串行排队，
+     * 当前可见的分类可能排在其他分类后面，表现就是首页一直转圈。
+     */
+    public static final ExecutorService listThreadPool = Executors.newFixedThreadPool(3);
+    /**
      * 最近一次"获取剧集列表"失败的具体原因，详情页会把它显示在加载提示里。
      * 只用于定位问题，不参与业务逻辑。
      */
@@ -255,7 +261,7 @@ public class SourceViewModel extends ViewModel {
         SourceBean homeSourceBean = ApiConfig.get().getHomeSourceBean();
         int type = homeSourceBean.getType();
         if (type == 3) {
-            spThreadPool.execute(new Runnable() {
+            listThreadPool.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -263,6 +269,8 @@ public class SourceViewModel extends ViewModel {
                         json(listResult, sp.categoryContent(sortData.id, page + "", true, sortData.filterSelect), homeSourceBean.getKey());
                     } catch (Throwable th) {
                         th.printStackTrace();
+                        // 修复：爬虫异常时要通知页面，否则首页会一直转圈
+                        listResult.postValue(null);
                     }
                 }
             });
