@@ -3,10 +3,11 @@ buildscript {
     ext.kotlin_version = '1.8.0'
     repositories {
         gradlePluginPortal()
-        maven { url "https://maven.aliyun.com/repository/releases" }
-        maven { url "https://maven.aliyun.com/repository/public" }
+        // CI 上阿里云镜像偶发 502，会直接导致构建失败；google/mavenCentral 放前面，镜像作为兜底
         google()
         mavenCentral()
+        maven { url "https://maven.aliyun.com/repository/releases" }
+        maven { url "https://maven.aliyun.com/repository/public" }
         maven { url "https://jitpack.io" }
     }
     dependencies {
@@ -21,6 +22,9 @@ buildscript {
 allprojects {
     repositories {
         gradlePluginPortal()
+        // CI 上阿里云镜像偶发 502，会直接导致构建失败；google/mavenCentral 放前面，镜像作为兜底
+        google()
+        mavenCentral()
         maven { url "https://maven.aliyun.com/repository/releases" }
         maven { url "https://maven.aliyun.com/repository/public" }
         //dlna-cast中cling仓
@@ -29,8 +33,6 @@ allprojects {
             allowInsecureProtocol true
         }
         maven { url "https://jitpack.io" }
-        google()
-        mavenCentral()
     }
 }
 
