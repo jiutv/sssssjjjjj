@@ -223,6 +223,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         }
 
         findViewById(R.id.ll_title).setOnClickListener(view -> {
+            if (!ensureDetailReady()) return;
             new XPopup.Builder(this)
                     .isViewMode(true)
                     .hasNavigationBar(false)
@@ -232,6 +233,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         findViewById(R.id.tvDownload).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if (!ensureDetailReady()) return;
                 use1DMDownload();
             }
         });
@@ -243,11 +245,13 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             }
         });
         mBinding.tvCast.setOnClickListener(v -> {
+            if (!ensureDetailReady()) return;
             showCastDialog();
         });
         mBinding.tvCollect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (!ensureDetailReady()) return;
                 String text = mBinding.tvCollect.getText().toString();
                 if ("加入收藏".equals(text)) {
                     RoomDataManger.insertVodCollect(sourceKey, vodInfo);
@@ -310,9 +314,22 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         });
         mBinding.tvChangeLine.setOnClickListener(v -> {
             FastClickCheckUtil.check(v);
+            if (!ensureDetailReady()) return;
             quickLineChange();
         });
         setLoadSir(mBinding.llLayout);
+    }
+
+    /**
+     * 剧集数据还没回来时，拦截需要 vodInfo 的点击操作。
+     * 修复：原来加载中点击"详情 >>"会 new VideoDetailDialog(this, null)，在 onCreate 里读 vodInfo.name 直接闪退。
+     */
+    private boolean ensureDetailReady() {
+        if (vodInfo == null || mVideo == null) {
+            ToastUtils.showShort("正在获取剧集列表，请稍候");
+            return false;
+        }
+        return true;
     }
 
     @Override
@@ -784,7 +801,9 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         mBinding.previewPlayerPlace.setVisibility(View.GONE);
         mBinding.previewPlayer.setVisibility(View.GONE);
         mBinding.tvLoadTip.setOnClickListener(v -> retryLoadDetail());
-        mBinding.tvLoadTip.setText(msg + "，点击重试");
+        // 显示具体失败原因，便于判断是源不存在、网络错误、爬虫异常还是解析失败
+        String reason = SourceViewModel.lastDetailError;
+        mBinding.tvLoadTip.setText(msg + (TextUtils.isEmpty(reason) ? "" : "（" + reason + "）") + "，点击重试");
         mBinding.tvLoadTip.setVisibility(View.VISIBLE);
     }
 
@@ -997,7 +1016,10 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             th.printStackTrace();
         }
         OkGo.getInstance().cancelTag("fenci");
-        OkGo.getInstance().cancelTag("detail");
+        // 修复：OkGo 的 tag 是全局的，"detail" 又是所有详情页共用。
+        // DetailActivity 是 singleTask，重复进入时旧实例先 onDestroy 会把新实例正在进行的
+        // getDetail 请求一起取消，表现就是刚进详情页就直接"获取剧集列表失败"。
+        // 详情请求本身只读、10 秒超时，让它自然结束即可，不再按 tag 取消。
         OkGo.getInstance().cancelTag("quick_search");
         toggleScreenShotListen(false);
     }

@@ -50,6 +50,8 @@ public class VideoDetailDialog extends BottomPopupView {
     @Override
     protected void onCreate() {
         super.onCreate();
+        // 修复：详情数据还没回来时 vodInfo 为 null，这里直接读 mVideo.name 会空指针闪退
+        if (mVideo == null) return;
         DialogVideoDetailBinding binding = DialogVideoDetailBinding.bind(getPopupImplView());
 
         binding.tvName.setText(mVideo.name);

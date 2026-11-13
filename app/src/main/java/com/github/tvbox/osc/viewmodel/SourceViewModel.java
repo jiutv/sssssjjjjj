@@ -81,6 +81,16 @@ public class SourceViewModel extends ViewModel {
      * 详情和播放单独排队，不再被首页列表/搜索阻塞。
      */
     public static final ExecutorService pageThreadPool = Executors.newSingleThreadExecutor();
+    /**
+     * 最近一次"获取剧集列表"失败的具体原因，详情页会把它显示在加载提示里。
+     * 只用于定位问题，不参与业务逻辑。
+     */
+    public static volatile String lastDetailError = "";
+
+    /** 只有详情请求失败才记录原因，避免搜索/分类的错误覆盖它 */
+    private void setDetailError(MutableLiveData<AbsXml> result, String msg) {
+        if (result == detailResult) lastDetailError = msg;
+    }
 
     // homeContent
     public void getSort(String sourceKey) {
@@ -431,9 +441,11 @@ public class SourceViewModel extends ViewModel {
     }
     // detailContent
     public void getDetail(String sourceKey, String id) {
+        lastDetailError = "";
         SourceBean sourceBean = ApiConfig.get().getSource(sourceKey);
         if (sourceBean == null) {
             // 源配置已变更/被删除（例如历史记录、收藏中的旧源），避免空指针
+            lastDetailError = "源不存在(" + sourceKey + ")";
             detailResult.postValue(null);
             return;
         }
@@ -450,6 +462,8 @@ public class SourceViewModel extends ViewModel {
                     } catch (Throwable th) {
                         th.printStackTrace();
                         // 修复：爬虫异常时立即通知页面加载失败，避免页面一直等到超时才提示
+                        lastDetailError = "爬虫异常:" + th.getClass().getSimpleName()
+                                + (TextUtils.isEmpty(th.getMessage()) ? "" : " " + th.getMessage());
                         detailResult.postValue(null);
                     }
                 }
@@ -485,10 +499,13 @@ public class SourceViewModel extends ViewModel {
                         @Override
                         public void onError(Response<String> response) {
                             super.onError(response);
+                            lastDetailError = "网络错误:" + response.code()
+                                    + (TextUtils.isEmpty(response.message()) ? "" : " " + response.message());
                             detailResult.postValue(null);
                         }
                     });
         } else {
+            lastDetailError = "不支持的源类型:" + type;
             detailResult.postValue(null);
         }
     }
@@ -947,6 +964,10 @@ public class SourceViewModel extends ViewModel {
             }
             AbsXml data = (AbsXml) xstream.fromXML(xml);
             absXml(data, sourceKey);
+            if (data == null || data.movie == null || data.movie.videoList == null
+                    || data.movie.videoList.isEmpty()) {
+                setDetailError(result, "返回数据里没有剧集");
+            }
             if (searchResult == result) {
                 EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_SEARCH_RESULT, data));
             } else if (quickSearchResult == result) {
@@ -960,6 +981,7 @@ public class SourceViewModel extends ViewModel {
             }
             return data;
         } catch (Exception e) {
+            setDetailError(result, "解析失败:" + e.getClass().getSimpleName());
             if (searchResult == result) {
                 EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_SEARCH_RESULT, null));
             } else if (quickSearchResult == result) {
@@ -992,8 +1014,21 @@ public class SourceViewModel extends ViewModel {
                     "}";*/
             AbsJson absJson = new Gson().fromJson(json, new TypeToken<AbsJson>() {
             }.getType());
+            // 修复：空响应/无 list 时给出具体原因，避免详情页只显示笼统的"获取失败"
+            if (absJson == null) {
+                setDetailError(result, TextUtils.isEmpty(json) ? "返回内容为空"
+                        : "返回格式无法识别(" + json.length() + "字符)");
+                if (result == detailResult) {
+                    detailResult.postValue(null);
+                    return null;
+                }
+            }
             AbsXml data = absJson.toAbsXml();
             absXml(data, sourceKey);
+            if (data == null || data.movie == null || data.movie.videoList == null
+                    || data.movie.videoList.isEmpty()) {
+                setDetailError(result, "返回数据里没有剧集");
+            }
             if (searchResult == result) {
                 EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_SEARCH_RESULT, data));
             } else if (quickSearchResult == result) {
@@ -1007,6 +1042,7 @@ public class SourceViewModel extends ViewModel {
             }
             return data;
         } catch (Exception e) {
+            setDetailError(result, "解析失败:" + e.getClass().getSimpleName());
             if (searchResult == result) {
                 EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_SEARCH_RESULT, null));
             } else if (quickSearchResult == result) {
