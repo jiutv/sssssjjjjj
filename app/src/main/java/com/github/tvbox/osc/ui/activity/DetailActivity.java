@@ -137,6 +137,8 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
     private int seriesLayoutMode = 2;
     /** 需求2：详情缓存 key */
     private String detailCacheKey;
+    /** 排查加载慢：记录详情请求发起时间，用于日志里输出真实耗时 */
+    private long detailRequestStart;
     /** 需求2：详情是否已加载完成（用于超时判断） */
     private boolean detailLoaded;
     private static final long DETAIL_TIMEOUT = 20000L;
@@ -199,6 +201,9 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         mBinding.ivPrivateBrowsing.setVisibility(Hawk.get(HawkConfig.PRIVATE_BROWSING, false) ? View.VISIBLE : View.GONE);
         mBinding.ivPrivateBrowsing.setOnClickListener(view -> ToastUtils.showShort("当前为无痕浏览"));
         mBinding.previewPlayerPlace.setVisibility(showPreview ? View.VISIBLE : View.GONE);
+        // 修复：数据回来之前不显示预览播放器容器，否则 PlayFragment 里的 Lottie 会在顶部一直转圈，
+        // 看起来像"整页加载很慢"；renderDetail 拿到数据后再显示
+        mBinding.previewPlayer.setVisibility(View.GONE);
         initDetailBackground();
 
         mBinding.mGridView.setHasFixedSize(true);
@@ -339,7 +344,10 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         String picUrl = DefaultConfig.checkReplaceProxy(video.pic);
         if (!TextUtils.isEmpty(picUrl)) {
             mBinding.ivDetailBg.setVisibility(View.VISIBLE);
+            // 修复：按控件实际尺寸解码 + 居中裁剪，避免模糊背景按原图全尺寸解码/输出造成卡顿
             Picasso.get().load(picUrl)
+                    .resize(ScreenUtils.getScreenWidth(), ConvertUtils.dp2px(380))
+                    .centerCrop()
                     .transform(new BlurTransformation())
                     .into(mBinding.ivDetailBg);
             Picasso.get().load(picUrl)
@@ -612,6 +620,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             public void onChanged(AbsXml absXml) {
                 // 需求2：收到结果，取消超时保护
                 detailLoaded = true;
+                LogUtils.i("详情加载耗时：" + (System.currentTimeMillis() - detailRequestStart) + "ms");
                 mTimeoutHandler.removeCallbacks(detailTimeoutRunnable);
                 if (absXml != null && absXml.movie != null && absXml.movie.videoList != null
                         && absXml.movie.videoList.size() > 0) {
@@ -693,8 +702,9 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                         // 需求4：同步正序/倒序按钮文案
                         mBinding.tvSort.setText(vodInfo.reverseSort ? "倒序" : "正序");
                         if (showPreview) {
-                            jumpToPlay();
+                            // 数据已到：先显示预览播放器容器，再起播
                             mBinding.previewPlayer.setVisibility(View.VISIBLE);
+                            jumpToPlay();
                             toggleSubtitleTextSize();
                         }
                         // startQuickSearch();
@@ -734,6 +744,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         // 纯内存缓存读取（微秒级），命中则不重复请求；未命中立刻发起请求
         AbsXml cached = PlayCache.getDetail(detailCacheKey);
         if (cached == null) {
+            detailRequestStart = System.currentTimeMillis();
             sourceViewModel.getDetail(sourceKey, vodId);
         }
 
@@ -771,6 +782,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         mTimeoutHandler.removeCallbacks(detailTimeoutRunnable);
         // 加载失败时不显示预览播放区（避免黑屏 + 无限转圈）
         mBinding.previewPlayerPlace.setVisibility(View.GONE);
+        mBinding.previewPlayer.setVisibility(View.GONE);
         mBinding.tvLoadTip.setOnClickListener(v -> retryLoadDetail());
         mBinding.tvLoadTip.setText(msg + "，点击重试");
         mBinding.tvLoadTip.setVisibility(View.VISIBLE);
@@ -796,6 +808,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         mBinding.mEmptyPlaylist.setVisibility(View.GONE);
         // 加载完成前不显示预览播放区，避免顶部黑屏 + 一直转圈
         mBinding.previewPlayerPlace.setVisibility(View.GONE);
+        mBinding.previewPlayer.setVisibility(View.GONE);
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)

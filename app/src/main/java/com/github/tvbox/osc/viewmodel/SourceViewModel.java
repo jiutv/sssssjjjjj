@@ -74,6 +74,13 @@ public class SourceViewModel extends ViewModel {
     }
 
     public static final ExecutorService spThreadPool = Executors.newSingleThreadExecutor();
+    /**
+     * 详情/播放专用线程池：
+     * 原来 getDetail/getPlay 和首页 getSort/getList、搜索共用 spThreadPool 单线程，
+     * 前面的爬虫请求没结束，进详情页的 getDetail 就只能排队，表现就是"点进去一直加载中直到超时"。
+     * 详情和播放单独排队，不再被首页列表/搜索阻塞。
+     */
+    public static final ExecutorService pageThreadPool = Executors.newSingleThreadExecutor();
 
     // homeContent
     public void getSort(String sourceKey) {
@@ -432,7 +439,7 @@ public class SourceViewModel extends ViewModel {
         }
         int type = sourceBean.getType();
         if (type == 3) {
-            spThreadPool.execute(new Runnable() {
+            pageThreadPool.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -662,7 +669,7 @@ public class SourceViewModel extends ViewModel {
         SourceBean sourceBean = ApiConfig.get().getSource(sourceKey);
         int type = sourceBean.getType();
         if (type == 3) {
-            spThreadPool.execute(new Runnable() {
+            pageThreadPool.execute(new Runnable() {
                 @Override
                 public void run() {
                     Spider sp = ApiConfig.get().getCSP(sourceBean);
