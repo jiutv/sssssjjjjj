@@ -7,7 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
 import com.github.tvbox.osc.R
 import com.github.tvbox.osc.api.ApiConfig
 import com.github.tvbox.osc.base.BaseVbActivity
@@ -70,7 +70,7 @@ class HistoryActivity : BaseVbActivity<ActivityHistoryBinding>() {
     /** 列表初始化：单 RecyclerView + 单适配器，Tab 切换只换数据 */
     private fun initList() {
         setLoadSir(mBinding.mGridView)
-        mBinding.mGridView.layoutManager = LinearLayoutManager(this)
+        mBinding.mGridView.layoutManager = GridLayoutManager(this, 3)
         mBinding.mGridView.setHasFixedSize(false)
         recordAdapter = HistoryRecordAdapter(
             onClick = { view, entry ->

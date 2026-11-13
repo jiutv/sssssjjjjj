@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.blankj.utilcode.util.ConvertUtils
+import com.blankj.utilcode.util.ScreenUtils
 import com.github.tvbox.osc.R
 import com.github.tvbox.osc.api.ApiConfig
 import com.github.tvbox.osc.bean.VodInfo
@@ -32,10 +33,9 @@ class HistoryRecordAdapter(
 ) : RecyclerView.Adapter<HistoryRecordAdapter.CardHolder>() {
 
     companion object {
-        // 封面尺寸（与 item_record_card.xml 保持一致）
-        private const val COVER_WIDTH_DP = 62f
-        private const val COVER_HEIGHT_DP = 86f
-        private const val COVER_RADIUS_DP = 8f
+        // 3 列海报卡片：封面按控件宽度等比计算（与 item_record_card.xml 的 2:3 比例一致）
+        private const val COVER_RADIUS_DP = 16f
+        private const val CARD_MARGIN_DP = 10f
     }
 
     private val items = ArrayList<RecordEntry>()
@@ -108,23 +108,24 @@ class HistoryRecordAdapter(
             binding.ivDel.setOnClickListener { onDelete(entry) }
         }
 
-        /** 封面：Picasso 缓存 + 圆角裁剪 + 失败占位图 */
+        /** 封面：Picasso 缓存 + 顶部圆角裁剪 + 失败占位图 */
         private fun bindCover(picUrl: String?) {
             val pic = picUrl ?: ""
             if (TextUtils.isEmpty(pic)) {
                 binding.ivCover.setImageResource(R.drawable.img_loading_placeholder)
                 return
             }
-            val width = ConvertUtils.dp2px(COVER_WIDTH_DP)
-            val height = ConvertUtils.dp2px(COVER_HEIGHT_DP)
+            // 3 列布局：按屏幕宽度算卡片宽度，封面高度按 2:3 计算，避免按原图尺寸解码
+            val cardWidth = (ScreenUtils.getScreenWidth() - ConvertUtils.dp2px(CARD_MARGIN_DP)) / 3
+            val cardHeight = cardWidth * 3 / 2
             Picasso.get()
                 .load(DefaultConfig.checkReplaceProxy(pic))
                 .placeholder(R.drawable.img_loading_placeholder)
                 .error(R.drawable.img_loading_placeholder)
                 .transform(
                     RoundTransformation("record_cover_${pic.hashCode()}")
-                        .override(width, height)
-                        .roundRadius(ConvertUtils.dp2px(COVER_RADIUS_DP), RoundTransformation.RoundType.ALL)
+                        .override(cardWidth, cardHeight)
+                        .roundRadius(ConvertUtils.dp2px(COVER_RADIUS_DP), RoundTransformation.RoundType.TOP)
                 )
                 .into(binding.ivCover)
         }
