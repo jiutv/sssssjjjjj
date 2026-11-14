@@ -5,10 +5,12 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.IntEvaluator;
 import android.animation.ObjectAnimator;
 import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.TextUtils;
 import android.util.Base64;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -55,6 +57,7 @@ import com.github.tvbox.osc.ui.widget.PlayerTitleView;
 import com.github.tvbox.osc.util.BottomNavHelper;
 import com.github.tvbox.osc.util.FastClickCheckUtil;
 import com.github.tvbox.osc.util.HawkConfig;
+import com.github.tvbox.osc.util.live.LiveSniffer;
 import com.github.tvbox.osc.util.live.TxtSubscribe;
 import com.google.gson.JsonArray;
 import com.gyf.immersionbar.BarHide;
@@ -74,6 +77,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -117,6 +121,17 @@ public class LiveActivity extends BaseActivity {
     private LiveChannelItem currentLiveChannelItem = null;
     private LivePlayerManager livePlayerManager = new LivePlayerManager();
     private ArrayList<Integer> channelGroupPasswordConfirmed = new ArrayList<>();
+
+    // ===== 直播三种起播方式（直连 / video:// 嗅探 / webview:// 网页）=====
+    private static final String PROTOCOL_VIDEO = "video://";
+    private static final String PROTOCOL_WEBVIEW = "webview://";
+    private LiveSniffer mLiveSniffer;
+    private boolean mIsSniffing = false;
+    private boolean mIsWebLive = false;
+    private String mResolvedPlayUrl = null;
+    private boolean mFirstResume = true;
+    private int mWebLiveRelaunchCount = 0;
+    private long mLastWebLiveRelaunchAt = 0;
 
 //EPG   by 龍
     private static LiveChannelItem  channel_Name = null;
@@ -303,6 +318,13 @@ public class LiveActivity extends BaseActivity {
         if (mVideoView != null) {
             mVideoView.resume();
         }
+        // 网页直播返回后自动重新打开网页（首次进入由 startLivePlay 负责，不重复拉起）
+        if (mFirstResume) {
+            mFirstResume = false;
+        } else if (mIsWebLive && !isFinishing()) {
+            mHandler.removeCallbacks(mReopenWebLiveRun);
+            mHandler.postDelayed(mReopenWebLiveRun, 300);
+        }
     }
 
 
@@ -317,6 +339,11 @@ public class LiveActivity extends BaseActivity {
     @Override
     protected void onDestroy() {
         mHandler.removeCallbacksAndMessages(null);
+        mIsSniffing = false;
+        if (mLiveSniffer != null) {
+            mLiveSniffer.destroy();
+            mLiveSniffer = null;
+        }
         super.onDestroy();
         if (mVideoView != null) {
             mVideoView.release();
@@ -384,6 +411,8 @@ public class LiveActivity extends BaseActivity {
             currentLiveChannelItem = getLiveChannels(currentChannelGroupIndex).get(currentLiveChannelIndex);
             Hawk.put(HawkConfig.LIVE_CHANNEL, currentLiveChannelItem.getChannelName());
             livePlayerManager.getLiveChannelPlayer(mVideoView, currentLiveChannelItem.getChannelName());
+            // 切换频道后重置网页直播自动重开计数
+            mWebLiveRelaunchCount = 0;
         }
 
         channel_Name = currentLiveChannelItem;
@@ -396,11 +425,169 @@ public class LiveActivity extends BaseActivity {
         }
         showBottomEpg();
 
-        mVideoView.setUrl(currentLiveChannelItem.getUrl());
-       // showChannelInfo();
-        mVideoView.start();
+        startLivePlay(currentLiveChannelItem);
         return true;
     }
+
+    /**
+     * 统一直播起播入口：
+     * 1. http/https/rtmp/m3u8 等直连地址直接交给原生播放器；
+     * 2. video:// 启动网页嗅探，命中后把真实地址交给原生播放器；
+     * 3. webview:// 交给 WebLiveActivity 用 WebView 播放。
+     */
+    private void startLivePlay(LiveChannelItem item) {
+        if (item == null) {
+            return;
+        }
+        String rawUrl = item.getUrl();
+        if (TextUtils.isEmpty(rawUrl)) {
+            // 地址为空时延迟走换源规则，避免所有线路都为空时同步递归
+            mHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    onLivePlayFailed();
+                }
+            }, 1000);
+            return;
+        }
+        stopSniff();
+        mIsWebLive = false;
+        mResolvedPlayUrl = null;
+        mHandler.removeCallbacks(mReopenWebLiveRun);
+
+        if (rawUrl.startsWith(PROTOCOL_WEBVIEW)) {
+            mIsWebLive = true;
+            openWebLive(unwrapProtocol(rawUrl), item.getChannelName());
+        } else if (rawUrl.startsWith(PROTOCOL_VIDEO)) {
+            startSniff(unwrapProtocol(rawUrl));
+        } else {
+            playDirect(rawUrl, null);
+        }
+    }
+
+    /** 直连起播：完全沿用原有播放器配置、解码方式与错误处理 */
+    private void playDirect(String url, HashMap<String, String> headers) {
+        if (headers != null && !headers.isEmpty()) {
+            mVideoView.setUrl(url, headers);
+        } else {
+            mVideoView.setUrl(url);
+        }
+        mVideoView.start();
+    }
+
+    /** video:// 嗅探起播，命中后交给原生播放器 */
+    private void startSniff(String pageUrl) {
+        stopSniff();
+        mIsSniffing = true;
+        // 嗅探期间由嗅探超时控制换源，暂停播放器状态超时
+        mHandler.removeCallbacks(mConnectTimeoutChangeSourceRun);
+        ToastUtils.showShort("正在嗅探直播地址…");
+        if (mLiveSniffer != null) {
+            mLiveSniffer.destroy();
+            mLiveSniffer = null;
+        }
+        mLiveSniffer = new LiveSniffer(this, new LiveSniffer.Callback() {
+            @Override
+            public void onSniffed(String url, HashMap<String, String> headers) {
+                if (!mIsSniffing || isFinishing() || mVideoView == null) {
+                    return;
+                }
+                mIsSniffing = false;
+                mResolvedPlayUrl = url;
+                if (mLiveSniffer != null) {
+                    mLiveSniffer.stop();
+                }
+                playDirect(url, headers);
+            }
+
+            @Override
+            public void onFailed(String reason) {
+                if (!mIsSniffing || isFinishing() || mVideoView == null) {
+                    return;
+                }
+                mIsSniffing = false;
+                ToastUtils.showShort(reason);
+                onLivePlayFailed();
+            }
+        });
+        mLiveSniffer.start(pageUrl);
+    }
+
+    private void stopSniff() {
+        mIsSniffing = false;
+        if (mLiveSniffer != null) {
+            mLiveSniffer.stop();
+        }
+    }
+
+    /**
+     * 嗅探失败处理：完全复用原仓库的超时换源规则
+     * 先切换下一线路，当前频道所有线路都失败后按跨选分类规则换台
+     */
+    private void onLivePlayFailed() {
+        if (currentLiveChannelItem == null) {
+            return;
+        }
+        mHandler.removeCallbacks(mConnectTimeoutChangeSourceRun);
+        currentLiveChangeSourceTimes++;
+        if (currentLiveChannelItem.getSourceNum() == currentLiveChangeSourceTimes) {
+            currentLiveChangeSourceTimes = 0;
+            Integer[] groupChannelIndex = getNextChannel(Hawk.get(HawkConfig.LIVE_CHANNEL_REVERSE, false) ? -1 : 1);
+            playChannel(groupChannelIndex[0], groupChannelIndex[1], false);
+        } else {
+            playNextSource();
+        }
+    }
+
+    /** webview:// 起播：交给 WebLiveActivity 承载 WebView */
+    private void openWebLive(String url, String title) {
+        mLastWebLiveRelaunchAt = System.currentTimeMillis();
+        Intent intent = new Intent(this, WebLiveActivity.class);
+        intent.putExtra(WebLiveActivity.EXTRA_URL, url);
+        intent.putExtra(WebLiveActivity.EXTRA_TITLE, title);
+        startActivity(intent);
+    }
+
+    /** 去掉 video:// / webview:// 前缀，兼容 xxx://https://... 与 xxx://host/path */
+    private String unwrapProtocol(String url) {
+        if (url.startsWith(PROTOCOL_WEBVIEW)) {
+            url = url.substring(PROTOCOL_WEBVIEW.length());
+        } else if (url.startsWith(PROTOCOL_VIDEO)) {
+            url = url.substring(PROTOCOL_VIDEO.length());
+        }
+        if (url.startsWith("//")) {
+            url = url.substring(2);
+        }
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            url = "https://" + url;
+        }
+        return url;
+    }
+
+    /** 从网页直播返回后自动重新打开网页，连续异常时最多重开 3 次 */
+    private final Runnable mReopenWebLiveRun = new Runnable() {
+        @Override
+        public void run() {
+            if (!mIsWebLive || currentLiveChannelItem == null || isFinishing()) {
+                return;
+            }
+            String url = currentLiveChannelItem.getUrl();
+            if (TextUtils.isEmpty(url) || !url.startsWith(PROTOCOL_WEBVIEW)) {
+                return;
+            }
+            long now = System.currentTimeMillis();
+            if (now - mLastWebLiveRelaunchAt > 5000) {
+                mWebLiveRelaunchCount = 0;
+            }
+            if (mWebLiveRelaunchCount >= 3) {
+                mWebLiveRelaunchCount = 0;
+                ToastUtils.showShort("网页播放异常，已暂停自动重开");
+                return;
+            }
+            mWebLiveRelaunchCount++;
+            openWebLive(unwrapProtocol(url), currentLiveChannelItem.getChannelName());
+        }
+    };
 
     private void playNext() {
         if (!isCurrentLiveChannelValid()) return;
@@ -744,8 +931,7 @@ public class LiveActivity extends BaseActivity {
             case 2://播放解码
                 mVideoView.release();
                 livePlayerManager.changeLivePlayerType(mVideoView, position, currentLiveChannelItem.getChannelName());
-                mVideoView.setUrl(currentLiveChannelItem.getUrl());
-                mVideoView.start();
+                startLivePlay(currentLiveChannelItem);
                 break;
             case 3://超时换源
                 Hawk.put(HawkConfig.LIVE_CONNECT_TIMEOUT, position);
@@ -1117,9 +1303,13 @@ public class LiveActivity extends BaseActivity {
 
     public void showCastDialog() {
         if (currentLiveChannelItem!=null){
+            String castUrl = TextUtils.isEmpty(mResolvedPlayUrl) ? currentLiveChannelItem.getUrl() : mResolvedPlayUrl;
+            if (castUrl.startsWith(PROTOCOL_VIDEO) || castUrl.startsWith(PROTOCOL_WEBVIEW)) {
+                castUrl = unwrapProtocol(castUrl);
+            }
             new XPopup.Builder(this)
                     .maxWidth(ConvertUtils.dp2px(360))
-                    .asCustom(new CastListDialog(this,new CastVideo(currentLiveChannelItem.getChannelName(),currentLiveChannelItem.getUrl())))
+                    .asCustom(new CastListDialog(this,new CastVideo(currentLiveChannelItem.getChannelName(),castUrl)))
                     .show();
         }
     }
@@ -1156,8 +1346,7 @@ public class LiveActivity extends BaseActivity {
     public void changePlayer(int position){
         mVideoView.release();
         livePlayerManager.changeLivePlayerType(mVideoView, position, currentLiveChannelItem.getChannelName());
-        mVideoView.setUrl(currentLiveChannelItem.getUrl());
-        mVideoView.start();
+        startLivePlay(currentLiveChannelItem);
     }
 
     /**
