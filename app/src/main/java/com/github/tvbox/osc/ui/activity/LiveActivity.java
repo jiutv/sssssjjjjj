@@ -132,6 +132,8 @@ public class LiveActivity extends BaseActivity {
     private boolean mFirstResume = true;
     private int mWebLiveRelaunchCount = 0;
     private long mLastWebLiveRelaunchAt = 0;
+    private int mLiveListRetry = 0;
+    private boolean mLiveSourceDirectLoaded = false;
 
 //EPG   by 龍
     private static LiveChannelItem  channel_Name = null;
@@ -965,51 +967,79 @@ public class LiveActivity extends BaseActivity {
 
     private void initLiveChannelList() {
         List<LiveChannelGroup> list = ApiConfig.get().getChannelGroupList();
-        if (list.isEmpty()) {
-            Toast.makeText(App.getInstance(), "频道列表为空", Toast.LENGTH_SHORT).show();
-            finish();
+        if (!list.isEmpty()) {
+            if (list.size() == 1 && list.get(0).getGroupName().startsWith("http://127.0.0.1")) {
+                loadProxyLives(list.get(0).getGroupName());
+            } else {
+                liveChannelGroupList.clear();
+                liveChannelGroupList.addAll(list);
+                showSuccess();
+                initLiveState();
+            }
             return;
         }
 
-        if (list.size() == 1 && list.get(0).getGroupName().startsWith("http://127.0.0.1")) {
-            loadProxyLives(list.get(0).getGroupName());
+        // 分组为空：点播配置可能仍在解析，或点播配置里没有 lives。
+        // 直播订阅里已选中直播源时直接加载，避免直播完全依赖点播配置
+        String liveUrl = Hawk.get(HawkConfig.LIVE_URL, "");
+        if (!TextUtils.isEmpty(liveUrl) && !mLiveSourceDirectLoaded) {
+            mLiveSourceDirectLoaded = true;
+            loadLiveSource(liveUrl);
+            return;
         }
-        else {
-            liveChannelGroupList.clear();
-            liveChannelGroupList.addAll(list);
-            showSuccess();
-            initLiveState();
+        // 配置自带的 lives 可能仍在后台解析，短暂重试，避免误报“频道列表为空”
+        if (!mLiveSourceDirectLoaded && mLiveListRetry < 3) {
+            mLiveListRetry++;
+            showLoading();
+            mHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    initLiveChannelList();
+                }
+            }, 600);
+            return;
         }
+        Toast.makeText(App.getInstance(), "频道列表为空，请检查直播源", Toast.LENGTH_SHORT).show();
+        finish();
     }
 
     public void loadProxyLives(String url) {
+        String sourceUrl;
         try {
             Uri parsedUrl = Uri.parse(url);
-            url = new String(Base64.decode(parsedUrl.getQueryParameter("ext"), Base64.DEFAULT | Base64.URL_SAFE | Base64.NO_WRAP), "UTF-8");
+            sourceUrl = new String(Base64.decode(parsedUrl.getQueryParameter("ext"), Base64.DEFAULT | Base64.URL_SAFE | Base64.NO_WRAP), "UTF-8");
         } catch (Throwable th) {
-            Toast.makeText(App.getInstance(), "频道列表为空", Toast.LENGTH_SHORT).show();
+            Toast.makeText(App.getInstance(), "频道列表为空，请检查直播源", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
+        loadLiveSource(sourceUrl);
+    }
+
+    /** 拉取并解析直播源（txt），成功后交给直播列表 */
+    private void loadLiveSource(String url) {
         showLoading();
+        android.util.Log.i("LiveSource", "加载直播源: " + url);
         OkGo.<String>get(url).execute(new AbsCallback<String>() {
 
             @Override
             public String convertResponse(okhttp3.Response response) throws Throwable {
-                return response.body().string();
+                return response.body() == null ? "" : response.body().string();
             }
 
             @Override
             public void onSuccess(Response<String> response) {
                 JsonArray livesArray;
                 LinkedHashMap<String, LinkedHashMap<String, ArrayList<String>>> linkedHashMap = new LinkedHashMap<>();
-                TxtSubscribe.parse(linkedHashMap, response.body());
+                String content = response.body() == null ? "" : response.body();
+                android.util.Log.i("LiveSource", "直播源内容长度: " + content.length());
+                TxtSubscribe.parse(linkedHashMap, content);
                 livesArray = TxtSubscribe.live2JsonArray(linkedHashMap);
 
                 ApiConfig.get().loadLives(livesArray);
                 List<LiveChannelGroup> list = ApiConfig.get().getChannelGroupList();
                 if (list.isEmpty()) {
-                    Toast.makeText(App.getInstance(), "频道列表为空", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(App.getInstance(), "直播源内容为空或格式不支持", Toast.LENGTH_SHORT).show();
                     finish();
                     return;
                 }
@@ -1023,6 +1053,22 @@ public class LiveActivity extends BaseActivity {
                         initLiveState();
                     }
                 });
+            }
+
+            @Override
+            public void onError(Response<String> response) {
+                super.onError(response);
+                String reason;
+                if (response.getException() != null) {
+                    reason = response.getException().getMessage();
+                } else if (response.code() > 0) {
+                    reason = "HTTP " + response.code() + (TextUtils.isEmpty(response.message()) ? "" : " " + response.message());
+                } else {
+                    reason = "网络异常";
+                }
+                android.util.Log.e("LiveSource", "直播源加载失败: " + reason);
+                Toast.makeText(App.getInstance(), "直播源加载失败：" + reason, Toast.LENGTH_LONG).show();
+                finish();
             }
         });
     }

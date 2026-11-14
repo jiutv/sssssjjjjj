@@ -488,7 +488,7 @@ public class ApiConfig {
 
         String liveURL_final = null;
         try {
-            if (infoJson.has("lives") && infoJson.get("lives").getAsJsonArray() != null) {
+            if (infoJson.has("lives") && infoJson.get("lives").isJsonArray() && infoJson.get("lives").getAsJsonArray() != null) {
                 JsonObject livesOBJ = infoJson.get("lives").getAsJsonArray().get(0).getAsJsonObject();
                 String lives = livesOBJ.toString();
                 int index = lives.indexOf("proxy://");
@@ -586,20 +586,28 @@ public class ApiConfig {
                     }
                 }
 
-                // takagen99: Load Live Channel from settings URL (WIP)
-                if (StringUtils.isBlank(liveURL_final)) {
-                    liveURL_final = liveURL;
-                }
-                liveURL_final = Base64.encodeToString(liveURL_final.getBytes("UTF-8"), Base64.DEFAULT | Base64.URL_SAFE | Base64.NO_WRAP);
-                liveURL_final = "http://127.0.0.1:9978/proxy?do=live&type=txt&ext=" + liveURL_final;
-                LiveChannelGroup liveChannelGroup = new LiveChannelGroup();
-                liveChannelGroup.setGroupName(liveURL_final);
-                liveChannelGroupList.add(liveChannelGroup);
             }
 
 
         } catch (Throwable th) {
             th.printStackTrace();
+        }
+
+        // takagen99: Load Live Channel from settings URL (WIP)
+        // 放在 lives 解析之外：点播配置没有 lives（或 lives 解析异常）时，App 内添加的直播源也要生效
+        if (StringUtils.isBlank(liveURL_final)) {
+            liveURL_final = liveURL;
+        }
+        if (!StringUtils.isBlank(liveURL_final)) {
+            try {
+                String liveProxyUrl = Base64.encodeToString(liveURL_final.getBytes("UTF-8"), Base64.DEFAULT | Base64.URL_SAFE | Base64.NO_WRAP);
+                liveProxyUrl = "http://127.0.0.1:9978/proxy?do=live&type=txt&ext=" + liveProxyUrl;
+                LiveChannelGroup liveChannelGroup = new LiveChannelGroup();
+                liveChannelGroup.setGroupName(liveProxyUrl);
+                liveChannelGroupList.add(liveChannelGroup);
+            } catch (Throwable th) {
+                th.printStackTrace();
+            }
         }
 
 
