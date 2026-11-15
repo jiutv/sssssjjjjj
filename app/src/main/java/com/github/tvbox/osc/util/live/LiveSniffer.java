@@ -332,7 +332,7 @@ public class LiveSniffer {
                 LOG.i("LiveSniffer ad:" + url);
                 return AdBlocker.createEmptyResource();
             }
-            if (isVideoUrl(url)) {
+            if (isVideoUrl(url, mPageUrl)) {
                 if (!headers.containsKey("Referer") && !headers.containsKey("referer")
                         && !TextUtils.isEmpty(mPageUrl)) {
                     headers.put("Referer", mPageUrl);
