@@ -24,10 +24,13 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
+import com.github.tvbox.osc.R;
 import com.github.tvbox.osc.base.BaseActivity;
 import com.github.tvbox.osc.util.AdBlocker;
 import com.github.tvbox.osc.util.LOG;
 import com.github.tvbox.osc.util.VideoParseRuler;
+import com.gyf.immersionbar.BarHide;
+import com.gyf.immersionbar.ImmersionBar;
 
 import org.json.JSONObject;
 
@@ -123,6 +126,14 @@ public class FullWebActivity extends BaseActivity {
         mBtnRefresh = findViewById(R.id.btn_refresh);
         mBtnClose = findViewById(R.id.btn_close);
         mTvMode = findViewById(R.id.tv_mode);
+
+        // 沉浸式全屏，网页铺满整屏
+        ImmersionBar.with(this)
+                .statusBarColor(R.color.black)
+                .navigationBarColor(R.color.black)
+                .fitsSystemWindows(false)
+                .hideBar(BarHide.FLAG_HIDE_BAR)
+                .init();
 
         Intent intent = getIntent();
         mEntryUrl = intent.getStringExtra(EXTRA_URL);
@@ -281,6 +292,21 @@ public class FullWebActivity extends BaseActivity {
         public void onPageFinished(WebView view, String url) {
             showTopBar();
             super.onPageFinished(view, url);
+            // 嗅探模式下也静音自动播放，促使需要点击才起播的 H5 播放器发出媒体请求
+            mHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (mSniffFound || mWebView == null) return;
+                    try {
+                        mWebView.evaluateJavascript(
+                                "(function(){var vs=document.querySelectorAll('video');"
+                                        + "for(var i=0;i<vs.length;i++){try{vs[i].muted=true;}catch(e){}"
+                                        + "try{vs[i].play();}catch(e){}}})();", null);
+                    } catch (Throwable t) {
+                        LOG.i("SniffWebViewClient autoPlay crash: " + t);
+                    }
+                }
+            }, 800);
         }
 
         @Override

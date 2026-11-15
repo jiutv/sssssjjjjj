@@ -449,7 +449,6 @@ public class LiveActivity extends BaseActivity {
             return;
         }
         stopSniff();
-        mHandler.removeCallbacks(mReopenWebLiveRun);
 
         String pureUrl = unwrapProtocol(rawUrl);
         if (rawUrl.startsWith("webview://") || rawUrl.startsWith("webview-sniff://")) {
