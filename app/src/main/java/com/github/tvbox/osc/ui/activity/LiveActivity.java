@@ -6,6 +6,7 @@ import android.animation.IntEvaluator;
 import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.CountDownTimer;
@@ -146,6 +147,10 @@ public class LiveActivity extends BaseActivity {
     // 保持直播页自身的排版与频道列表（和 NewBox 一致），不跳独立网页页面 =====
     private WebView mWebLiveView = null;
     private int mWebLiveTries = 0;
+    private TextView mWebFullBtn = null;
+    private boolean mWebFullscreen = false;
+    private int mContainerHeightPx = 0;
+    private int mVideoHeightPx = 0;
     private final Runnable mWebLiveInjectRun = new Runnable() {
         @Override
         public void run() {
@@ -238,6 +243,11 @@ public class LiveActivity extends BaseActivity {
         //投屏/设置
         findViewById(R.id.ic_setting).setOnClickListener(view -> showSettingDialog(false));
         findViewById(R.id.ic_cast).setOnClickListener(view -> showCastDialog());
+        mWebFullBtn = findViewById(R.id.btn_web_fullscreen);
+        if (mWebFullBtn != null) {
+            mWebFullBtn.setOnClickListener(view -> toggleWebFullscreen());
+            mWebFullBtn.setVisibility(View.VISIBLE);
+        }
 
         initVideoView();
         initChannelGroupView();
@@ -275,6 +285,10 @@ public class LiveActivity extends BaseActivity {
 
     @Override
     public void onBackPressed() {
+        if (mWebFullscreen) {
+            exitWebFullscreen();
+            return;
+        }
         if (tvRightSettingLayout.getVisibility() == View.VISIBLE) {
             mHandler.removeCallbacks(mHideSettingLayoutRun);
             mHandler.post(mHideSettingLayoutRun);
@@ -579,6 +593,10 @@ public class LiveActivity extends BaseActivity {
             mWebLiveTries = 0;
             wv.loadUrl(url);
             LOG.i("🎬 内嵌 WebView 已创建：" + url);
+            if (mWebFullBtn != null) {
+                mWebFullBtn.setVisibility(View.VISIBLE);
+                mWebFullBtn.setText("全屏");
+            }
         } catch (Throwable t) {
             LOG.i("内嵌 WebView 创建失败：" + t);
             mVideoView.setVisibility(View.VISIBLE);
@@ -588,6 +606,7 @@ public class LiveActivity extends BaseActivity {
     /** 释放内嵌 WebView，恢复原生播放器显示 */
     private void releaseEmbeddedWebLive() {
         mHandler.removeCallbacks(mWebLiveInjectRun);
+        if (mWebFullscreen) exitWebFullscreen();
         if (mWebLiveView != null) {
             try {
                 ViewGroup parent = (ViewGroup) mWebLiveView.getParent();
@@ -599,6 +618,77 @@ public class LiveActivity extends BaseActivity {
             mWebLiveView = null;
         }
         if (mVideoView != null) mVideoView.setVisibility(View.VISIBLE);
+    }
+
+    /** 全屏 / 退出全屏：网页播放同样支持横屏铺满（原播放器的全屏能力） */
+    private void toggleWebFullscreen() {
+        if (mWebFullscreen) exitWebFullscreen();
+        else enterWebFullscreen();
+    }
+
+    private void enterWebFullscreen() {
+        View container = findViewById(R.id.video_container);
+        if (container == null) return;
+        mWebFullscreen = true;
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+
+        if (mContainerHeightPx == 0) mContainerHeightPx = container.getHeight();
+        if (mVideoHeightPx == 0 && mVideoView != null) mVideoHeightPx = mVideoView.getHeight();
+
+        // 隐藏直播页其它区域，只保留视频
+        hideView(R.id.ll_epg);
+        hideView(R.id.tvLeftChannnelListLayout);
+        hideView(R.id.bottom_nav);
+        hideView(R.id.tvChannel);
+
+        ViewGroup.LayoutParams lp = container.getLayoutParams();
+        lp.height = ViewGroup.LayoutParams.MATCH_PARENT;
+        container.setLayoutParams(lp);
+        if (mVideoView != null) {
+            ViewGroup.LayoutParams vlp = mVideoView.getLayoutParams();
+            vlp.height = ViewGroup.LayoutParams.MATCH_PARENT;
+            mVideoView.setLayoutParams(vlp);
+        }
+        getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+        if (mWebFullBtn != null) mWebFullBtn.setText("退出全屏");
+    }
+
+    private void exitWebFullscreen() {
+        if (!mWebFullscreen) return;
+        mWebFullscreen = false;
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+
+        showView(R.id.ll_epg);
+        showView(R.id.tvLeftChannnelListLayout);
+        showView(R.id.bottom_nav);
+        showView(R.id.tvChannel);
+
+        View container = findViewById(R.id.video_container);
+        if (container != null) {
+            ViewGroup.LayoutParams lp = container.getLayoutParams();
+            lp.height = mContainerHeightPx > 0 ? mContainerHeightPx : ConvertUtils.dp2px(240);
+            container.setLayoutParams(lp);
+        }
+        if (mVideoView != null) {
+            ViewGroup.LayoutParams vlp = mVideoView.getLayoutParams();
+            vlp.height = mVideoHeightPx > 0 ? mVideoHeightPx : ConvertUtils.dp2px(300);
+            mVideoView.setLayoutParams(vlp);
+        }
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+        if (mWebFullBtn != null) mWebFullBtn.setText("全屏");
+    }
+
+    private void hideView(int id) {
+        View v = findViewById(id);
+        if (v != null) v.setVisibility(View.GONE);
+    }
+
+    private void showView(int id) {
+        View v = findViewById(id);
+        if (v != null) v.setVisibility(View.VISIBLE);
     }
 
     /** 直连起播：完全沿用原有播放器配置、解码方式与错误处理 */
