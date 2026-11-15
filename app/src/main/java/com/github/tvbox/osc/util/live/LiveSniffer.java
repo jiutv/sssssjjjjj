@@ -57,6 +57,23 @@ public class LiveSniffer {
     /** 与点播嗅探保持一致 */
     private static final long SNIFF_TIMEOUT = 20 * 1000L;
 
+    /**
+     * 通用自动播放脚本：多数网页播放器要等用户点击才起播，
+     * 隐藏 WebView 里没有点击条件，这里把媒体元素静音后主动 play，
+     * 促使页面发出 m3u8/mp4 等媒体请求。不包含任何站点选择器。
+     */
+    private static final String AUTOPLAY_JS =
+            "(function(){"
+                    + "if(window.__mbox_live_autoplay){return;}"
+                    + "var kick=function(){"
+                    + "var list=document.querySelectorAll('video,audio');"
+                    + "for(var i=0;i<list.length;i++){var m=list[i];try{m.muted=true;m.autoplay=true;"
+                    + "if(m.paused){var p=m.play();if(p&&p.catch){p.catch(function(){});}}}catch(e){}}"
+                    + "};"
+                    + "kick();"
+                    + "window.__mbox_live_autoplay=setInterval(kick,1200);"
+                    + "})()";
+
     private final Activity mActivity;
     private final Callback mCallback;
     private final Handler mHandler = new Handler(Looper.getMainLooper());
@@ -78,6 +95,13 @@ public class LiveSniffer {
     }
 
     public void start(String pageUrl) {
+        start(pageUrl, SNIFF_TIMEOUT);
+    }
+
+    /**
+     * @param timeoutMs 本次嗅探的超时时间；webview:// 这类「先嗅探、失败退回网页」的场景可以给更短的时间
+     */
+    public void start(String pageUrl, long timeoutMs) {
         if (TextUtils.isEmpty(pageUrl)) {
             fail("网页地址为空");
             return;
@@ -86,7 +110,7 @@ public class LiveSniffer {
         mFinished = false;
         ensureWebView();
         mHandler.removeCallbacks(mTimeoutRun);
-        mHandler.postDelayed(mTimeoutRun, SNIFF_TIMEOUT);
+        mHandler.postDelayed(mTimeoutRun, timeoutMs > 0 ? timeoutMs : SNIFF_TIMEOUT);
         mWebView.stopLoading();
         mWebView.loadUrl(pageUrl);
         LOG.i("LiveSniffer start:" + pageUrl);
@@ -205,6 +229,20 @@ public class LiveSniffer {
             if (request != null && request.isForMainFrame() && errorResponse != null
                     && errorResponse.getStatusCode() >= 400) {
                 fail("网页请求失败(" + errorResponse.getStatusCode() + ")");
+            }
+        }
+
+        @Override
+        public void onPageFinished(WebView view, String url) {
+            super.onPageFinished(view, url);
+            if (mFinished || view == null) {
+                return;
+            }
+            // 页面加载完成后尝试静音自动播放，触发媒体请求
+            try {
+                view.evaluateJavascript(AUTOPLAY_JS, null);
+            } catch (Throwable th) {
+                th.printStackTrace();
             }
         }
 

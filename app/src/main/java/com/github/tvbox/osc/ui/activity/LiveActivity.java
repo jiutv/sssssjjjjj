@@ -435,7 +435,8 @@ public class LiveActivity extends BaseActivity {
      * 统一直播起播入口：
      * 1. http/https/rtmp/m3u8 等直连地址直接交给原生播放器；
      * 2. video:// 启动网页嗅探，命中后把真实地址交给原生播放器；
-     * 3. webview:// 交给 WebLiveActivity 用 WebView 播放。
+     * 3. webview:// 先嗅探，命中直播流直接交给原生播放器（等同网页直播自动出直播），
+     *    识别不到再退回 WebLiveActivity 打开网页。
      */
     private void startLivePlay(LiveChannelItem item) {
         if (item == null) {
@@ -458,10 +459,9 @@ public class LiveActivity extends BaseActivity {
         mHandler.removeCallbacks(mReopenWebLiveRun);
 
         if (rawUrl.startsWith(PROTOCOL_WEBVIEW)) {
-            mIsWebLive = true;
-            openWebLive(unwrapProtocol(rawUrl), item.getChannelName());
+            startSniff(unwrapProtocol(rawUrl), true);
         } else if (rawUrl.startsWith(PROTOCOL_VIDEO)) {
-            startSniff(unwrapProtocol(rawUrl));
+            startSniff(unwrapProtocol(rawUrl), false);
         } else {
             playDirect(rawUrl, null);
         }
@@ -477,13 +477,18 @@ public class LiveActivity extends BaseActivity {
         mVideoView.start();
     }
 
-    /** video:// 嗅探起播，命中后交给原生播放器 */
-    private void startSniff(String pageUrl) {
+    /**
+     * 网页嗅探起播，命中后交给原生播放器
+     *
+     * @param fallbackToWeb true 表示 webview:// 场景：识别不到直播流时退回网页播放，
+     *                      而不是直接换源（保持原来能看网页的源可用）
+     */
+    private void startSniff(final String pageUrl, final boolean fallbackToWeb) {
         stopSniff();
         mIsSniffing = true;
         // 嗅探期间由嗅探超时控制换源，暂停播放器状态超时
         mHandler.removeCallbacks(mConnectTimeoutChangeSourceRun);
-        ToastUtils.showShort("正在嗅探直播地址…");
+        ToastUtils.showShort(fallbackToWeb ? "正在识别直播流…" : "正在嗅探直播地址…");
         if (mLiveSniffer != null) {
             mLiveSniffer.destroy();
             mLiveSniffer = null;
@@ -508,11 +513,20 @@ public class LiveActivity extends BaseActivity {
                     return;
                 }
                 mIsSniffing = false;
-                ToastUtils.showShort(reason);
-                onLivePlayFailed();
+                if (fallbackToWeb) {
+                    // 网页里没有可直接播放的媒体流：退回网页播放
+                    ToastUtils.showShort("未识别到直播流，改用网页播放");
+                    mIsWebLive = true;
+                    openWebLive(pageUrl, currentLiveChannelItem == null
+                            ? "" : currentLiveChannelItem.getChannelName());
+                } else {
+                    ToastUtils.showShort(reason);
+                    onLivePlayFailed();
+                }
             }
         });
-        mLiveSniffer.start(pageUrl);
+        // webview:// 先嗅探、失败要退回网页，超时给短一点，避免长时间黑屏等待
+        mLiveSniffer.start(pageUrl, fallbackToWeb ? 12 * 1000L : 20 * 1000L);
     }
 
     private void stopSniff() {
