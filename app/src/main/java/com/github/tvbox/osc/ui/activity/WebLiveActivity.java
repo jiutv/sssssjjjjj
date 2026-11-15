@@ -29,8 +29,12 @@ import com.github.tvbox.osc.R;
 import com.github.tvbox.osc.base.BaseActivity;
 import com.github.tvbox.osc.util.AdBlocker;
 import com.github.tvbox.osc.util.LOG;
+import com.github.tvbox.osc.util.live.LiveSniffer;
 import com.gyf.immersionbar.BarHide;
 import com.gyf.immersionbar.ImmersionBar;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * webview:// 直播承载页
@@ -241,15 +245,24 @@ public class WebLiveActivity extends BaseActivity {
             mPageFinished = true;
             mHandler.removeCallbacks(mTimeoutRun);
             hideRetry();
+            // 页面加载完尝试静音自动播放，促使需要点击才起播的页面发出媒体请求
+            try {
+                view.evaluateJavascript(LiveSniffer.AUTOPLAY_JS, null);
+            } catch (Throwable th) {
+                th.printStackTrace();
+            }
         }
 
         @Nullable
         @Override
         public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
-            // 遵守原仓库广告规则：命中广告 host 直接返回空资源
-            if (!TextUtils.isEmpty(url) && AdBlocker.isAd(url)) {
+            if (TextUtils.isEmpty(url)) {
+                return null;
+            }
+            if (AdBlocker.isAd(url)) {
                 return AdBlocker.createEmptyResource();
             }
+            sniffIfVideo(url, null);
             return null;
         }
 
@@ -257,12 +270,62 @@ public class WebLiveActivity extends BaseActivity {
         @Nullable
         @Override
         public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-            if (request != null && request.getUrl() != null
-                    && AdBlocker.isAd(request.getUrl().toString())) {
+            if (request == null || request.getUrl() == null) {
+                return null;
+            }
+            String url = request.getUrl().toString();
+            if (AdBlocker.isAd(url)) {
                 return AdBlocker.createEmptyResource();
             }
+            sniffIfVideo(url, request.getRequestHeaders());
             return null;
         }
+    }
+
+    /**
+     * WebLiveActivity 自身持续嗅探：用户手动点击播放按钮后，
+     * 网页会发出 m3u8/mp4 等媒体请求，这里命中后回传给 LiveActivity，
+     * LiveActivity 接手原生播放器播放，用户看到的画面从网页自动切到播放器。
+     * 不阻断 WebView 继续拉流，让已经在播的用户不会突然断画面。
+     */
+    private boolean mSniffed = false;
+
+    private void sniffIfVideo(String url, Map<String, String> requestHeaders) {
+        if (mSniffed || TextUtils.isEmpty(url) || TextUtils.isEmpty(mCurrentUrl)) {
+            return;
+        }
+        try {
+            if (!LiveSniffer.isVideoUrl(url, mCurrentUrl)) {
+                return;
+            }
+        } catch (Throwable th) {
+            th.printStackTrace();
+            return;
+        }
+        mSniffed = true;
+        LOG.i("WebLiveActivity sniffed:" + url);
+        HashMap<String, String> headers = new HashMap<>();
+        if (requestHeaders != null) {
+            for (Map.Entry<String, String> entry : requestHeaders.entrySet()) {
+                String k = entry.getKey();
+                if (k != null && (k.equalsIgnoreCase("user-agent")
+                        || k.equalsIgnoreCase("referer")
+                        || k.equalsIgnoreCase("origin"))) {
+                    headers.put(k, entry.getValue());
+                }
+            }
+        }
+        if (!headers.containsKey("Referer") && !headers.containsKey("referer")) {
+            headers.put("Referer", mCurrentUrl);
+        }
+        LiveSniffer.holdSniffed(url, headers);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                setResult(RESULT_OK);
+                finish();
+            }
+        });
     }
 
     private void enterFullscreen(View view) {

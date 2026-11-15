@@ -435,8 +435,9 @@ public class LiveActivity extends BaseActivity {
      * 统一直播起播入口：
      * 1. http/https/rtmp/m3u8 等直连地址直接交给原生播放器；
      * 2. video:// 启动网页嗅探，命中后把真实地址交给原生播放器；
-     * 3. webview:// 先嗅探，命中直播流直接交给原生播放器（等同网页直播自动出直播），
-     *    识别不到再退回 WebLiveActivity 打开网页。
+     * 3. webview:// 先嗅探 12 秒，命中直播流直接原生播放；识别不到才打开 WebLiveActivity
+     *    让用户手动点击网页里的播放按钮，WebLiveActivity 自身也在持续嗅探，
+     *    一旦网页开始拉流就回传给原生播放器（等同 NewBox 的网页直播效果）。
      */
     private void startLivePlay(LiveChannelItem item) {
         if (item == null) {
@@ -480,8 +481,9 @@ public class LiveActivity extends BaseActivity {
     /**
      * 网页嗅探起播，命中后交给原生播放器
      *
-     * @param fallbackToWeb true 表示 webview:// 场景：识别不到直播流时退回网页播放，
-     *                      而不是直接换源（保持原来能看网页的源可用）
+     * @param fallbackToWeb true = webview://：12 秒内没识别到媒体流 → 打开 WebLiveActivity
+     *                      让用户手动在网页内点击播放，页面自身持续嗅探；
+     *                      false = video://：嗅探失败直接换源
      */
     private void startSniff(final String pageUrl, final boolean fallbackToWeb) {
         stopSniff();
@@ -514,18 +516,18 @@ public class LiveActivity extends BaseActivity {
                 }
                 mIsSniffing = false;
                 if (fallbackToWeb) {
-                    // 网页里没有可直接播放的媒体流：退回网页播放
+                    // 12 秒内还没命中：打开 WebLiveActivity 让用户手动点击
                     ToastUtils.showShort("未识别到直播流，改用网页播放");
-                    mIsWebLive = true;
-                    openWebLive(pageUrl, currentLiveChannelItem == null
-                            ? "" : currentLiveChannelItem.getChannelName());
+                    openWebLive(unwrapProtocol(currentLiveChannelItem == null
+                            ? pageUrl : currentLiveChannelItem.getUrl()),
+                            currentLiveChannelItem == null ? ""
+                                    : currentLiveChannelItem.getChannelName());
                 } else {
                     ToastUtils.showShort(reason);
                     onLivePlayFailed();
                 }
             }
         });
-        // webview:// 先嗅探、失败要退回网页，超时给短一点，避免长时间黑屏等待
         mLiveSniffer.start(pageUrl, fallbackToWeb ? 12 * 1000L : 20 * 1000L);
     }
 
@@ -555,13 +557,41 @@ public class LiveActivity extends BaseActivity {
         }
     }
 
-    /** webview:// 起播：交给 WebLiveActivity 承载 WebView */
+    private static final int REQ_WEB_LIVE_SNIFF = 0x5742; // 'WB'
+
+    /** webview:// 起播（嗅探失败后）：交给 WebLiveActivity 承载 WebView，自身也在持续嗅探 */
     private void openWebLive(String url, String title) {
         mLastWebLiveRelaunchAt = System.currentTimeMillis();
+        mIsWebLive = true;
         Intent intent = new Intent(this, WebLiveActivity.class);
         intent.putExtra(WebLiveActivity.EXTRA_URL, url);
         intent.putExtra(WebLiveActivity.EXTRA_TITLE, title);
-        startActivity(intent);
+        // 预留 holder，避免之前的残留被误取
+        LiveSniffer.takeHeldSniffed();
+        startActivityForResult(intent, REQ_WEB_LIVE_SNIFF);
+    }
+
+    /**
+     * WebLiveActivity 内部嗅探命中了直播流：把地址与 headers 回传给 LiveActivity，
+     * LiveActivity 接手原生播放器播放，用户看到的画面从网页自动切到原生播放器
+     * （等同 NewBox 的网页直播自动出画面效果）。
+     */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQ_WEB_LIVE_SNIFF) {
+            return;
+        }
+        mIsWebLive = false;
+        if (resultCode != RESULT_OK) {
+            return;
+        }
+        LiveSniffer.PendingResult r = LiveSniffer.takeHeldSniffed();
+        if (r == null || TextUtils.isEmpty(r.url) || mVideoView == null) {
+            return;
+        }
+        mResolvedPlayUrl = r.url;
+        playDirect(r.url, r.headers);
     }
 
     /** 去掉 video:// / webview:// 前缀，兼容 xxx://https://... 与 xxx://host/path */

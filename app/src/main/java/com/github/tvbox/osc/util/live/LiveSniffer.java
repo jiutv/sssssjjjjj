@@ -54,15 +54,40 @@ public class LiveSniffer {
         void onFailed(String reason);
     }
 
+    /** 嗅探结果 holder，给 WebLiveActivity → LiveActivity 回传用（单例静态） */
+    public static class PendingResult {
+        public final String url;
+        public final HashMap<String, String> headers;
+        public PendingResult(String url, HashMap<String, String> headers) {
+            this.url = url;
+            this.headers = headers;
+        }
+    }
+
+    /** 宿主嗅探到媒体流时调用，交给等待中的 LiveActivity onActivityResult 取走 */
+    public static synchronized void holdSniffed(String url, HashMap<String, String> headers) {
+        sPending = new PendingResult(url, headers == null ? new HashMap<>() : headers);
+    }
+
+    /** LiveActivity 在 onActivityResult 中取走（取后即清） */
+    public static synchronized PendingResult takeHeldSniffed() {
+        PendingResult r = sPending;
+        sPending = null;
+        return r;
+    }
+
+    private static PendingResult sPending;
+
     /** 与点播嗅探保持一致 */
     private static final long SNIFF_TIMEOUT = 20 * 1000L;
 
     /**
-     * 通用自动播放脚本：多数网页播放器要等用户点击才起播，
-     * 隐藏 WebView 里没有点击条件，这里把媒体元素静音后主动 play，
-     * 促使页面发出 m3u8/mp4 等媒体请求。不包含任何站点选择器。
+     * 通用静音自动播放脚本：多数网页播放器要等用户点击才起播，
+     * 隐藏 WebView 里没法点，这里把页面所有 video/audio 静音后主动 play，
+     * 促使页面发出 m3u8/mp4 等媒体请求；网页内持续嗅探时也用得到。
+     * 不含任何站点选择器硬编码。
      */
-    private static final String AUTOPLAY_JS =
+    public static final String AUTOPLAY_JS =
             "(function(){"
                     + "if(window.__mbox_live_autoplay){return;}"
                     + "var kick=function(){"
@@ -98,9 +123,7 @@ public class LiveSniffer {
         start(pageUrl, SNIFF_TIMEOUT);
     }
 
-    /**
-     * @param timeoutMs 本次嗅探的超时时间；webview:// 这类「先嗅探、失败退回网页」的场景可以给更短的时间
-     */
+    /** 可自定义超时：webview:// 先嗅探再退回网页时给短一点 */
     public void start(String pageUrl, long timeoutMs) {
         if (TextUtils.isEmpty(pageUrl)) {
             fail("网页地址为空");
@@ -238,7 +261,7 @@ public class LiveSniffer {
             if (mFinished || view == null) {
                 return;
             }
-            // 页面加载完成后尝试静音自动播放，触发媒体请求
+            // 页面加载完后主动触发页面内 video play，促使隐藏 WebView 也能拉到媒体流
             try {
                 view.evaluateJavascript(AUTOPLAY_JS, null);
             } catch (Throwable th) {
@@ -327,8 +350,12 @@ public class LiveSniffer {
     /**
      * 媒体地址判定：复用 DefaultConfig 的媒体后缀规则，额外补充 DASH 与 RTMP 协议。
      * 不使用任何站点硬编码。
+     * 抽成 public static，方便 WebLiveActivity 内持续嗅探复用同一套判定。
      */
-    private boolean isVideoUrl(String url) {
+    public static boolean isVideoUrl(String url, String pageUrl) {
+        if (TextUtils.isEmpty(url)) {
+            return false;
+        }
         String lower = url.toLowerCase(Locale.ROOT);
         if (lower.startsWith("rtmp://") || lower.startsWith("rtsp://")) {
             return true;
@@ -339,7 +366,7 @@ public class LiveSniffer {
         if (DefaultConfig.isVideoFormat(url)) {
             return true;
         }
-        return VideoParseRuler.checkIsVideoForParse(mPageUrl, url);
+        return VideoParseRuler.checkIsVideoForParse(pageUrl, url);
     }
 
     private void found(String url, HashMap<String, String> headers) {
