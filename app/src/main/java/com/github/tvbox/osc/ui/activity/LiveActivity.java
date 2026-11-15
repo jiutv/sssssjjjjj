@@ -57,7 +57,6 @@ import com.github.tvbox.osc.ui.widget.PlayerTitleView;
 import com.github.tvbox.osc.util.BottomNavHelper;
 import com.github.tvbox.osc.util.FastClickCheckUtil;
 import com.github.tvbox.osc.util.HawkConfig;
-import com.github.tvbox.osc.util.LOG;
 import com.github.tvbox.osc.util.live.LiveSniffer;
 import com.github.tvbox.osc.util.live.TxtSubscribe;
 import com.google.gson.JsonArray;
@@ -130,6 +129,8 @@ public class LiveActivity extends BaseActivity {
     private LiveSniffer mLiveSniffer;
     private boolean mIsSniffing = false;
     private String mResolvedPlayUrl = null;
+    private boolean mPlayFromWebSniff = false;
+    private String mWebSniffFallbackChannel = null;
     private boolean mFirstResume = true;
     private int mWebLiveRelaunchCount = 0;
     private long mLastWebLiveRelaunchAt = 0;
@@ -450,6 +451,7 @@ public class LiveActivity extends BaseActivity {
             return;
         }
         stopSniff();
+        mPlayFromWebSniff = false;
 
         String pureUrl = unwrapProtocol(rawUrl);
         if (rawUrl.startsWith("webview://") || rawUrl.startsWith("webview-sniff://")) {
@@ -481,6 +483,7 @@ public class LiveActivity extends BaseActivity {
             LOG.i("🎬 FullWebActivity sniff 回传: " + streamUrl);
             HashMap<String, String> headers = FullWebActivity.decodeHeaders(headersEncoded);
             mResolvedPlayUrl = streamUrl;
+            mPlayFromWebSniff = true;
             playDirect(streamUrl, headers);
         } catch (Throwable t) {
             LOG.i("onActivityResult REQ_FULL_WEB_SNIFF crash: " + t);
@@ -551,6 +554,23 @@ public class LiveActivity extends BaseActivity {
             return;
         }
         mHandler.removeCallbacks(mConnectTimeoutChangeSourceRun);
+        // 网页嗅探出来的直链播不了（DRM / 防盗链 / 只给播放器用）：
+        // 退回网页播放，而不是直接跳到下一个频道，避免用户看到黑屏后频道乱跳
+        if (mPlayFromWebSniff) {
+            mPlayFromWebSniff = false;
+            String channelUrl = currentLiveChannelItem.getUrl();
+            String channelKey = currentLiveChannelItem.getChannelName() + "|" + channelUrl;
+            if (!TextUtils.isEmpty(channelUrl)
+                    && (channelUrl.startsWith(PROTOCOL_WEBVIEW) || channelUrl.startsWith(PROTOCOL_WEBVIEW_SNIFF))
+                    && !channelKey.equals(mWebSniffFallbackChannel)) {
+                // 同一频道只回退一次，避免「网页→直链→失败→网页」死循环
+                mWebSniffFallbackChannel = channelKey;
+                ToastUtils.showShort("该地址无法直连播放，改用网页播放");
+                mResolvedPlayUrl = null;
+                startLivePlay(currentLiveChannelItem);
+                return;
+            }
+        }
         currentLiveChangeSourceTimes++;
         if (currentLiveChannelItem.getSourceNum() == currentLiveChangeSourceTimes) {
             currentLiveChangeSourceTimes = 0;

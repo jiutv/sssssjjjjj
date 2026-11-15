@@ -330,7 +330,7 @@ public class FullWebActivity extends BaseActivity {
                 return AdBlocker.createEmptyResource();
             }
 
-            if (VideoParseRuler.checkIsVideoForParse(mEntryUrl, url)) {
+            if (isLiveStream(url)) {
                 mSniffFound = true;
                 mHandler.removeCallbacksAndMessages(null);
                 LOG.i("🎬 FullWebActivity 嗅探命中：" + url);
@@ -363,6 +363,26 @@ public class FullWebActivity extends BaseActivity {
             }
 
             return null;
+        }
+
+        /**
+         * 只接受「直播流」地址：
+         * - 必须看起来是播放列表/容器：m3u8 / mpd / flv / m3u / manifest
+         * - 普通 .mp4 多为页面宣传片、轮播广告，只有路径明确是直播时才接受
+         * - 排除单片段 .ts / 图片等，避免把广告分片交给播放器造成黑屏
+         */
+        private boolean isLiveStream(String url) {
+            String l = url.toLowerCase();
+            if (l.contains(".ts?") || l.endsWith(".ts")) return false;
+            if (l.contains(".mp4") || l.contains(".m4v") || l.contains(".mov")
+                    || l.contains(".mkv") || l.contains(".webm")) {
+                return l.contains("/live/") || l.contains("/stream/") || l.contains("/hls/");
+            }
+            if (l.contains(".m3u8") || l.contains(".mpd") || l.contains(".flv")
+                    || l.contains(".m3u") || l.contains("manifest")) {
+                return true;
+            }
+            return l.contains("/live/") || l.contains("/hls/") || l.contains("/stream/");
         }
     }
 
