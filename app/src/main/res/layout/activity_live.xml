@@ -19,19 +19,72 @@
 			android:layout_width="match_parent"
 			android:layout_height="300dp" />
 
-		<ImageView
-			android:id="@+id/btn_web_fullscreen"
-			android:layout_width="36dp"
-			android:layout_height="36dp"
-			android:layout_alignParentRight="true"
+		<LinearLayout
+			android:id="@+id/web_control_bar"
+			android:layout_width="match_parent"
+			android:layout_height="40dp"
 			android:layout_alignParentBottom="true"
-			android:layout_margin="10dp"
-			android:padding="6dp"
-			android:background="@android:color/transparent"
-			android:contentDescription="全屏"
-			android:scaleType="fitCenter"
-			android:src="@drawable/ic_web_fullscreen_enter"
-			android:visibility="gone" />
+			android:background="#66000000"
+			android:gravity="center_vertical"
+			android:orientation="horizontal"
+			android:paddingLeft="12dp"
+			android:paddingRight="6dp"
+			android:visibility="gone">
+
+			<ImageView
+				android:id="@+id/btn_web_prev"
+				android:layout_width="32dp"
+				android:layout_height="32dp"
+				android:padding="5dp"
+				android:src="@drawable/ic_ctl_prev"
+				android:contentDescription="上一台" />
+
+			<ImageView
+				android:id="@+id/btn_web_play"
+				android:layout_width="32dp"
+				android:layout_height="32dp"
+				android:layout_marginLeft="10dp"
+				android:padding="5dp"
+				android:src="@drawable/ic_ctl_pause"
+				android:contentDescription="暂停" />
+
+			<ImageView
+				android:id="@+id/btn_web_reload"
+				android:layout_width="32dp"
+				android:layout_height="32dp"
+				android:layout_marginLeft="10dp"
+				android:padding="5dp"
+				android:src="@drawable/ic_ctl_refresh"
+				android:contentDescription="刷新" />
+
+			<ImageView
+				android:id="@+id/btn_web_next"
+				android:layout_width="32dp"
+				android:layout_height="32dp"
+				android:layout_marginLeft="10dp"
+				android:padding="5dp"
+				android:src="@drawable/ic_ctl_next"
+				android:contentDescription="下一台" />
+
+			<TextView
+				android:id="@+id/tv_web_status"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_marginLeft="14dp"
+				android:layout_weight="1"
+				android:singleLine="true"
+				android:text="网页播放"
+				android:textColor="#CCFFFFFF"
+				android:textSize="12sp" />
+
+			<ImageView
+				android:id="@+id/btn_web_fullscreen"
+				android:layout_width="32dp"
+				android:layout_height="32dp"
+				android:padding="5dp"
+				android:src="@drawable/ic_web_fullscreen_enter"
+				android:contentDescription="全屏" />
+		</LinearLayout>
 
 		<LinearLayout
 			android:id="@+id/tvRightSettingLayout"

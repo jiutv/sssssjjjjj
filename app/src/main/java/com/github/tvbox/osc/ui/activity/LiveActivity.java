@@ -149,6 +149,10 @@ public class LiveActivity extends BaseActivity {
     private WebView mWebLiveView = null;
     private int mWebLiveTries = 0;
     private ImageView mWebFullBtn = null;
+    private LinearLayout mWebControlBar = null;
+    private ImageView mWebPlayBtn = null;
+    private TextView mWebStatus = null;
+    private boolean mWebPaused = false;
     private boolean mWebFullscreen = false;
     private int mContainerHeightPx = 0;
     private int mVideoHeightPx = 0;
@@ -248,6 +252,18 @@ public class LiveActivity extends BaseActivity {
         if (mWebFullBtn != null) {
             mWebFullBtn.setOnClickListener(view -> toggleWebFullscreen());
         }
+        mWebControlBar = findViewById(R.id.web_control_bar);
+        mWebPlayBtn = findViewById(R.id.btn_web_play);
+        mWebStatus = findViewById(R.id.tv_web_status);
+        if (mWebPlayBtn != null) {
+            mWebPlayBtn.setOnClickListener(view -> toggleWebPlay());
+        }
+        ImageView prev = findViewById(R.id.btn_web_prev);
+        if (prev != null) prev.setOnClickListener(view -> playPreSource());
+        ImageView next = findViewById(R.id.btn_web_next);
+        if (next != null) next.setOnClickListener(view -> playNextSource());
+        ImageView reload = findViewById(R.id.btn_web_reload);
+        if (reload != null) reload.setOnClickListener(view -> reloadWebLive());
 
         initVideoView();
         initChannelGroupView();
@@ -594,9 +610,11 @@ public class LiveActivity extends BaseActivity {
             wv.loadUrl(url);
             LOG.i("🎬 内嵌 WebView 已创建：" + url);
             if (mWebFullBtn != null) {
-                mWebFullBtn.setVisibility(View.VISIBLE);
                 mWebFullBtn.setImageResource(R.drawable.ic_web_fullscreen_enter);
             }
+            if (mWebControlBar != null) mWebControlBar.setVisibility(View.VISIBLE);
+            mWebPaused = false;
+            if (mWebPlayBtn != null) mWebPlayBtn.setImageResource(R.drawable.ic_ctl_pause);
         } catch (Throwable t) {
             LOG.i("内嵌 WebView 创建失败：" + t);
             mVideoView.setVisibility(View.VISIBLE);
@@ -608,6 +626,7 @@ public class LiveActivity extends BaseActivity {
         mHandler.removeCallbacks(mWebLiveInjectRun);
         if (mWebFullscreen) exitWebFullscreen();
         if (mWebFullBtn != null) mWebFullBtn.setVisibility(View.GONE);
+        if (mWebControlBar != null) mWebControlBar.setVisibility(View.GONE);
         if (mWebLiveView != null) {
             try {
                 ViewGroup parent = (ViewGroup) mWebLiveView.getParent();
@@ -619,6 +638,32 @@ public class LiveActivity extends BaseActivity {
             mWebLiveView = null;
         }
         if (mVideoView != null) mVideoView.setVisibility(View.VISIBLE);
+    }
+
+    /** 网页播放的暂停/继续：直接控制页面里的 video */
+    private void toggleWebPlay() {
+        if (mWebLiveView == null) return;
+        mWebPaused = !mWebPaused;
+        String js = "(function(){try{var v=document.querySelector('video');if(!v)return;"
+                + (mWebPaused ? "v.pause();" : "v.muted=false;v.play();")
+                + "}catch(e){}})();";
+        mWebLiveView.evaluateJavascript(js, null);
+        if (mWebPlayBtn != null) {
+            mWebPlayBtn.setImageResource(mWebPaused ? R.drawable.ic_ctl_play : R.drawable.ic_ctl_pause);
+        }
+        if (mWebStatus != null) mWebStatus.setText(mWebPaused ? "已暂停" : "网页播放");
+    }
+
+    /** 网页播放刷新：重新加载页面并重新注入适配脚本 */
+    private void reloadWebLive() {
+        if (mWebLiveView == null) return;
+        mWebLiveTries = 0;
+        mWebPaused = false;
+        if (mWebPlayBtn != null) mWebPlayBtn.setImageResource(R.drawable.ic_ctl_pause);
+        if (mWebStatus != null) mWebStatus.setText("重新加载中…");
+        mWebLiveView.reload();
+        mHandler.removeCallbacks(mWebLiveInjectRun);
+        mHandler.postDelayed(mWebLiveInjectRun, 3000);
     }
 
     /** 全屏 / 退出全屏：网页播放同样支持横屏铺满（原播放器的全屏能力） */
