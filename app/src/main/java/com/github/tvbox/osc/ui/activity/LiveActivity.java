@@ -6,6 +6,7 @@ import android.animation.IntEvaluator;
 import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -17,9 +18,13 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -136,6 +141,23 @@ public class LiveActivity extends BaseActivity {
     private long mLastWebLiveRelaunchAt = 0;
     private int mLiveListRetry = 0;
     private boolean mLiveSourceDirectLoaded = false;
+
+    // ===== 内嵌网页播放：央视频这类站点网页解码正常，直接嵌在当前视频区域，
+    // 保持直播页自身的排版与频道列表（和 NewBox 一致），不跳独立网页页面 =====
+    private WebView mWebLiveView = null;
+    private int mWebLiveTries = 0;
+    private final Runnable mWebLiveInjectRun = new Runnable() {
+        @Override
+        public void run() {
+            if (mWebLiveView == null || mWebLiveTries++ >= 20) return;
+            try {
+                mWebLiveView.evaluateJavascript(FullWebActivity.AUTO_PLAY_JS, null);
+                mWebLiveView.evaluateJavascript(FullWebActivity.PAGE_FULLSCREEN_JS, null);
+            } catch (Throwable ignored) {
+            }
+            mHandler.postDelayed(this, 2000);
+        }
+    };
 
 //EPG   by 龍
     private static LiveChannelItem  channel_Name = null;
@@ -322,6 +344,11 @@ public class LiveActivity extends BaseActivity {
         if (mVideoView != null) {
             mVideoView.resume();
         }
+        if (mWebLiveView != null) {
+            mWebLiveView.onResume();
+            mWebLiveView.evaluateJavascript(
+                    "(function(){try{var v=document.querySelector('video');if(v)v.play();}catch(e){}})();", null);
+        }
         mFirstResume = false;
     }
 
@@ -331,6 +358,11 @@ public class LiveActivity extends BaseActivity {
         super.onPause();
         if (mVideoView != null) {
             mVideoView.pause();
+        }
+        if (mWebLiveView != null) {
+            mWebLiveView.onPause();
+            mWebLiveView.evaluateJavascript(
+                    "(function(){try{var v=document.querySelector('video');if(v)v.pause();}catch(e){}})();", null);
         }
     }
 
@@ -342,6 +374,7 @@ public class LiveActivity extends BaseActivity {
             mLiveSniffer.destroy();
             mLiveSniffer = null;
         }
+        releaseEmbeddedWebLive();
         super.onDestroy();
         if (mVideoView != null) {
             mVideoView.release();
@@ -455,8 +488,14 @@ public class LiveActivity extends BaseActivity {
 
         String pureUrl = unwrapProtocol(rawUrl);
         if (rawUrl.startsWith("webview://") || rawUrl.startsWith("webview-sniff://")) {
-            // webview:// NewBox 风格：打开 FullWebActivity SNIFF 模式
-            // 用户能看到网页，抓到流自动切原生；没抓到留在网页播放
+            // 央视频这类站点：网页播放器解码正常，但流转原生会花屏（H.265）。
+            // 直接把 WebView 嵌进当前视频区域，保持直播页排版与频道列表自适应。
+            if (FullWebActivity.isInPagePlayHost(pureUrl)) {
+                LOG.i("🎬 直播线路：内嵌网页播放 → " + pureUrl);
+                startEmbeddedWebLive(pureUrl);
+                return;
+            }
+            // 其他站点：打开 FullWebActivity SNIFF 模式，抓到流自动切原生；没抓到留在网页播放
             LOG.i("🎬 直播线路：" + (rawUrl.startsWith("webview-sniff://") ? "webview-sniff://" : "webview://")
                     + " → FullWebActivity SNIFF → " + pureUrl);
             mLastWebLiveRelaunchAt = System.currentTimeMillis();
@@ -490,8 +529,81 @@ public class LiveActivity extends BaseActivity {
         }
     }
 
+    /**
+     * 内嵌网页播放：把 WebView 放进当前 240dp 视频区域，网页播放器自动播放并铺满该区域，
+     * 直播页的频道列表、线路信息、底部导航全部保持可用。
+     */
+    private void startEmbeddedWebLive(final String url) {
+        final View container = findViewById(R.id.video_container);
+        if (container == null) {
+            // 布局异常时退回独立网页页面
+            Intent intent = new Intent(this, FullWebActivity.class);
+            intent.putExtra(FullWebActivity.EXTRA_URL, url);
+            intent.putExtra(FullWebActivity.EXTRA_MODE, FullWebActivity.MODE_SNIFF);
+            startActivityForResult(intent, REQ_FULL_WEB_SNIFF);
+            return;
+        }
+        releaseEmbeddedWebLive();
+        try {
+            mVideoView.setVisibility(View.GONE);
+            mVideoView.pause();
+
+            WebView wv = new WebView(this);
+            WebSettings s = wv.getSettings();
+            if (FullWebActivity.isDesktopSite(url)) {
+                s.setUserAgentString(FullWebActivity.DESKTOP_UA);
+            }
+            s.setJavaScriptEnabled(true);
+            s.setDomStorageEnabled(true);
+            s.setDatabaseEnabled(true);
+            s.setUseWideViewPort(true);
+            s.setLoadWithOverviewMode(true);
+            s.setMediaPlaybackRequiresUserGesture(false);
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+            }
+            wv.setBackgroundColor(Color.BLACK);
+            wv.setWebViewClient(new WebViewClient() {
+                @Override
+                public void onPageFinished(WebView view, String u) {
+                    mWebLiveTries = 0;
+                    mHandler.removeCallbacks(mWebLiveInjectRun);
+                    mHandler.post(mWebLiveInjectRun);
+                }
+            });
+            RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
+                    RelativeLayout.LayoutParams.MATCH_PARENT,
+                    RelativeLayout.LayoutParams.MATCH_PARENT);
+            ((ViewGroup) container).addView(wv, lp);
+            mWebLiveView = wv;
+            mWebLiveTries = 0;
+            wv.loadUrl(url);
+            LOG.i("🎬 内嵌 WebView 已创建：" + url);
+        } catch (Throwable t) {
+            LOG.i("内嵌 WebView 创建失败：" + t);
+            mVideoView.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /** 释放内嵌 WebView，恢复原生播放器显示 */
+    private void releaseEmbeddedWebLive() {
+        mHandler.removeCallbacks(mWebLiveInjectRun);
+        if (mWebLiveView != null) {
+            try {
+                ViewGroup parent = (ViewGroup) mWebLiveView.getParent();
+                if (parent != null) parent.removeView(mWebLiveView);
+                mWebLiveView.loadUrl("about:blank");
+                mWebLiveView.destroy();
+            } catch (Throwable ignored) {
+            }
+            mWebLiveView = null;
+        }
+        if (mVideoView != null) mVideoView.setVisibility(View.VISIBLE);
+    }
+
     /** 直连起播：完全沿用原有播放器配置、解码方式与错误处理 */
     private void playDirect(String url, HashMap<String, String> headers) {
+        releaseEmbeddedWebLive();
         if (headers != null && !headers.isEmpty()) {
             mVideoView.setUrl(url, headers);
         } else {

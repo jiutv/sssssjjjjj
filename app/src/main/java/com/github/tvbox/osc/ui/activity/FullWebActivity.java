@@ -82,10 +82,10 @@ public class FullWebActivity extends BaseActivity {
     private TextView mTvMode;
 
     /** 桌面站点集合：这些站的 PC 播放器可自动播放，移动 UA 会引导下载 App 或给不可播的流 */
-    private static final String DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    static final String DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             + "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-    private static boolean isDesktopSite(String url) {
+    static boolean isDesktopSite(String url) {
         if (url == null) return false;
         String l = url.toLowerCase();
         return l.contains("yangshipin.cn") || l.contains("cctv.com")
@@ -96,7 +96,7 @@ public class FullWebActivity extends BaseActivity {
      * 这些站点适合「网页内播放」：页面自带播放器能正常解码，只是需要把网页 UI 藏掉、播放器铺满。
      * 不走嗅探转原生，避免拿到 H.265 蓝光流后原生解码花屏。
      */
-    private static boolean isInPagePlayHost(String url) {
+    static boolean isInPagePlayHost(String url) {
         if (url == null) return false;
         String l = url.toLowerCase();
         return l.contains("yangshipin.cn");
@@ -147,7 +147,7 @@ public class FullWebActivity extends BaseActivity {
     /** 静音自动播放注入：轮询 15 次（每 2 秒一次），适配异步渲染的 H5 播放器 */
     private int mAutoPlayTries = 0;
 
-    private static final String AUTO_PLAY_JS =
+    static final String AUTO_PLAY_JS =
             "(function(){"
                     + "function kick(doc){"
                     + "  try{"
@@ -171,7 +171,7 @@ public class FullWebActivity extends BaseActivity {
      * 网页内播放时把播放器铺满整屏：不搬动 video 元素，只改样式，
      * 避免重排（appendChild）导致 WebView 视频 Surface 重建后花屏。
      */
-    private static final String PAGE_FULLSCREEN_JS =
+    static final String PAGE_FULLSCREEN_JS =
             "(function(){"
                     + "var st=document.getElementById('mbox-page-css');"
                     + "if(!st){st=document.createElement('style');st.id='mbox-page-css';"
@@ -185,7 +185,8 @@ public class FullWebActivity extends BaseActivity {
                     + "+'.tv-main-con-l-vid{position:fixed!important;left:0!important;top:0!important;"
                     + "z-index:9999!important;background:#000!important}'"
                     + "+'.tv-main-con-l-vid video,.tv-main-con-l-vid canvas{width:100%!important;"
-                    + "height:100%!important;object-fit:contain!important;background:#000!important}';"
+                    + "height:100%!important;object-fit:contain!important;background:#000!important}'"
+                    + "+'.tv-main-con-l-vid [class*=control]{opacity:0!important;pointer-events:none!important}';"
                     + "try{var v=document.querySelector('.tv-main-con-l-vid video')||document.querySelector('video');"
                     + "if(v){v.muted=false;v.controls=false;if(v.paused)v.play();}}catch(e){}"
                     + "})();";
