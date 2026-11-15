@@ -105,6 +105,49 @@ public class FullWebActivity extends BaseActivity {
         }
     };
 
+    /** 静音自动播放注入：轮询 15 次（每 2 秒一次），适配异步渲染的 H5 播放器 */
+    private int mAutoPlayTries = 0;
+
+    private static final String AUTO_PLAY_JS =
+            "(function(){"
+                    + "function kick(doc){"
+                    + "  try{"
+                    + "    var ms=doc.querySelectorAll('video,audio');"
+                    + "    for(var i=0;i<ms.length;i++){"
+                    + "      try{ms[i].muted=true;}catch(e){}"
+                    + "      try{ms[i].play();}catch(e){}"
+                    + "    }"
+                    + "  }catch(e){}"
+                    + "  try{"
+                    + "    var fs=doc.querySelectorAll('iframe');"
+                    + "    for(var j=0;j<fs.length;j++){"
+                    + "      try{if(fs[j].contentDocument)kick(fs[j].contentDocument);}catch(e){}"
+                    + "    }"
+                    + "  }catch(e){}"
+                    + "}"
+                    + "kick(document);"
+                    + "})();";
+
+    private final Runnable mAutoPlayRun = new Runnable() {
+        @Override
+        public void run() {
+            if (mWebView == null || mSniffFound || isFinishing()) return;
+            if (mAutoPlayTries++ >= 15) return;
+            try {
+                mWebView.evaluateJavascript(AUTO_PLAY_JS, null);
+            } catch (Throwable t) {
+                LOG.i("autoPlay 注入失败: " + t);
+            }
+            mHandler.postDelayed(this, 2000);
+        }
+    };
+
+    private void scheduleAutoPlay() {
+        mHandler.removeCallbacks(mAutoPlayRun);
+        mAutoPlayTries = 0;
+        mHandler.postDelayed(mAutoPlayRun, 800);
+    }
+
     @Override
     protected int getLayoutResID() {
         return R.layout.activity_full_web;
@@ -186,17 +229,13 @@ public class FullWebActivity extends BaseActivity {
 
     /**
      * 初始化 WebView
-     * - 电视盒子 UA（NewBox 风格）
+     * - 使用 WebView 默认 UA（与之前能正常起播的版本一致，自定义电视 UA 会让部分站点不给播）
      * - 开启 JS、自动播放、Cookie 全放行
      * - 嗅探模式下挂 SniffWebViewClient，浏览模式下挂 BrowseWebViewClient
      */
     @SuppressLint("SetJavaScriptEnabled")
     private void initWebView() {
         WebSettings s = mWebView.getSettings();
-
-        // UA：电视盒子浏览器 UA（比桌面 UA 更贴近 NewBox 实际表现）
-        s.setUserAgentString("Mozilla/5.0 (Linux; Android 13; TV Build/TVBox) " +
-                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
 
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
@@ -245,27 +284,7 @@ public class FullWebActivity extends BaseActivity {
         public void onPageFinished(WebView view, String url) {
             showTopBar();
             super.onPageFinished(view, url);
-            // 网页加载完注入静音自动播放 JS，让 HTML5 video 自己起播
-            mHandler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        if (mWebView != null) {
-                            String autoPlayJs =
-                                    "(function(){" +
-                                            "  var videos = document.querySelectorAll('video');" +
-                                            "  for (var i = 0; i < videos.length; i++) {" +
-                                            "    try { videos[i].muted = true; } catch(e){}" +
-                                            "    try { videos[i].play(); } catch(e){}" +
-                                            "  }" +
-                                            "})();";
-                            mWebView.evaluateJavascript(autoPlayJs, null);
-                        }
-                    } catch (Throwable t) {
-                        LOG.i("BrowseWebViewClient autoPlay crash: " + t);
-                    }
-                }
-            }, 800);
+            scheduleAutoPlay();
         }
 
         @Override
@@ -292,21 +311,7 @@ public class FullWebActivity extends BaseActivity {
         public void onPageFinished(WebView view, String url) {
             showTopBar();
             super.onPageFinished(view, url);
-            // 嗅探模式下也静音自动播放，促使需要点击才起播的 H5 播放器发出媒体请求
-            mHandler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    if (mSniffFound || mWebView == null) return;
-                    try {
-                        mWebView.evaluateJavascript(
-                                "(function(){var vs=document.querySelectorAll('video');"
-                                        + "for(var i=0;i<vs.length;i++){try{vs[i].muted=true;}catch(e){}"
-                                        + "try{vs[i].play();}catch(e){}}})();", null);
-                    } catch (Throwable t) {
-                        LOG.i("SniffWebViewClient autoPlay crash: " + t);
-                    }
-                }
-            }, 800);
+            scheduleAutoPlay();
         }
 
         @Override
@@ -322,14 +327,9 @@ public class FullWebActivity extends BaseActivity {
             if (!url.startsWith("http")) return null;
             if (url.endsWith("/favicon.ico")) return null;
 
-            if (AdBlocker.isAd(url)) {
-                return AdBlocker.createEmptyResource();
-            }
-
-            if (VideoParseRuler.isFilter(mEntryUrl, url)) {
-                return AdBlocker.createEmptyResource();
-            }
-
+            // 被动嗅探：只观察，不替换任何响应。
+            // 之前用 createEmptyResource() 屏蔽广告/过滤项会把站点播放器的配置请求打成空响应，
+            // 导致网页里连声音都没有，这里改为一律放行。
             if (isLiveStream(url)) {
                 mSniffFound = true;
                 mHandler.removeCallbacksAndMessages(null);
