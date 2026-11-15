@@ -92,6 +92,16 @@ public class FullWebActivity extends BaseActivity {
                 || l.contains("cctv.cn") || l.contains("hebtv.com");
     }
 
+    /**
+     * 这些站点适合「网页内播放」：页面自带播放器能正常解码，只是需要把网页 UI 藏掉、播放器铺满。
+     * 不走嗅探转原生，避免拿到 H.265 蓝光流后原生解码花屏。
+     */
+    private static boolean isInPagePlayHost(String url) {
+        if (url == null) return false;
+        String l = url.toLowerCase();
+        return l.contains("yangshipin.cn");
+    }
+
     private String mEntryUrl;
     private boolean mSniffMode = false;
     private boolean mSniffFound = false;
@@ -157,6 +167,29 @@ public class FullWebActivity extends BaseActivity {
                     + "kick(document);"
                     + "})();";
 
+    /**
+     * 网页内播放时把播放器铺满整屏：不搬动 video 元素，只改样式，
+     * 避免重排（appendChild）导致 WebView 视频 Surface 重建后花屏。
+     */
+    private static final String PAGE_FULLSCREEN_JS =
+            "(function(){"
+                    + "var st=document.getElementById('mbox-page-css');"
+                    + "if(!st){st=document.createElement('style');st.id='mbox-page-css';"
+                    + "(document.head||document.documentElement).appendChild(st);}"
+                    + "st.textContent='html,body,#app{overflow:hidden!important;background:#000!important;"
+                    + "height:100%!important;width:100%!important;margin:0!important;padding:0!important}'"
+                    + "+'header,.header,.max-footer,.footer,.tv-zhan,.tv-main-con-r{display:none!important}'"
+                    + "+'.tv,.tv-main,.maxWidth,.tv-main-con,.tv-main-con-l,.tv-main-con-l-vid{"
+                    + "max-width:none!important;max-height:none!important;width:100%!important;"
+                    + "height:100%!important;margin:0!important;padding:0!important}'"
+                    + "+'.tv-main-con-l-vid{position:fixed!important;left:0!important;top:0!important;"
+                    + "z-index:9999!important;background:#000!important}'"
+                    + "+'.tv-main-con-l-vid video,.tv-main-con-l-vid canvas{width:100%!important;"
+                    + "height:100%!important;object-fit:contain!important;background:#000!important}';"
+                    + "try{var v=document.querySelector('.tv-main-con-l-vid video')||document.querySelector('video');"
+                    + "if(v){v.muted=false;v.controls=false;if(v.paused)v.play();}}catch(e){}"
+                    + "})();";
+
     private final Runnable mAutoPlayRun = new Runnable() {
         @Override
         public void run() {
@@ -164,6 +197,9 @@ public class FullWebActivity extends BaseActivity {
             if (mAutoPlayTries++ >= 15) return;
             try {
                 mWebView.evaluateJavascript(AUTO_PLAY_JS, null);
+                if (isInPagePlayHost(mEntryUrl)) {
+                    mWebView.evaluateJavascript(PAGE_FULLSCREEN_JS, null);
+                }
             } catch (Throwable t) {
                 LOG.i("autoPlay 注入失败: " + t);
             }
@@ -210,7 +246,10 @@ public class FullWebActivity extends BaseActivity {
         Intent intent = getIntent();
         mEntryUrl = intent.getStringExtra(EXTRA_URL);
         String mode = intent.getStringExtra(EXTRA_MODE);
-        mSniffMode = MODE_SNIFF.equals(mode);
+        // 央视频这类站点的网页播放器在本机解码正常（用户实测画面正确），
+        // 但把它嗅探出的流交给原生播放器会花屏（蓝光通常是 H.265）。
+        // 因此这些站点固定走「网页内播放 + 脚本铺满」，不再做嗅探切换。
+        mSniffMode = MODE_SNIFF.equals(mode) && !isInPagePlayHost(mEntryUrl);
 
         if (TextUtils.isEmpty(mEntryUrl)) {
             LOG.i("🎬 FullWebActivity 未收到 url，关闭");
