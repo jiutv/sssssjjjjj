@@ -125,6 +125,8 @@ public class LiveActivity extends BaseActivity {
     // ===== 直播三种起播方式（直连 / video:// 嗅探 / webview:// 网页）=====
     private static final String PROTOCOL_VIDEO = "video://";
     private static final String PROTOCOL_WEBVIEW = "webview://";
+    /** 与 jiutv/TVBoxOS 保持一致的显式嗅探协议，行为等同 webview:// */
+    private static final String PROTOCOL_WEBVIEW_SNIFF = "webview-sniff://";
     private LiveSniffer mLiveSniffer;
     private boolean mIsSniffing = false;
     private boolean mIsWebLive = false;
@@ -434,10 +436,10 @@ public class LiveActivity extends BaseActivity {
     /**
      * 统一直播起播入口：
      * 1. http/https/rtmp/m3u8 等直连地址直接交给原生播放器；
-     * 2. video:// 启动网页嗅探，命中后把真实地址交给原生播放器；
-     * 3. webview:// 先嗅探 12 秒，命中直播流直接原生播放；识别不到才打开 WebLiveActivity
-     *    让用户手动点击网页里的播放按钮，WebLiveActivity 自身也在持续嗅探，
-     *    一旦网页开始拉流就回传给原生播放器（等同 NewBox 的网页直播效果）。
+     * 2. video:// 启动隐藏网页嗅探，命中后把真实地址交给原生播放器；
+     * 3. webview:// / webview-sniff:// 直接打开 WebLiveActivity（立即有网页画面），
+     *    页面内部一边浏览一边嗅探，一旦发现 m3u8/mp4 等媒体流就回传给原生播放器。
+     *    这是 NewBox / jiutv/TVBoxOS 的做法：先显示网页，后台默默嗅探，命中即切原生。
      */
     private void startLivePlay(LiveChannelItem item) {
         if (item == null) {
@@ -459,10 +461,11 @@ public class LiveActivity extends BaseActivity {
         mResolvedPlayUrl = null;
         mHandler.removeCallbacks(mReopenWebLiveRun);
 
-        if (rawUrl.startsWith(PROTOCOL_WEBVIEW)) {
-            startSniff(unwrapProtocol(rawUrl), true);
-        } else if (rawUrl.startsWith(PROTOCOL_VIDEO)) {
-            startSniff(unwrapProtocol(rawUrl), false);
+        String lower = rawUrl.toLowerCase();
+        if (lower.startsWith(PROTOCOL_WEBVIEW_SNIFF) || lower.startsWith(PROTOCOL_WEBVIEW)) {
+            openWebLive(unwrapProtocol(rawUrl), item.getChannelName());
+        } else if (lower.startsWith(PROTOCOL_VIDEO)) {
+            startSniff(unwrapProtocol(rawUrl));
         } else {
             playDirect(rawUrl, null);
         }
@@ -478,19 +481,13 @@ public class LiveActivity extends BaseActivity {
         mVideoView.start();
     }
 
-    /**
-     * 网页嗅探起播，命中后交给原生播放器
-     *
-     * @param fallbackToWeb true = webview://：12 秒内没识别到媒体流 → 打开 WebLiveActivity
-     *                      让用户手动在网页内点击播放，页面自身持续嗅探；
-     *                      false = video://：嗅探失败直接换源
-     */
-    private void startSniff(final String pageUrl, final boolean fallbackToWeb) {
+    /** video:// 嗅探起播，命中后交给原生播放器 */
+    private void startSniff(final String pageUrl) {
         stopSniff();
         mIsSniffing = true;
         // 嗅探期间由嗅探超时控制换源，暂停播放器状态超时
         mHandler.removeCallbacks(mConnectTimeoutChangeSourceRun);
-        ToastUtils.showShort(fallbackToWeb ? "正在识别直播流…" : "正在嗅探直播地址…");
+        ToastUtils.showShort("正在嗅探直播地址…");
         if (mLiveSniffer != null) {
             mLiveSniffer.destroy();
             mLiveSniffer = null;
@@ -515,20 +512,11 @@ public class LiveActivity extends BaseActivity {
                     return;
                 }
                 mIsSniffing = false;
-                if (fallbackToWeb) {
-                    // 12 秒内还没命中：打开 WebLiveActivity 让用户手动点击
-                    ToastUtils.showShort("未识别到直播流，改用网页播放");
-                    openWebLive(unwrapProtocol(currentLiveChannelItem == null
-                            ? pageUrl : currentLiveChannelItem.getUrl()),
-                            currentLiveChannelItem == null ? ""
-                                    : currentLiveChannelItem.getChannelName());
-                } else {
-                    ToastUtils.showShort(reason);
-                    onLivePlayFailed();
-                }
+                ToastUtils.showShort(reason);
+                onLivePlayFailed();
             }
         });
-        mLiveSniffer.start(pageUrl, fallbackToWeb ? 12 * 1000L : 20 * 1000L);
+        mLiveSniffer.start(pageUrl);
     }
 
     private void stopSniff() {
@@ -594,9 +582,11 @@ public class LiveActivity extends BaseActivity {
         playDirect(r.url, r.headers);
     }
 
-    /** 去掉 video:// / webview:// 前缀，兼容 xxx://https://... 与 xxx://host/path */
+    /** 去掉 video:// / webview:// / webview-sniff:// 前缀，兼容 xxx://https://... 与 xxx://host/path */
     private String unwrapProtocol(String url) {
-        if (url.startsWith(PROTOCOL_WEBVIEW)) {
+        if (url.startsWith(PROTOCOL_WEBVIEW_SNIFF)) {
+            url = url.substring(PROTOCOL_WEBVIEW_SNIFF.length());
+        } else if (url.startsWith(PROTOCOL_WEBVIEW)) {
             url = url.substring(PROTOCOL_WEBVIEW.length());
         } else if (url.startsWith(PROTOCOL_VIDEO)) {
             url = url.substring(PROTOCOL_VIDEO.length());
@@ -618,7 +608,8 @@ public class LiveActivity extends BaseActivity {
                 return;
             }
             String url = currentLiveChannelItem.getUrl();
-            if (TextUtils.isEmpty(url) || !url.startsWith(PROTOCOL_WEBVIEW)) {
+            if (TextUtils.isEmpty(url) || (!url.startsWith(PROTOCOL_WEBVIEW)
+                    && !url.startsWith(PROTOCOL_WEBVIEW_SNIFF))) {
                 return;
             }
             long now = System.currentTimeMillis();
@@ -1394,7 +1385,8 @@ public class LiveActivity extends BaseActivity {
     public void showCastDialog() {
         if (currentLiveChannelItem!=null){
             String castUrl = TextUtils.isEmpty(mResolvedPlayUrl) ? currentLiveChannelItem.getUrl() : mResolvedPlayUrl;
-            if (castUrl.startsWith(PROTOCOL_VIDEO) || castUrl.startsWith(PROTOCOL_WEBVIEW)) {
+            if (castUrl.startsWith(PROTOCOL_VIDEO) || castUrl.startsWith(PROTOCOL_WEBVIEW)
+                    || castUrl.startsWith(PROTOCOL_WEBVIEW_SNIFF)) {
                 castUrl = unwrapProtocol(castUrl);
             }
             new XPopup.Builder(this)
