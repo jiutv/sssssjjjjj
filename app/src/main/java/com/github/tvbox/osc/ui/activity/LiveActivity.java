@@ -148,7 +148,7 @@ public class LiveActivity extends BaseActivity {
     // 保持直播页自身的排版与频道列表（和 NewBox 一致），不跳独立网页页面 =====
     private WebView mWebLiveView = null;
     private int mWebLiveTries = 0;
-    private TextView mWebFullBtn = null;
+    private ImageView mWebFullBtn = null;
     private boolean mWebFullscreen = false;
     private int mContainerHeightPx = 0;
     private int mVideoHeightPx = 0;
@@ -247,7 +247,6 @@ public class LiveActivity extends BaseActivity {
         mWebFullBtn = findViewById(R.id.btn_web_fullscreen);
         if (mWebFullBtn != null) {
             mWebFullBtn.setOnClickListener(view -> toggleWebFullscreen());
-            mWebFullBtn.setVisibility(View.VISIBLE);
         }
 
         initVideoView();
@@ -596,7 +595,7 @@ public class LiveActivity extends BaseActivity {
             LOG.i("🎬 内嵌 WebView 已创建：" + url);
             if (mWebFullBtn != null) {
                 mWebFullBtn.setVisibility(View.VISIBLE);
-                mWebFullBtn.setText("全屏");
+                mWebFullBtn.setImageResource(R.drawable.ic_web_fullscreen_enter);
             }
         } catch (Throwable t) {
             LOG.i("内嵌 WebView 创建失败：" + t);
@@ -608,6 +607,7 @@ public class LiveActivity extends BaseActivity {
     private void releaseEmbeddedWebLive() {
         mHandler.removeCallbacks(mWebLiveInjectRun);
         if (mWebFullscreen) exitWebFullscreen();
+        if (mWebFullBtn != null) mWebFullBtn.setVisibility(View.GONE);
         if (mWebLiveView != null) {
             try {
                 ViewGroup parent = (ViewGroup) mWebLiveView.getParent();
@@ -654,7 +654,7 @@ public class LiveActivity extends BaseActivity {
                 View.SYSTEM_UI_FLAG_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
-        if (mWebFullBtn != null) mWebFullBtn.setText("退出全屏");
+        if (mWebFullBtn != null) mWebFullBtn.setImageResource(R.drawable.ic_web_fullscreen_exit);
     }
 
     private void exitWebFullscreen() {
@@ -679,7 +679,7 @@ public class LiveActivity extends BaseActivity {
             mVideoView.setLayoutParams(vlp);
         }
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
-        if (mWebFullBtn != null) mWebFullBtn.setText("全屏");
+        if (mWebFullBtn != null) mWebFullBtn.setImageResource(R.drawable.ic_web_fullscreen_enter);
     }
 
     private void hideView(int id) {
