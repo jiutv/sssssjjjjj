@@ -8,8 +8,8 @@ android {
         applicationId 'com.github.tvbox.osc'
         minSdkVersion 24
         targetSdkVersion 30
-        versionCode 64
-        versionName '1.5.6'
+        versionCode 65
+        versionName '1.5.7'
         multiDexEnabled true
         //设置room的Schema的位置
         javaCompileOptions {

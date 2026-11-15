@@ -20,6 +20,29 @@
 			android:layout_height="300dp" />
 
 		<LinearLayout
+			android:id="@+id/web_loading"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent"
+			android:background="#FF000000"
+			android:gravity="center"
+			android:orientation="vertical"
+			android:visibility="gone">
+
+			<ProgressBar
+				android:layout_width="28dp"
+				android:layout_height="28dp"
+				android:indeterminateTint="#FFFFFF" />
+
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_marginTop="10dp"
+				android:text="正在打开网页…"
+				android:textColor="#FFFFFF"
+				android:textSize="14sp" />
+		</LinearLayout>
+
+		<LinearLayout
 			android:id="@+id/web_control_bar"
 			android:layout_width="match_parent"
 			android:layout_height="40dp"

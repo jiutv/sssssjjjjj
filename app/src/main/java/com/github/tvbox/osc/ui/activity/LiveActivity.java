@@ -152,6 +152,7 @@ public class LiveActivity extends BaseActivity {
     private LinearLayout mWebControlBar = null;
     private ImageView mWebPlayBtn = null;
     private TextView mWebStatus = null;
+    private View mWebLoading = null;
     private boolean mWebPaused = false;
     private boolean mWebFullscreen = false;
     private int mContainerHeightPx = 0;
@@ -163,11 +164,32 @@ public class LiveActivity extends BaseActivity {
             try {
                 mWebLiveView.evaluateJavascript(FullWebActivity.AUTO_PLAY_JS, null);
                 mWebLiveView.evaluateJavascript(FullWebActivity.PAGE_FULLSCREEN_JS, null);
+                // 页面里的 video 真正出画后再撤掉"正在打开网页…"，避免露出网页界面
+                mWebLiveView.evaluateJavascript(
+                        "(function(){try{var v=document.querySelector('video');"
+                                + "return !!(v && v.currentTime>0 && v.videoWidth>0);}catch(e){return false;}})();",
+                        value -> {
+                            if ("true".equals(value)) hideWebLoading();
+                        });
             } catch (Throwable ignored) {
             }
             mHandler.postDelayed(this, 2000);
         }
     };
+
+    private final Runnable mWebLoadingTimeoutRun = new Runnable() {
+        @Override
+        public void run() {
+            hideWebLoading();
+        }
+    };
+
+    /** 撤掉"正在打开网页…"黑幕，露出网页播放画面 */
+    private void hideWebLoading() {
+        mHandler.removeCallbacks(mWebLoadingTimeoutRun);
+        if (mWebLoading != null) mWebLoading.setVisibility(View.GONE);
+        if (mWebControlBar != null) mWebControlBar.bringToFront();
+    }
 
 //EPG   by 龍
     private static LiveChannelItem  channel_Name = null;
@@ -253,6 +275,7 @@ public class LiveActivity extends BaseActivity {
             mWebFullBtn.setOnClickListener(view -> toggleWebFullscreen());
         }
         mWebControlBar = findViewById(R.id.web_control_bar);
+        mWebLoading = findViewById(R.id.web_loading);
         mWebPlayBtn = findViewById(R.id.btn_web_play);
         mWebStatus = findViewById(R.id.tv_web_status);
         if (mWebPlayBtn != null) {
@@ -518,21 +541,11 @@ public class LiveActivity extends BaseActivity {
 
         String pureUrl = unwrapProtocol(rawUrl);
         if (rawUrl.startsWith("webview://") || rawUrl.startsWith("webview-sniff://")) {
-            // 央视频这类站点：网页播放器解码正常，但流转原生会花屏（H.265）。
-            // 直接把 WebView 嵌进当前视频区域，保持直播页排版与频道列表自适应。
-            if (FullWebActivity.isInPagePlayHost(pureUrl)) {
-                LOG.i("🎬 直播线路：内嵌网页播放 → " + pureUrl);
-                startEmbeddedWebLive(pureUrl);
-                return;
-            }
-            // 其他站点：打开 FullWebActivity SNIFF 模式，抓到流自动切原生；没抓到留在网页播放
-            LOG.i("🎬 直播线路：" + (rawUrl.startsWith("webview-sniff://") ? "webview-sniff://" : "webview://")
-                    + " → FullWebActivity SNIFF → " + pureUrl);
-            mLastWebLiveRelaunchAt = System.currentTimeMillis();
-            Intent intent = new Intent(this, FullWebActivity.class);
-            intent.putExtra(FullWebActivity.EXTRA_URL, pureUrl);
-            intent.putExtra(FullWebActivity.EXTRA_MODE, FullWebActivity.MODE_SNIFF);
-            startActivityForResult(intent, REQ_FULL_WEB_SNIFF);
+            // 所有网页频道统一内嵌播放：网页在底层，原生控制条盖在上面，
+            // 打开时先显示"正在打开网页…"，避免直接露出网页界面
+            LOG.i("🎬 直播线路：内嵌网页播放 → " + pureUrl);
+            startEmbeddedWebLive(pureUrl);
+            return;
         } else if (rawUrl.startsWith("video://")) {
             startSniff(pureUrl);
         } else {
@@ -599,6 +612,7 @@ public class LiveActivity extends BaseActivity {
                     mWebLiveTries = 0;
                     mHandler.removeCallbacks(mWebLiveInjectRun);
                     mHandler.post(mWebLiveInjectRun);
+                    hideWebLoading();
                 }
             });
             RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
@@ -609,10 +623,20 @@ public class LiveActivity extends BaseActivity {
             mWebLiveTries = 0;
             wv.loadUrl(url);
             LOG.i("🎬 内嵌 WebView 已创建：" + url);
+            // WebView 是最后 addView 的，会盖住加载层和控制条，这里重新置顶
+            if (mWebLoading != null) {
+                mWebLoading.setVisibility(View.VISIBLE);
+                mWebLoading.bringToFront();
+            }
+            if (mWebControlBar != null) {
+                mWebControlBar.setVisibility(View.VISIBLE);
+                mWebControlBar.bringToFront();
+            }
+            // 兜底：15 秒还没加载完也把黑幕撤掉，避免一直停在"正在打开网页…"
+            mHandler.postDelayed(mWebLoadingTimeoutRun, 15000);
             if (mWebFullBtn != null) {
                 mWebFullBtn.setImageResource(R.drawable.ic_web_fullscreen_enter);
             }
-            if (mWebControlBar != null) mWebControlBar.setVisibility(View.VISIBLE);
             mWebPaused = false;
             if (mWebPlayBtn != null) mWebPlayBtn.setImageResource(R.drawable.ic_ctl_pause);
         } catch (Throwable t) {
@@ -624,9 +648,11 @@ public class LiveActivity extends BaseActivity {
     /** 释放内嵌 WebView，恢复原生播放器显示 */
     private void releaseEmbeddedWebLive() {
         mHandler.removeCallbacks(mWebLiveInjectRun);
+        mHandler.removeCallbacks(mWebLoadingTimeoutRun);
         if (mWebFullscreen) exitWebFullscreen();
         if (mWebFullBtn != null) mWebFullBtn.setVisibility(View.GONE);
         if (mWebControlBar != null) mWebControlBar.setVisibility(View.GONE);
+        if (mWebLoading != null) mWebLoading.setVisibility(View.GONE);
         if (mWebLiveView != null) {
             try {
                 ViewGroup parent = (ViewGroup) mWebLiveView.getParent();
@@ -700,6 +726,7 @@ public class LiveActivity extends BaseActivity {
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         if (mWebFullBtn != null) mWebFullBtn.setImageResource(R.drawable.ic_web_fullscreen_exit);
+        if (mWebControlBar != null) mWebControlBar.bringToFront();
     }
 
     private void exitWebFullscreen() {
