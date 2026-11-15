@@ -84,6 +84,8 @@ public class FullWebActivity extends BaseActivity {
     private String mEntryUrl;
     private boolean mSniffMode = false;
     private boolean mSniffFound = false;
+    private View mCustomView;                                   // 网页全屏视频视图
+    private WebChromeClient.CustomViewCallback mCustomViewCallback;
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
 
@@ -131,15 +133,13 @@ public class FullWebActivity extends BaseActivity {
                     + "    }"
                     + "  }catch(e){}"
                     + "  var v=pick(doc);"
-                    + "  if(!v) return;"
+                    + "  if(!v||v.currentTime<=0)return;"
                     + "  if(v.__mboxFs){try{v.muted=false;v.play();}catch(e){}return;}"
-                    + "  if(v.paused && v.readyState<2) return;"
                     + "  var box=document.getElementById('mbox_fs');"
                     + "  if(!box){"
                     + "    box=document.createElement('div');"
                     + "    box.id='mbox_fs';"
-                    + "    box.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;"
-                    + "z-index:2147483647;background:#000;';"
+                    + "    box.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483647;background:#000;';"
                     + "    document.body.appendChild(box);"
                     + "  }"
                     + "  v.__mboxFs=1;"
@@ -265,6 +265,10 @@ public class FullWebActivity extends BaseActivity {
     private void initWebView() {
         WebSettings s = mWebView.getSettings();
 
+        // 桌面 Chrome UA：央视频等站点在桌面 UA 下才会给出可自动播放的 PC 播放器
+        s.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                + "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setDatabaseEnabled(true);
@@ -273,6 +277,11 @@ public class FullWebActivity extends BaseActivity {
         s.setLoadWithOverviewMode(true);
         // 允许网页视频自动播放（不走用户手势）
         s.setMediaPlaybackRequiresUserGesture(false);
+        s.setJavaScriptCanOpenWindowsAutomatically(true);
+        s.setSupportMultipleWindows(false);
+        s.setSupportZoom(false);
+        s.setDisplayZoomControls(false);
+        s.setCacheMode(WebSettings.LOAD_DEFAULT);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
@@ -294,6 +303,32 @@ public class FullWebActivity extends BaseActivity {
             @Override
             public View getVideoLoadingProgressView() {
                 return new View(FullWebActivity.this);
+            }
+
+            /** 网页调用 video.requestFullscreen()/webkitEnterFullscreen() 时由原生层接管 */
+            @Override
+            public void onShowCustomView(View view, final CustomViewCallback callback) {
+                if (mRootContainer == null || view == null) return;
+                if (mCustomView != null) {
+                    callback.onCustomViewHidden();
+                    return;
+                }
+                mCustomView = view;
+                mCustomViewCallback = callback;
+                mCustomView.setVisibility(View.VISIBLE);
+                FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT);
+                mRootContainer.addView(mCustomView, lp);
+                mRootContainer.bringChildToFront(mCustomView);
+                if (mWebView != null) mWebView.setVisibility(View.INVISIBLE);
+                if (mTopBar != null) mTopBar.setVisibility(View.GONE);
+                LOG.i("🎬 网页请求全屏，已由原生层接管");
+            }
+
+            @Override
+            public void onHideCustomView() {
+                exitWebFullscreen();
             }
         });
 
@@ -452,6 +487,20 @@ public class FullWebActivity extends BaseActivity {
 
     // ============ 顶部栏 auto-hide ============
 
+    /** 退出网页全屏视频视图，恢复网页与顶栏 */
+    private void exitWebFullscreen() {
+        if (mRootContainer != null && mCustomView != null) {
+            mRootContainer.removeView(mCustomView);
+        }
+        mCustomView = null;
+        if (mCustomViewCallback != null) {
+            mCustomViewCallback.onCustomViewHidden();
+            mCustomViewCallback = null;
+        }
+        if (mWebView != null) mWebView.setVisibility(View.VISIBLE);
+        showTopBar();
+    }
+
     private void showTopBar() {
         mHandler.removeCallbacks(mHideTopBarRun);
         if (mTopBar != null) mTopBar.setVisibility(View.VISIBLE);
@@ -468,6 +517,11 @@ public class FullWebActivity extends BaseActivity {
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
+            // 网页全屏中：先退出全屏
+            if (mCustomView != null) {
+                exitWebFullscreen();
+                return true;
+            }
             if (mTopBar != null && mTopBar.getVisibility() == View.VISIBLE) {
                 hideTopBar();
                 return true;
