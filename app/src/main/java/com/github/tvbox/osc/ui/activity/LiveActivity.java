@@ -122,12 +122,12 @@ public class LiveActivity extends BaseActivity {
     private LivePlayerManager livePlayerManager = new LivePlayerManager();
     private ArrayList<Integer> channelGroupPasswordConfirmed = new ArrayList<>();
 
-    // ===== 直播三种起播方式（直连 / video:// 嗅探 / webview:// 网页）=====
+    // ===== 直播三种起播方式（直连 / video:// 后台嗅探 / webview://→FullWebActivity SNIFF）=====
     private static final String PROTOCOL_VIDEO = "video://";
     private static final String PROTOCOL_WEBVIEW = "webview://";
+    private static final String PROTOCOL_WEBVIEW_SNIFF = "webview-sniff://";
     private LiveSniffer mLiveSniffer;
     private boolean mIsSniffing = false;
-    private boolean mIsWebLive = false;
     private String mResolvedPlayUrl = null;
     private boolean mFirstResume = true;
     private int mWebLiveRelaunchCount = 0;
@@ -320,13 +320,7 @@ public class LiveActivity extends BaseActivity {
         if (mVideoView != null) {
             mVideoView.resume();
         }
-        // 网页直播返回后自动重新打开网页（首次进入由 startLivePlay 负责，不重复拉起）
-        if (mFirstResume) {
-            mFirstResume = false;
-        } else if (mIsWebLive && !isFinishing()) {
-            mHandler.removeCallbacks(mReopenWebLiveRun);
-            mHandler.postDelayed(mReopenWebLiveRun, 300);
-        }
+        mFirstResume = false;
     }
 
 
@@ -434,16 +428,18 @@ public class LiveActivity extends BaseActivity {
     /**
      * 统一直播起播入口：
      * 1. http/https/rtmp/m3u8 等直连地址直接交给原生播放器；
-     * 2. video:// 启动网页嗅探，命中后把真实地址交给原生播放器；
-     * 3. webview:// 交给 WebLiveActivity 用 WebView 播放。
+     * 2. video:// 启动 LiveSniffer 后台嗅探，命中后把真实地址交给原生播放器；
+     * 3. webview:// / webview-sniff:// 打开 FullWebActivity SNIFF 模式：
+     *    用户能看到网页（自动全屏），shouldInterceptRequest 抓流，
+     *    命中回传给 LiveActivity → 原生播放器接手（NewBox / TVBoxOS 风格）；
+     *    2 分钟没抓到 → FullWebActivity 自己留在网页播放，用户手动按 back 返回。
      */
+    private static final int REQ_FULL_WEB_SNIFF = 0x4657; // 'FW'
+
     private void startLivePlay(LiveChannelItem item) {
-        if (item == null) {
-            return;
-        }
+        if (item == null) return;
         String rawUrl = item.getUrl();
         if (TextUtils.isEmpty(rawUrl)) {
-            // 地址为空时延迟走换源规则，避免所有线路都为空时同步递归
             mHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
@@ -453,17 +449,41 @@ public class LiveActivity extends BaseActivity {
             return;
         }
         stopSniff();
-        mIsWebLive = false;
-        mResolvedPlayUrl = null;
         mHandler.removeCallbacks(mReopenWebLiveRun);
 
-        if (rawUrl.startsWith(PROTOCOL_WEBVIEW)) {
-            mIsWebLive = true;
-            openWebLive(unwrapProtocol(rawUrl), item.getChannelName());
-        } else if (rawUrl.startsWith(PROTOCOL_VIDEO)) {
-            startSniff(unwrapProtocol(rawUrl));
+        String pureUrl = unwrapProtocol(rawUrl);
+        if (rawUrl.startsWith("webview://") || rawUrl.startsWith("webview-sniff://")) {
+            // webview:// NewBox 风格：打开 FullWebActivity SNIFF 模式
+            // 用户能看到网页，抓到流自动切原生；没抓到留在网页播放
+            LOG.i("🎬 直播线路：" + (rawUrl.startsWith("webview-sniff://") ? "webview-sniff://" : "webview://")
+                    + " → FullWebActivity SNIFF → " + pureUrl);
+            mLastWebLiveRelaunchAt = System.currentTimeMillis();
+            Intent intent = new Intent(this, FullWebActivity.class);
+            intent.putExtra(FullWebActivity.EXTRA_URL, pureUrl);
+            intent.putExtra(FullWebActivity.EXTRA_MODE, FullWebActivity.MODE_SNIFF);
+            startActivityForResult(intent, REQ_FULL_WEB_SNIFF);
+        } else if (rawUrl.startsWith("video://")) {
+            startSniff(pureUrl);
         } else {
             playDirect(rawUrl, null);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQ_FULL_WEB_SNIFF) return;
+        if (resultCode != RESULT_OK || data == null) return;
+        try {
+            String streamUrl = data.getStringExtra(FullWebActivity.RESULT_STREAM_URL);
+            String headersEncoded = data.getStringExtra(FullWebActivity.RESULT_STREAM_HEADERS);
+            if (TextUtils.isEmpty(streamUrl)) return;
+            LOG.i("🎬 FullWebActivity sniff 回传: " + streamUrl);
+            HashMap<String, String> headers = FullWebActivity.decodeHeaders(headersEncoded);
+            mResolvedPlayUrl = streamUrl;
+            playDirect(streamUrl, headers);
+        } catch (Throwable t) {
+            LOG.i("onActivityResult REQ_FULL_WEB_SNIFF crash: " + t);
         }
     }
 
@@ -541,18 +561,11 @@ public class LiveActivity extends BaseActivity {
         }
     }
 
-    /** webview:// 起播：交给 WebLiveActivity 承载 WebView */
-    private void openWebLive(String url, String title) {
-        mLastWebLiveRelaunchAt = System.currentTimeMillis();
-        Intent intent = new Intent(this, WebLiveActivity.class);
-        intent.putExtra(WebLiveActivity.EXTRA_URL, url);
-        intent.putExtra(WebLiveActivity.EXTRA_TITLE, title);
-        startActivity(intent);
-    }
-
-    /** 去掉 video:// / webview:// 前缀，兼容 xxx://https://... 与 xxx://host/path */
+    /** 去掉 webview:// / webview-sniff:// / video:// 前缀，兼容 xxx://https://... 与 xxx://host/path */
     private String unwrapProtocol(String url) {
-        if (url.startsWith(PROTOCOL_WEBVIEW)) {
+        if (url.startsWith(PROTOCOL_WEBVIEW_SNIFF)) {
+            url = url.substring(PROTOCOL_WEBVIEW_SNIFF.length());
+        } else if (url.startsWith(PROTOCOL_WEBVIEW)) {
             url = url.substring(PROTOCOL_WEBVIEW.length());
         } else if (url.startsWith(PROTOCOL_VIDEO)) {
             url = url.substring(PROTOCOL_VIDEO.length());
@@ -565,31 +578,6 @@ public class LiveActivity extends BaseActivity {
         }
         return url;
     }
-
-    /** 从网页直播返回后自动重新打开网页，连续异常时最多重开 3 次 */
-    private final Runnable mReopenWebLiveRun = new Runnable() {
-        @Override
-        public void run() {
-            if (!mIsWebLive || currentLiveChannelItem == null || isFinishing()) {
-                return;
-            }
-            String url = currentLiveChannelItem.getUrl();
-            if (TextUtils.isEmpty(url) || !url.startsWith(PROTOCOL_WEBVIEW)) {
-                return;
-            }
-            long now = System.currentTimeMillis();
-            if (now - mLastWebLiveRelaunchAt > 5000) {
-                mWebLiveRelaunchCount = 0;
-            }
-            if (mWebLiveRelaunchCount >= 3) {
-                mWebLiveRelaunchCount = 0;
-                ToastUtils.showShort("网页播放异常，已暂停自动重开");
-                return;
-            }
-            mWebLiveRelaunchCount++;
-            openWebLive(unwrapProtocol(url), currentLiveChannelItem.getChannelName());
-        }
-    };
 
     private void playNext() {
         if (!isCurrentLiveChannelValid()) return;
