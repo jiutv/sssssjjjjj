@@ -81,11 +81,38 @@ public class FullWebActivity extends BaseActivity {
     private TextView mBtnClose;
     private TextView mTvMode;
 
+    /** 桌面站点集合：这些站的 PC 播放器可自动播放，移动 UA 会引导下载 App 或给不可播的流 */
+    private static final String DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            + "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+    private static boolean isDesktopSite(String url) {
+        if (url == null) return false;
+        String l = url.toLowerCase();
+        return l.contains("yangshipin.cn") || l.contains("cctv.com")
+                || l.contains("cctv.cn") || l.contains("hebtv.com");
+    }
+
     private String mEntryUrl;
     private boolean mSniffMode = false;
     private boolean mSniffFound = false;
-    private View mCustomView;                                   // 网页全屏视频视图
+    private View mCustomView;
     private WebChromeClient.CustomViewCallback mCustomViewCallback;
+    private WebChromeClient mChromeClient;
+
+    /**
+     * 候选流：同一页面会陆续发出多个 m3u8（广告、预加载、不同清晰度/编码），
+     * 不能抓到第一个就切走。收集 PICK_DELAY_MS 后按分数取最优。
+     */
+    private static final long PICK_DELAY_MS = 2500L;
+    private final HashMap<String, Integer> mCandidates = new HashMap<>();
+    private boolean mPickScheduled = false;
+
+    private final Runnable mPickBestRun = new Runnable() {
+        @Override
+        public void run() {
+            pickBest();
+        }
+    };
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
 
@@ -112,18 +139,6 @@ public class FullWebActivity extends BaseActivity {
 
     private static final String AUTO_PLAY_JS =
             "(function(){"
-                    + "function pick(doc){"
-                    + "  var best=null,ba=0;"
-                    + "  try{"
-                    + "    var vs=doc.querySelectorAll('video');"
-                    + "    for(var i=0;i<vs.length;i++){"
-                    + "      var r=vs[i].getBoundingClientRect();"
-                    + "      var a=(r.width||0)*(r.height||0);"
-                    + "      if(a>=ba){ba=a;best=vs[i];}"
-                    + "    }"
-                    + "  }catch(e){}"
-                    + "  return best;"
-                    + "}"
                     + "function kick(doc){"
                     + "  try{"
                     + "    var ms=doc.querySelectorAll('video,audio');"
@@ -132,20 +147,6 @@ public class FullWebActivity extends BaseActivity {
                     + "      try{ms[i].play();}catch(e){}"
                     + "    }"
                     + "  }catch(e){}"
-                    + "  var v=pick(doc);"
-                    + "  if(!v||v.currentTime<=0)return;"
-                    + "  if(v.__mboxFs){try{v.muted=false;v.play();}catch(e){}return;}"
-                    + "  var box=document.getElementById('mbox_fs');"
-                    + "  if(!box){"
-                    + "    box=document.createElement('div');"
-                    + "    box.id='mbox_fs';"
-                    + "    box.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483647;background:#000;';"
-                    + "    document.body.appendChild(box);"
-                    + "  }"
-                    + "  v.__mboxFs=1;"
-                    + "  v.style.cssText='width:100%;height:100%;object-fit:contain;background:#000;';"
-                    + "  try{box.appendChild(v);}catch(e){}"
-                    + "  try{v.muted=false;v.play();}catch(e){}"
                     + "  try{"
                     + "    var fs=doc.querySelectorAll('iframe');"
                     + "    for(var j=0;j<fs.length;j++){"
@@ -257,7 +258,7 @@ public class FullWebActivity extends BaseActivity {
 
     /**
      * 初始化 WebView
-     * - 使用 WebView 默认 UA（与之前能正常起播的版本一致，自定义电视 UA 会让部分站点不给播）
+     * - 央视频/央视网用桌面 Chrome UA，其余站点保持默认 UA
      * - 开启 JS、自动播放、Cookie 全放行
      * - 嗅探模式下挂 SniffWebViewClient，浏览模式下挂 BrowseWebViewClient
      */
@@ -265,9 +266,11 @@ public class FullWebActivity extends BaseActivity {
     private void initWebView() {
         WebSettings s = mWebView.getSettings();
 
-        // 桌面 Chrome UA：央视频等站点在桌面 UA 下才会给出可自动播放的 PC 播放器
-        s.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                + "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+        // 站点差异：央视频 / 央视网 必须桌面 Chrome UA 才会给出 PC 播放器（H5 而非引导下载 App），
+        // 也是 NewBox 规则表里对 yangshipin/cctv 的固定配置
+        if (isDesktopSite(mEntryUrl)) {
+            s.setUserAgentString(DESKTOP_UA);
+        }
 
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
@@ -277,11 +280,6 @@ public class FullWebActivity extends BaseActivity {
         s.setLoadWithOverviewMode(true);
         // 允许网页视频自动播放（不走用户手势）
         s.setMediaPlaybackRequiresUserGesture(false);
-        s.setJavaScriptCanOpenWindowsAutomatically(true);
-        s.setSupportMultipleWindows(false);
-        s.setSupportZoom(false);
-        s.setDisplayZoomControls(false);
-        s.setCacheMode(WebSettings.LOAD_DEFAULT);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
@@ -299,38 +297,48 @@ public class FullWebActivity extends BaseActivity {
         }
 
         // WebChromeClient：承接网页触发的全屏视频视图
-        mWebView.setWebChromeClient(new WebChromeClient() {
+        mChromeClient = new WebChromeClient() {
             @Override
             public View getVideoLoadingProgressView() {
                 return new View(FullWebActivity.this);
             }
 
-            /** 网页调用 video.requestFullscreen()/webkitEnterFullscreen() 时由原生层接管 */
             @Override
-            public void onShowCustomView(View view, final CustomViewCallback callback) {
+            public void onShowCustomView(View view, CustomViewCallback callback) {
                 if (mRootContainer == null || view == null) return;
-                if (mCustomView != null) {
-                    callback.onCustomViewHidden();
-                    return;
+                if (mCustomView != null && mCustomViewCallback != null) {
+                    mCustomViewCallback.onCustomViewHidden();
                 }
                 mCustomView = view;
                 mCustomViewCallback = callback;
-                mCustomView.setVisibility(View.VISIBLE);
-                FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.MATCH_PARENT);
-                mRootContainer.addView(mCustomView, lp);
-                mRootContainer.bringChildToFront(mCustomView);
-                if (mWebView != null) mWebView.setVisibility(View.INVISIBLE);
+                mWebView.setVisibility(View.GONE);
+                try {
+                    mRootContainer.addView(view, new FrameLayout.LayoutParams(
+                            FrameLayout.LayoutParams.MATCH_PARENT,
+                            FrameLayout.LayoutParams.MATCH_PARENT));
+                    mRootContainer.bringChildToFront(view);
+                } catch (Exception e) {
+                    LOG.e("🎬 网页全屏失败：" + e.getMessage());
+                }
                 if (mTopBar != null) mTopBar.setVisibility(View.GONE);
                 LOG.i("🎬 网页请求全屏，已由原生层接管");
             }
 
             @Override
             public void onHideCustomView() {
-                exitWebFullscreen();
+                if (mRootContainer != null && mCustomView != null) {
+                    mRootContainer.removeView(mCustomView);
+                }
+                mCustomView = null;
+                if (mCustomViewCallback != null) {
+                    mCustomViewCallback.onCustomViewHidden();
+                    mCustomViewCallback = null;
+                }
+                if (mWebView != null) mWebView.setVisibility(View.VISIBLE);
+                showTopBar();
             }
-        });
+        };
+        mWebView.setWebChromeClient(mChromeClient);
 
         mWebView.setWebViewClient(mSniffMode ? new SniffWebViewClient() : new BrowseWebViewClient());
     }
@@ -393,39 +401,45 @@ public class FullWebActivity extends BaseActivity {
             // 被动嗅探：只观察，不替换任何响应。
             // 之前用 createEmptyResource() 屏蔽广告/过滤项会把站点播放器的配置请求打成空响应，
             // 导致网页里连声音都没有，这里改为一律放行。
-            if (isLiveStream(url)) {
-                mSniffFound = true;
-                mHandler.removeCallbacksAndMessages(null);
-                LOG.i("🎬 FullWebActivity 嗅探命中：" + url);
+            if (!isLiveStream(url)) return null;
 
-                // 组装 headers：从 WebView 请求里拷贝 ua / referer / origin + 当前 Cookie
-                HashMap<String, String> headers = new HashMap<>();
-                Map<String, String> reqHeaders = request.getRequestHeaders();
-                if (reqHeaders != null) {
-                    for (Map.Entry<String, String> e : reqHeaders.entrySet()) {
-                        String k = e.getKey();
-                        if (k.equalsIgnoreCase("user-agent")
-                                || k.equalsIgnoreCase("referer")
-                                || k.equalsIgnoreCase("origin")) {
-                            headers.put(k, e.getValue() == null ? "" : " " + e.getValue());
-                        }
-                    }
-                }
-                String cookie = CookieManager.getInstance().getCookie(url);
-                if (cookie != null && !cookie.isEmpty()) {
-                    headers.put("Cookie", " " + cookie);
-                }
+            int score = scoreUrl(url);
+            LOG.i("🎬 候选流 [" + score + "] " + url);
+            if (score <= 0) return null;
 
-                // 回传：Intent extras 携带直链 + Base64(JSON headers)
-                Intent result = new Intent();
-                result.putExtra(RESULT_STREAM_URL, url);
-                result.putExtra(RESULT_STREAM_HEADERS, encodeHeaders(headers));
-                setResult(RESULT_OK, result);
-                finish();
-                return null; // 返回 null 让原请求也继续走，避免页面崩
+            synchronized (mCandidates) {
+                mCandidates.put(url, score);
             }
-
+            // 收集窗口内继续观察，结束后统一挑分数最高的那个，
+            // 避免把广告 / 预加载 / 低清副本提前交给原生播放器
+            if (!mPickScheduled) {
+                mPickScheduled = true;
+                mHandler.postDelayed(mPickBestRun, PICK_DELAY_MS);
+            }
             return null;
+        }
+
+        /** 给候选流打分：直播播放列表优先，广告/预告/试看直接判负 */
+        private int scoreUrl(String url) {
+            String l = url.toLowerCase();
+            if (l.contains("/ad/") || l.contains("/ads/") || l.contains("?ad=")
+                    || l.contains("&ad=") || l.contains("/preroll") || l.contains("/midroll")
+                    || l.contains("/postroll") || l.contains("trailer") || l.contains("preview")) {
+                return -100;
+            }
+            int score = 0;
+            if (l.contains(".m3u8")) score += 30;
+            if (l.contains(".mpd")) score += 20;
+            if (l.contains(".flv")) score += 15;
+            if (l.contains("/live/") || l.contains("/hls/") || l.contains("/stream/")) score += 10;
+            if (l.contains("index.m3u8") || l.contains("master.m3u8")
+                    || l.contains("playlist.m3u8") || l.contains("manifest.m3u8")) {
+                score += 15;
+            }
+            if (l.contains(".mp4")) score += 5;
+            if (url.length() > 150) score += 3;
+            if (url.length() > 250) score += 5;
+            return score;
         }
 
         /**
@@ -447,6 +461,53 @@ public class FullWebActivity extends BaseActivity {
             }
             return l.contains("/live/") || l.contains("/hls/") || l.contains("/stream/");
         }
+    }
+
+    /** 收集窗口结束：挑最高分候选回传给原生播放器 */
+    private void pickBest() {
+        if (isFinishing() || mSniffFound) return;
+        String best = null;
+        int bestScore = Integer.MIN_VALUE;
+        synchronized (mCandidates) {
+            for (Map.Entry<String, Integer> e : mCandidates.entrySet()) {
+                if (e.getValue() > bestScore) {
+                    bestScore = e.getValue();
+                    best = e.getKey();
+                }
+            }
+        }
+        if (best == null || bestScore <= 0) {
+            // 没有合格候选：继续观察，等下一批
+            mPickScheduled = false;
+            return;
+        }
+        mSniffFound = true;
+        mHandler.removeCallbacksAndMessages(null);
+        LOG.i("🎬 选定直播流 [" + bestScore + "] " + best);
+        Intent result = new Intent();
+        result.putExtra(RESULT_STREAM_URL, best);
+        result.putExtra(RESULT_STREAM_HEADERS, encodeHeaders(buildHeaders(best)));
+        setResult(RESULT_OK, result);
+        finish();
+    }
+
+    /** 用当前页面 Cookie + UA 组装播放器需要的请求头 */
+    private HashMap<String, String> buildHeaders(String url) {
+        HashMap<String, String> headers = new HashMap<>();
+        String ua = mWebView != null ? mWebView.getSettings().getUserAgentString() : null;
+        if (!TextUtils.isEmpty(ua)) headers.put("User-Agent", ua);
+        if (!TextUtils.isEmpty(mEntryUrl)) {
+            try {
+                String origin = new java.net.URL(mEntryUrl).getProtocol() + "://"
+                        + new java.net.URL(mEntryUrl).getHost();
+                headers.put("Referer", mEntryUrl);
+                headers.put("Origin", origin);
+            } catch (Exception ignored) {
+            }
+        }
+        String cookie = CookieManager.getInstance().getCookie(url);
+        if (!TextUtils.isEmpty(cookie)) headers.put("Cookie", cookie);
+        return headers;
     }
 
     /** 把 headers Map 序列化为 base64(JSON)，方便 Intent extras 传递 */
@@ -487,20 +548,6 @@ public class FullWebActivity extends BaseActivity {
 
     // ============ 顶部栏 auto-hide ============
 
-    /** 退出网页全屏视频视图，恢复网页与顶栏 */
-    private void exitWebFullscreen() {
-        if (mRootContainer != null && mCustomView != null) {
-            mRootContainer.removeView(mCustomView);
-        }
-        mCustomView = null;
-        if (mCustomViewCallback != null) {
-            mCustomViewCallback.onCustomViewHidden();
-            mCustomViewCallback = null;
-        }
-        if (mWebView != null) mWebView.setVisibility(View.VISIBLE);
-        showTopBar();
-    }
-
     private void showTopBar() {
         mHandler.removeCallbacks(mHideTopBarRun);
         if (mTopBar != null) mTopBar.setVisibility(View.VISIBLE);
@@ -518,8 +565,8 @@ public class FullWebActivity extends BaseActivity {
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
             // 网页全屏中：先退出全屏
-            if (mCustomView != null) {
-                exitWebFullscreen();
+            if (mCustomView != null && mChromeClient != null) {
+                mChromeClient.onHideCustomView();
                 return true;
             }
             if (mTopBar != null && mTopBar.getVisibility() == View.VISIBLE) {
