@@ -3,28 +3,19 @@ package com.github.tvbox.osc.ui.adapter;
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.BaseViewHolder;
 import com.github.tvbox.osc.R;
-
-import org.jupnp.model.meta.Device;
+import com.github.tvbox.osc.util.cast.DlnaCastManager;
 
 /**
- * TODO: 用 jupnp 的 RegistryListener 重写设备发现回调
- * 原来 implements OnDeviceRegistryListener (DLNA-Cast) 已不可用
+ * 局域网内可投屏的 DLNA 设备列表
  */
-public class CastDevicesAdapter extends BaseQuickAdapter<Device, BaseViewHolder> {
+public class CastDevicesAdapter extends BaseQuickAdapter<DlnaCastManager.Device, BaseViewHolder> {
 
     public CastDevicesAdapter() {
         super(R.layout.item_title);
     }
 
     @Override
-    protected void convert(BaseViewHolder helper, Device item) {
-        helper.setText(R.id.title, item.getDetails().getFriendlyName());
+    protected void convert(BaseViewHolder helper, DlnaCastManager.Device item) {
+        helper.setText(R.id.title, item.name);
     }
-
-    // TODO: jupnp 版设备发现回调
-    /*
-    public void onDeviceAdded(Device<?, ?, ?> device) { addData(device); }
-    public void onDeviceUpdated(Device<?, ?, ?> device) { }
-    public void onDeviceRemoved(Device<?, ?, ?> device) { ... }
-    */
 }
