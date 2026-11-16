@@ -155,6 +155,8 @@ public class LiveActivity extends BaseActivity {
     private View mWebLoading = null;
     private boolean mWebPaused = false;
     private boolean mWebFullscreen = false;
+    // 进入全屏前的方向，退出时恢复；手机/云手机统一回竖屏
+    private int mOrientationBeforeWebFull = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
     private int mContainerHeightPx = 0;
     private int mVideoHeightPx = 0;
     private final Runnable mWebLiveInjectRun = new Runnable() {
@@ -494,6 +496,11 @@ public class LiveActivity extends BaseActivity {
             mLiveSniffer = null;
         }
         releaseEmbeddedWebLive();
+        if (mWebFullscreen) {
+            // 全屏状态下直接退出页面时，也要把方向恢复，否则会一直停在横屏
+            mWebFullscreen = false;
+            restoreOrientationAfterFullscreen();
+        }
         super.onDestroy();
         if (mVideoView != null) {
             mVideoView.release();
@@ -767,6 +774,7 @@ public class LiveActivity extends BaseActivity {
         View container = findViewById(R.id.video_container);
         if (container == null) return;
         mWebFullscreen = true;
+        mOrientationBeforeWebFull = getRequestedOrientation();
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
 
         if (mContainerHeightPx == 0) mContainerHeightPx = container.getHeight();
@@ -797,7 +805,7 @@ public class LiveActivity extends BaseActivity {
     private void exitWebFullscreen() {
         if (!mWebFullscreen) return;
         mWebFullscreen = false;
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+        restoreOrientationAfterFullscreen();
 
         showView(R.id.ll_epg);
         showView(R.id.tvLeftChannnelListLayout);
@@ -817,6 +825,21 @@ public class LiveActivity extends BaseActivity {
         }
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
         if (mWebFullBtn != null) mWebFullBtn.setImageResource(R.drawable.ic_web_fullscreen_enter);
+    }
+
+    /**
+     * 退出全屏后恢复方向：
+     * 手机/云手机固定回竖屏（这类设备全屏后不会自动复位，会一直停在横屏）；
+     * 电视/平板则恢复到进入全屏前的方向。
+     */
+    private void restoreOrientationAfterFullscreen() {
+        if (isPhoneLikeScreen()) {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        } else if (mOrientationBeforeWebFull != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
+            setRequestedOrientation(mOrientationBeforeWebFull);
+        } else {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+        }
     }
 
     private void hideView(int id) {

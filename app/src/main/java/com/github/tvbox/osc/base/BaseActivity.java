@@ -3,6 +3,7 @@ package com.github.tvbox.osc.base;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetManager;
+import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -232,6 +233,18 @@ public abstract class BaseActivity extends AppCompatActivity implements CustomAd
     @Override
     public boolean isBaseOnWidth() {
         return true;
+    }
+
+    /**
+     * 是否是手机/云手机这类可竖屏使用的设备（最小宽度 < 600dp，且不是电视）。
+     * 用于全屏播放退出后把方向复位到竖屏；电视/平板横屏不受影响。
+     */
+    public boolean isPhoneLikeScreen() {
+        Configuration config = getResources().getConfiguration();
+        if ((config.uiMode & Configuration.UI_MODE_TYPE_MASK) == Configuration.UI_MODE_TYPE_TELEVISION) {
+            return false;
+        }
+        return config.smallestScreenWidthDp < 600;
     }
 
     @Override

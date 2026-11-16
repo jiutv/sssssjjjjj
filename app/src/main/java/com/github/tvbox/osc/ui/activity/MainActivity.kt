@@ -1,6 +1,7 @@
 package com.github.tvbox.osc.ui.activity
 
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.os.Process
@@ -77,6 +78,20 @@ class MainActivity : BaseVbActivity<ActivityMainBinding>() {
             mBinding.bottomNav.selectedItemId = R.id.navigation_my
             mBinding.vp.currentItem = 1
             selectSideNav(3)
+        }
+    }
+
+    /**
+     * 兜底修复：手机/云手机从全屏播放页（直播或点播）返回时，方向可能仍停在横屏，
+     * 表现为整个界面一直是宽的、回不到竖屏。这里强制复位一次竖屏。
+     * 电视/平板（sw>=600dp 或 TV）不处理，保持横屏。
+     */
+    override fun onResume() {
+        super.onResume()
+        if (isPhoneLikeScreen() &&
+            resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        ) {
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }
     }
 

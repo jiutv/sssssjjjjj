@@ -10,6 +10,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.drawable.GradientDrawable;
@@ -996,6 +997,12 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
 
     @Override
     protected void onDestroy() {
+        if (fullWindows) {
+            // 全屏状态下直接关闭详情页时也要复位方向，否则返回首页会一直停在横屏
+            setRequestedOrientation(isPhoneLikeScreen()
+                    ? ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    : ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+        }
         registerActionReceiver(false);
         // 需求2：页面销毁时移除超时回调，避免泄漏
         mTimeoutHandler.removeCallbacks(detailTimeoutRunnable);

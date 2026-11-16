@@ -152,6 +152,8 @@ public class PlayFragment extends BaseLazyFragment {
      */
     private String mCurrentUrl;
     private boolean mFullWindows;
+    // 进入全屏前的方向，退出时恢复（手机/云手机统一回竖屏）
+    private int mOrientationBeforeFull = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
     /**
      * 非全屏下的设置弹窗
      */
@@ -423,6 +425,7 @@ public class PlayFragment extends BaseLazyFragment {
     public void changedLandscape(boolean fullWindows) {
         mFullWindows = fullWindows;
         if (fullWindows){
+            mOrientationBeforeFull = mActivity.getRequestedOrientation();
             int[] size = mVideoView.getVideoSize();
             int width = size[0];
             int height = size[1];
@@ -437,8 +440,16 @@ public class PlayFragment extends BaseLazyFragment {
                     .fitsSystemWindows(false)
                     .init();
         }else {//非全屏统一设置竖屏,activity处理为小的预览尺寸
-            mActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-
+            // 手机/云手机固定回竖屏；电视/平板恢复进入全屏前的方向，避免退出全屏后一直停在横屏
+            boolean phoneLike = mActivity instanceof com.github.tvbox.osc.base.BaseActivity
+                    && ((com.github.tvbox.osc.base.BaseActivity) mActivity).isPhoneLikeScreen();
+            if (phoneLike) {
+                mActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            } else if (mOrientationBeforeFull != ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
+                mActivity.setRequestedOrientation(mOrientationBeforeFull);
+            } else {
+                mActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+            }
             ImmersionBar.with(mActivity)
                     .hideBar(BarHide.FLAG_SHOW_BAR)
                     .navigationBarColor(R.color.white)
