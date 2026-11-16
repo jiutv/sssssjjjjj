@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    平板横屏专用主框架（仅 sw>=600dp 且横屏生效，手机横屏/所有竖屏仍走 layout/activity_main.xml）
+    结构：左侧固定导航栏 + 右侧内容区
+    说明：bottom_nav 仅保留给 ViewBinding/原有逻辑使用（横屏下隐藏），不改动原有导航功能
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/skin_page_bg"
+    android:orientation="horizontal"
+    tools:context=".ui.activity.MainActivity">
+
+    <!-- ===== 左侧固定侧边导航：首页 / 历史 / 收藏 / 设置 ===== -->
+    <LinearLayout
+        android:id="@+id/side_nav"
+        android:layout_width="100dp"
+        android:layout_height="match_parent"
+        android:background="?attr/skin_card"
+        android:orientation="vertical"
+        android:paddingTop="24dp">
+
+        <!-- 首页（当前选中） -->
+        <LinearLayout
+            android:id="@+id/side_nav_home"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp">
+
+            <View
+                android:layout_width="3dp"
+                android:layout_height="28dp"
+                android:background="?attr/skin_accent" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="首页"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_home" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="首页"
+                    android:textColor="?attr/skin_accent"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 历史 -->
+        <LinearLayout
+            android:id="@+id/side_nav_history"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp">
+
+            <View
+                android:layout_width="3dp"
+                android:layout_height="28dp"
+                android:background="@android:color/transparent" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="历史"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_history_48" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="历史"
+                    android:textColor="?attr/skin_text_secondary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 收藏 -->
+        <LinearLayout
+            android:id="@+id/side_nav_collect"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp">
+
+            <View
+                android:layout_width="3dp"
+                android:layout_height="28dp"
+                android:background="@android:color/transparent" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="收藏"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_collect_48" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="收藏"
+                    android:textColor="?attr/skin_text_secondary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 设置 -->
+        <LinearLayout
+            android:id="@+id/side_nav_setting"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp">
+
+            <View
+                android:layout_width="3dp"
+                android:layout_height="28dp"
+                android:background="@android:color/transparent" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="设置"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_settings" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="设置"
+                    android:textColor="?attr/skin_text_secondary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ===== 右侧内容区（保持原有 ViewPager，逻辑不变） ===== -->
+    <androidx.viewpager.widget.ViewPager
+        android:id="@+id/vp"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1" />
+
+    <!-- 横屏下隐藏原底部导航，仅为兼容原有绑定/逻辑保留 -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_nav"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        app:labelVisibilityMode="labeled"
+        app:itemIconTint="@drawable/bottom_navigation_item_selector"
+        app:itemTextColor="@drawable/bottom_navigation_item_selector"
+        app:menu="@menu/main_bottom_navigation" />
+</LinearLayout>

@@ -1,6 +1,7 @@
 package com.github.tvbox.osc.ui.fragment;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -74,7 +75,31 @@ public class UserFragment extends BaseLazyFragment {
         super.onFragmentResume();
 
         tvHotList1.setHasFixedSize(true);
-        tvHotList1.setLayoutManager(new GridLayoutManager(this.mContext, 3));
+        tvHotList1.setLayoutManager(new GridLayoutManager(this.mContext, getSpanCount()));
+    }
+
+    /**
+     * 网格列数：平板横屏按可用宽度自适应；手机/竖屏沿用原来的 3 列。
+     */
+    private int getSpanCount() {
+        Configuration config = getResources().getConfiguration();
+        if (config.smallestScreenWidthDp >= 600 && config.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            int contentWidth = Math.max(0, config.screenWidthDp - 100); // 减去左侧导航宽度
+            return Math.max(3, contentWidth / 160);
+        }
+        return 3;
+    }
+
+    /**
+     * 平板横屏：AutoSize 按真实屏宽 1:1 换算，避免 360 设计稿被整体放大；其余场景保持原逻辑。
+     */
+    @Override
+    public float getSizeInDp() {
+        Configuration config = getResources().getConfiguration();
+        if (config.smallestScreenWidthDp >= 600 && config.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            return config.screenWidthDp;
+        }
+        return super.getSizeInDp();
     }
 
     @Override

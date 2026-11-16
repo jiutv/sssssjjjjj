@@ -1,6 +1,7 @@
 package com.github.tvbox.osc.ui.fragment
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import android.os.Handler
 import android.view.Gravity
@@ -97,6 +98,9 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
         mBinding.search.setOnClickListener {
             jumpActivity(FastSearchActivity::class.java)
         }
+        // 平板横屏布局中的版本提示标签（竖屏布局无此控件，findViewById 返回 null）
+        findViewById<TextView>(R.id.tv_version)?.text =
+            "v" + DefaultConfig.getAppVersionName(requireContext())
         setLoadSir(mBinding.contentLayout)
         initViewModel()
         initData()
@@ -304,6 +308,21 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
             true
         } else {
             false
+        }
+    }
+
+    /**
+     * 平板横屏：关闭 AutoSize 的 360 设计稿整体放大，按真实屏宽 1:1 渲染，
+     * 使大屏布局的 dp/sp 保持正常比例；竖屏/手机横屏仍沿用原逻辑。
+     */
+    override fun getSizeInDp(): Float {
+        val config = resources.configuration
+        return if (config.smallestScreenWidthDp >= 600 &&
+            config.orientation == Configuration.ORIENTATION_LANDSCAPE
+        ) {
+            config.screenWidthDp.toFloat()
+        } else {
+            super.getSizeInDp()
         }
     }
 
