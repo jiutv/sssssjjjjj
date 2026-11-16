@@ -98,8 +98,8 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
         mBinding.search.setOnClickListener {
             jumpActivity(FastSearchActivity::class.java)
         }
-        // 平板横屏布局中的版本提示标签（竖屏布局无此控件，findViewById 返回 null）
-        findViewById<TextView>(R.id.tv_version)?.text =
+        // 平板横屏布局中的版本提示标签（竖屏布局无此控件，返回 null 不处理）
+        mBinding.root.findViewById<TextView>(R.id.tv_version)?.text =
             "v" + DefaultConfig.getAppVersionName(requireContext())
         setLoadSir(mBinding.contentLayout)
         initViewModel()
