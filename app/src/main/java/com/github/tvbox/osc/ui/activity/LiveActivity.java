@@ -618,6 +618,10 @@ public class LiveActivity extends BaseActivity {
             RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
                     RelativeLayout.LayoutParams.MATCH_PARENT,
                     RelativeLayout.LayoutParams.MATCH_PARENT);
+            // WebView 里的 HTML5 视频走 SurfaceView，永远盖在同层 View 上面，
+            // 所以控制条不能叠在视频上；这里给底部预留 40dp 高度，控制条永远可见
+            lp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+            lp.bottomMargin = ConvertUtils.dp2px(40);
             ((ViewGroup) container).addView(wv, lp);
             mWebLiveView = wv;
             mWebLiveTries = 0;
