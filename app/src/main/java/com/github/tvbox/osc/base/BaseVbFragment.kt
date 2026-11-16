@@ -119,7 +119,7 @@ abstract class BaseVbFragment<T : ViewBinding> : Fragment(), CustomAdapt {
         startActivity(intent)
     }
 
-    override fun getSizeInDp(): Float {
+    open override fun getSizeInDp(): Float {
         return if (activity != null && activity is CustomAdapt) (activity as CustomAdapt?)!!.sizeInDp else 0f
     }
 

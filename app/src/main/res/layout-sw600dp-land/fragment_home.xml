@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    平板横屏专用首页布局（仅 sw>=600dp 且横屏生效）
+    结构：顶部数据源入口 + 搜索栏 + 版本标签；下方 tab 分类栏 + 内容分页
+    控件 id 与竖屏 layout/fragment_home.xml 完全一致，业务代码无需区分
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/skin_page_bg"
+    android:orientation="vertical">
+
+    <!-- ===== 顶部：数据源入口 + 搜索栏 + 版本提示标签 ===== -->
+    <LinearLayout
+        android:id="@+id/topLayout"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp">
+
+        <!-- 数据源入口（保留原有切换站点功能） -->
+        <LinearLayout
+            android:id="@+id/nameContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_skin_field"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp">
+
+            <TextView
+                android:id="@+id/tvName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:drawablePadding="6dp"
+                android:drawableRight="@drawable/ic_arrow_down"
+                android:ellipsize="end"
+                android:maxWidth="160dp"
+                android:singleLine="true"
+                android:text="@string/app_name"
+                android:textColor="?attr/skin_text_primary"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- 搜索栏 -->
+        <TextView
+            android:id="@+id/search"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_skin_field"
+            android:drawableLeft="@drawable/ic_search_18"
+            android:drawablePadding="8dp"
+            android:drawableTint="?attr/skin_text_secondary"
+            android:gravity="center_vertical"
+            android:hint="搜索"
+            android:paddingHorizontal="12sp" />
+
+        <!-- 版本提示标签（文案由 HomeFragment 填充） -->
+        <TextView
+            android:id="@+id/tv_version"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:layout_marginStart="12dp"
+            android:background="@drawable/bg_skin_field"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:paddingHorizontal="10dp"
+            android:singleLine="true"
+            android:text="v1.0.0"
+            android:textColor="?attr/skin_text_secondary"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- ===== tab 分类栏 + 内容分页 ===== -->
+    <LinearLayout
+        android:id="@+id/contentLayout"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <com.angcyo.tablayout.DslTabLayout
+            android:id="@+id/tab_layout"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="4dp"
+            android:paddingHorizontal="8dp"
+            app:tab_enable_gradient_text_size="false"
+            app:tab_indicator_drawable="@drawable/indicator_flash"
+            app:tab_indicator_enable_flash="true"
+            app:tab_indicator_enable_flash_clip="true"
+            app:tab_indicator_height="5dp"
+            app:tab_indicator_width="16dp"
+            app:tab_select_color="?attr/skin_accent"
+            app:tab_text_max_size="16dp"
+            app:tab_text_min_size="14dp" />
+
+        <androidx.viewpager.widget.ViewPager
+            android:id="@+id/mViewPager"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="8dp"
+            android:layout_weight="1" />
+    </LinearLayout>
+</LinearLayout>

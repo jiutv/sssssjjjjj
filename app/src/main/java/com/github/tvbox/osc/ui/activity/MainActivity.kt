@@ -2,6 +2,7 @@ package com.github.tvbox.osc.ui.activity
 
 import android.content.Intent
 import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.os.Process
 import android.view.MenuItem
 import androidx.fragment.app.Fragment
@@ -26,11 +27,15 @@ class MainActivity : BaseVbActivity<ActivityMainBinding>() {
     var fragments = listOf(HomeFragment(), MyFragment())
     var useCacheConfig = false
     private var exitTime = 0L
+    // 记录当前是否处于「平板横屏」形态，旋转时据此决定是否重建以切换布局
+    private var lastTabletLandscape = false
 
     override fun init() {
         useCacheConfig = intent.extras?.getBoolean(IntentKey.CACHE_CONFIG_CHANGED, false)?:false
 
         applySkinToNav()
+        lastTabletLandscape = isTabletLandscape(resources.configuration)
+        setupTabletNav()
 
         // 默认选中首页
         mBinding.bottomNav.selectedItemId = R.id.navigation_home
@@ -71,6 +76,41 @@ class MainActivity : BaseVbActivity<ActivityMainBinding>() {
         if (intent.getBooleanExtra(BottomNavHelper.EXTRA_OPEN_MY, false)) {
             mBinding.bottomNav.selectedItemId = R.id.navigation_my
             mBinding.vp.currentItem = 1
+        }
+    }
+
+    /**
+     * 平板横屏（sw>=600dp 且横屏）才启用左侧侧边导航；
+     * 手机/竖屏布局中不存在这些 id，findViewById 返回 null，直接跳过。
+     */
+    private fun setupTabletNav() {
+        findViewById<android.view.View>(R.id.side_nav_home)?.setOnClickListener {
+            mBinding.bottomNav.selectedItemId = R.id.navigation_home
+            mBinding.vp.currentItem = 0
+        }
+        findViewById<android.view.View>(R.id.side_nav_history)?.setOnClickListener {
+            startActivity(Intent(this, HistoryActivity::class.java))
+        }
+        findViewById<android.view.View>(R.id.side_nav_collect)?.setOnClickListener {
+            startActivity(Intent(this, CollectActivity::class.java))
+        }
+        findViewById<android.view.View>(R.id.side_nav_setting)?.setOnClickListener {
+            startActivity(Intent(this, SettingActivity::class.java))
+        }
+    }
+
+    private fun isTabletLandscape(config: Configuration): Boolean {
+        return config.smallestScreenWidthDp >= 600 &&
+                config.orientation == Configuration.ORIENTATION_LANDSCAPE
+    }
+
+    /** 旋转到/离开平板横屏形态时重建界面，实时切换 layout / layout-sw600dp-land */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        val now = isTabletLandscape(newConfig)
+        if (now != lastTabletLandscape && !isFinishing) {
+            lastTabletLandscape = now
+            recreate()
         }
     }
 
