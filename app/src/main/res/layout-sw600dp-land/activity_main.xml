@@ -13,7 +13,7 @@
     android:orientation="horizontal"
     tools:context=".ui.activity.MainActivity">
 
-    <!-- ===== 左侧固定侧边导航：首页 / 历史 / 收藏 / 设置 ===== -->
+    <!-- ===== 左侧固定侧边导航：与手机版底部导航一致（首页 / 直播 / 记录 / 我的） ===== -->
     <LinearLayout
         android:id="@+id/side_nav"
         android:layout_width="100dp"
@@ -35,6 +35,7 @@
             android:paddingBottom="10dp">
 
             <View
+                android:id="@+id/side_nav_home_bar"
                 android:layout_width="3dp"
                 android:layout_height="28dp"
                 android:background="?attr/skin_accent" />
@@ -54,6 +55,7 @@
                     android:src="@drawable/ic_home" />
 
                 <TextView
+                    android:id="@+id/side_nav_home_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
@@ -63,7 +65,50 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- 历史 -->
+        <!-- 直播：对应原底部导航 navigation_live -->
+        <LinearLayout
+            android:id="@+id/side_nav_live"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp">
+
+            <View
+                android:id="@+id/side_nav_live_bar"
+                android:layout_width="3dp"
+                android:layout_height="28dp"
+                android:background="@android:color/transparent" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="直播"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_live" />
+
+                <TextView
+                    android:id="@+id/side_nav_live_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="直播"
+                    android:textColor="?attr/skin_text_secondary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 记录：对应原底部导航 navigation_history -->
         <LinearLayout
             android:id="@+id/side_nav_history"
             android:layout_width="match_parent"
@@ -76,6 +121,7 @@
             android:paddingBottom="10dp">
 
             <View
+                android:id="@+id/side_nav_history_bar"
                 android:layout_width="3dp"
                 android:layout_height="28dp"
                 android:background="@android:color/transparent" />
@@ -90,23 +136,24 @@
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:contentDescription="历史"
+                    android:contentDescription="记录"
                     android:scaleType="fitCenter"
                     android:src="@drawable/ic_history_48" />
 
                 <TextView
+                    android:id="@+id/side_nav_history_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
-                    android:text="历史"
+                    android:text="记录"
                     android:textColor="?attr/skin_text_secondary"
                     android:textSize="12sp" />
             </LinearLayout>
         </LinearLayout>
 
-        <!-- 收藏 -->
+        <!-- 我的：对应原底部导航 navigation_my（订阅源、设置等入口都在这里） -->
         <LinearLayout
-            android:id="@+id/side_nav_collect"
+            android:id="@+id/side_nav_my"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:clickable="true"
@@ -117,6 +164,7 @@
             android:paddingBottom="10dp">
 
             <View
+                android:id="@+id/side_nav_my_bar"
                 android:layout_width="3dp"
                 android:layout_height="28dp"
                 android:background="@android:color/transparent" />
@@ -131,56 +179,16 @@
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:contentDescription="收藏"
+                    android:contentDescription="我的"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/ic_collect_48" />
+                    android:src="@drawable/ic_my" />
 
                 <TextView
+                    android:id="@+id/side_nav_my_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
-                    android:text="收藏"
-                    android:textColor="?attr/skin_text_secondary"
-                    android:textSize="12sp" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- 设置 -->
-        <LinearLayout
-            android:id="@+id/side_nav_setting"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingTop="10dp"
-            android:paddingBottom="10dp">
-
-            <View
-                android:layout_width="3dp"
-                android:layout_height="28dp"
-                android:background="@android:color/transparent" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center_horizontal"
-                android:orientation="vertical">
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:contentDescription="设置"
-                    android:scaleType="fitCenter"
-                    android:src="@drawable/ic_settings" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="设置"
+                    android:text="我的"
                     android:textColor="?attr/skin_text_secondary"
                     android:textSize="12sp" />
             </LinearLayout>

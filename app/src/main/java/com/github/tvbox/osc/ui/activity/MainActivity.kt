@@ -76,26 +76,53 @@ class MainActivity : BaseVbActivity<ActivityMainBinding>() {
         if (intent.getBooleanExtra(BottomNavHelper.EXTRA_OPEN_MY, false)) {
             mBinding.bottomNav.selectedItemId = R.id.navigation_my
             mBinding.vp.currentItem = 1
+            selectSideNav(3)
         }
     }
 
     /**
      * 平板横屏（sw>=600dp 且横屏）才启用左侧侧边导航；
+     * 导航项与原底部导航完全一致：首页 / 直播 / 记录 / 我的。
      * 手机/竖屏布局中不存在这些 id，findViewById 返回 null，直接跳过。
      */
     private fun setupTabletNav() {
         findViewById<android.view.View>(R.id.side_nav_home)?.setOnClickListener {
             mBinding.bottomNav.selectedItemId = R.id.navigation_home
             mBinding.vp.currentItem = 0
+            selectSideNav(0)
+        }
+        findViewById<android.view.View>(R.id.side_nav_live)?.setOnClickListener {
+            startActivity(Intent(this, LiveActivity::class.java))
         }
         findViewById<android.view.View>(R.id.side_nav_history)?.setOnClickListener {
             startActivity(Intent(this, HistoryActivity::class.java))
         }
-        findViewById<android.view.View>(R.id.side_nav_collect)?.setOnClickListener {
-            startActivity(Intent(this, CollectActivity::class.java))
+        findViewById<android.view.View>(R.id.side_nav_my)?.setOnClickListener {
+            mBinding.bottomNav.selectedItemId = R.id.navigation_my
+            mBinding.vp.currentItem = 1
+            selectSideNav(3)
         }
-        findViewById<android.view.View>(R.id.side_nav_setting)?.setOnClickListener {
-            startActivity(Intent(this, SettingActivity::class.java))
+    }
+
+    /** 侧边导航选中态：0 首页 / 1 直播 / 2 记录 / 3 我的（直播、记录为跳转页，不改变选中） */
+    private fun selectSideNav(index: Int) {
+        val bars = intArrayOf(
+            R.id.side_nav_home_bar, R.id.side_nav_live_bar,
+            R.id.side_nav_history_bar, R.id.side_nav_my_bar
+        )
+        val texts = intArrayOf(
+            R.id.side_nav_home_text, R.id.side_nav_live_text,
+            R.id.side_nav_history_text, R.id.side_nav_my_text
+        )
+        val accent = attrColor(R.attr.skin_accent)
+        val muted = attrColor(R.attr.skin_text_secondary)
+        bars.indices.forEach { i ->
+            val on = i == index
+            findViewById<android.view.View>(bars[i])?.setBackgroundColor(
+                if (on) accent else android.graphics.Color.TRANSPARENT
+            )
+            (findViewById<android.view.View>(texts[i]) as? android.widget.TextView)
+                ?.setTextColor(if (on) accent else muted)
         }
     }
 
@@ -119,6 +146,7 @@ class MainActivity : BaseVbActivity<ActivityMainBinding>() {
         if (intent.getBooleanExtra(BottomNavHelper.EXTRA_OPEN_MY, false)) {
             mBinding.bottomNav.selectedItemId = R.id.navigation_my
             mBinding.vp.currentItem = 1
+            selectSideNav(3)
         }
     }
 
@@ -126,6 +154,7 @@ class MainActivity : BaseVbActivity<ActivityMainBinding>() {
         if (mBinding.vp.currentItem == 1) {
             mBinding.bottomNav.selectedItemId = R.id.navigation_home
             mBinding.vp.currentItem = 0
+            selectSideNav(0)
             return
         }
         val homeFragment = fragments[0] as HomeFragment
