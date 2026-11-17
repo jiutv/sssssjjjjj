@@ -68,6 +68,7 @@ import com.github.tvbox.osc.util.live.LiveSniffer;
 import com.github.tvbox.osc.util.live.LiveSniffMemory;
 import com.github.tvbox.osc.util.live.TxtSubscribe;
 import com.github.tvbox.osc.util.live.WebLiveProfile;
+import com.github.tvbox.osc.util.live.WebLiveScripts;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.gyf.immersionbar.BarHide;
@@ -164,13 +165,17 @@ public class LiveActivity extends BaseActivity {
     private int mOrientationBeforeWebFull = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
     private int mContainerHeightPx = 0;
     private int mVideoHeightPx = 0;
+    /** 当前内嵌网页的地址与频道名，供站点适配脚本使用 */
+    private String mWebLiveUrl = null;
+    private String mWebLiveChannel = null;
     private final Runnable mWebLiveInjectRun = new Runnable() {
         @Override
         public void run() {
             if (mWebLiveView == null || mWebLiveTries++ >= 20) return;
             try {
                 mWebLiveView.evaluateJavascript(FullWebActivity.AUTO_PLAY_JS, null);
-                mWebLiveView.evaluateJavascript(FullWebActivity.PAGE_FULLSCREEN_JS, null);
+                // 站点适配脚本（NewBox 同款）：藏站点 UI + 播放器铺满 + 必要时点选频道
+                WebLiveScripts.inject(mWebLiveView, mWebLiveUrl, mWebLiveChannel);
                 mWebLiveView.evaluateJavascript(WEB_LIVE_BAR_JS, null);
                 // 页面里的 video 真正出画后再撤掉"正在打开网页…"，避免露出网页界面
                 mWebLiveView.evaluateJavascript(
@@ -690,6 +695,8 @@ public class LiveActivity extends BaseActivity {
             return;
         }
         releaseEmbeddedWebLive();
+        mWebLiveUrl = url;
+        mWebLiveChannel = currentLiveChannelItem == null ? null : currentLiveChannelItem.getChannelName();
         try {
             mVideoView.setVisibility(View.GONE);
             mVideoView.pause();
@@ -747,6 +754,8 @@ public class LiveActivity extends BaseActivity {
 
     /** 释放内嵌 WebView，恢复原生播放器显示 */
     private void releaseEmbeddedWebLive() {
+        mWebLiveUrl = null;
+        mWebLiveChannel = null;
         mHandler.removeCallbacks(mWebLiveInjectRun);
         mHandler.removeCallbacks(mWebLoadingTimeoutRun);
         if (mWebFullscreen) exitWebFullscreen();

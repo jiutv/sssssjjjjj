@@ -32,6 +32,7 @@ import com.github.tvbox.osc.util.VideoParseRuler;
 import com.github.tvbox.osc.util.live.LiveSniffMemory;
 import com.github.tvbox.osc.util.live.StreamScore;
 import com.github.tvbox.osc.util.live.WebLiveProfile;
+import com.github.tvbox.osc.util.live.WebLiveScripts;
 import com.gyf.immersionbar.BarHide;
 import com.gyf.immersionbar.ImmersionBar;
 
@@ -143,7 +144,7 @@ public class FullWebActivity extends BaseActivity {
                 // 没抓到流时至少让网页播放器铺满整屏，避免停在小窗口
                 try {
                     if (mWebView != null) {
-                        mWebView.evaluateJavascript(PAGE_FULLSCREEN_JS, null);
+                        WebLiveScripts.inject(mWebView, mEntryUrl, null);
                     }
                 } catch (Throwable ignored) {
                 }
@@ -264,9 +265,8 @@ public class FullWebActivity extends BaseActivity {
             try {
                 mWebView.evaluateJavascript(SNIFF_HOOK_JS, null);
                 mWebView.evaluateJavascript(AUTO_PLAY_JS, null);
-                if (isInPagePlayHost(mEntryUrl)) {
-                    mWebView.evaluateJavascript(PAGE_FULLSCREEN_JS, null);
-                }
+                // 站点适配脚本：藏站点 UI + 播放器铺满（幂等，可重复注入）
+                WebLiveScripts.inject(mWebView, mEntryUrl, null);
             } catch (Throwable t) {
                 LOG.i("autoPlay 注入失败: " + t);
             }
