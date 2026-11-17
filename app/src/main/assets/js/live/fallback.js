@@ -155,9 +155,14 @@
       try {
         document.documentElement.style.setProperty('overflow', 'hidden', 'important');
         document.documentElement.style.setProperty('background', '#000', 'important');
+        // 网页只当画面用：禁掉页面滚动与选中，触摸事件由原生层吞掉
+        document.documentElement.style.setProperty('touch-action', 'none', 'important');
+        document.documentElement.style.setProperty('-webkit-user-select', 'none', 'important');
         document.body.style.setProperty('overflow', 'hidden', 'important');
         document.body.style.setProperty('margin', '0', 'important');
         document.body.style.setProperty('background', '#000', 'important');
+        document.body.style.setProperty('touch-action', 'none', 'important');
+        document.body.style.setProperty('-webkit-user-select', 'none', 'important');
       } catch (e) {}
 
       kick(v);

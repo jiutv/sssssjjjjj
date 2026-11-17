@@ -743,6 +743,22 @@ public class LiveActivity extends BaseActivity {
                 s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
             }
             wv.setBackgroundColor(Color.BLACK);
+            // 网页只当画面用（和 NewBox 一致）：不给焦点、吞掉触摸，
+            // 遥控器与点击一律由原生控制条处理，避免误点到网页里的其它页面。
+            wv.setFocusable(false);
+            wv.setFocusableInTouchMode(false);
+            wv.setClickable(false);
+            wv.setLongClickable(false);
+            wv.setOnTouchListener((v, e) -> {
+                // 只有底部我们自己那条控制栏（网页内 DOM）允许点击，
+                // 其余区域一律吞掉：网页只当画面用，避免误点到站内其它页面。
+                float barPx = 56 * getResources().getDisplayMetrics().density;
+                return !(e.getY() >= v.getHeight() - barPx);
+            });
+            wv.setOnLongClickListener(v -> true);
+            s.setSupportZoom(false);
+            s.setBuiltInZoomControls(false);
+            s.setDisplayZoomControls(false);
             wv.setWebViewClient(new WebViewClient() {
                 @Override
                 public void onPageFinished(WebView view, String u) {
