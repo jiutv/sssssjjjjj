@@ -22,7 +22,8 @@
   }
 
   function playerBox() {
-    return document.querySelector(".live-player-tv-module")
+    return document.querySelector(".live-player-container")
+      || document.querySelector(".live-player-tv-module")
       || document.querySelector(".player-container .player");
   }
 
@@ -152,8 +153,52 @@
     return partial;
   }
 
+  /** 兜底：站点改版后没有 a.channel 时，按文本找最贴近频道名的那层可点节点 */
+  function findByText(name) {
+    var want = compact(name);
+    if (!want) return null;
+    var els = document.querySelectorAll("a,li,button,div,span,p");
+    var best = null;
+    var bestLen = 9999;
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      var t = compact(el.textContent || "");
+      if (!t || t.length > want.length + 4) continue;
+      if (t.indexOf(want) < 0) continue;
+      if (el.children.length > 2) continue;
+      if (t.length < bestLen) {
+        best = el;
+        bestLen = t.length;
+      }
+    }
+    return best;
+  }
+
+  /** 模拟一整套鼠标事件：部分页面不响应元素上的 .click()，但对 mousedown/mouseup 有反应 */
+  function fire(el, type) {
+    if (!el) return;
+    try {
+      var ev = document.createEvent("MouseEvents");
+      ev.initMouseEvent(type, true, true, window, 1, 0, 0, 0, 0,
+        false, false, false, false, 0, null);
+      el.dispatchEvent(ev);
+    } catch (e) {}
+  }
+
+  function clickEl(el) {
+    if (!el) return;
+    var name = el.querySelector ? el.querySelector(".name") : null;
+    var targets = name && name !== el ? [el, name] : [el];
+    for (var i = 0; i < targets.length; i++) {
+      fire(targets[i], "mousedown");
+      fire(targets[i], "mouseup");
+      fire(targets[i], "click");
+      try { targets[i].click(); } catch (e) {}
+    }
+  }
+
   function clickWant(id, liveName) {
-    var el = findChannel(id, liveName);
+    var el = findChannel(id, liveName) || findByText(liveName);
     if (el) {
       window.__tvboxMgtvTab = 0;
       if (isSelected(el)) return true;
@@ -162,7 +207,7 @@
       if (window.__tvboxMgtvClickEl === el && now - (window.__tvboxMgtvClickAt || 0) < 10000) return true;
       window.__tvboxMgtvClickEl = el;
       window.__tvboxMgtvClickAt = now;
-      el.click();
+      clickEl(el);
       return true;
     }
     if (id || liveName) {
@@ -205,7 +250,7 @@
     if (want && want === window.__tvboxMgtvWant) {
       // 每次注入都会走到这里：只有目标频道已经选中、或页面压根没有频道列表时才提前返回。
       // 否则继续重试点击，避免频道列表比脚本晚渲染时一直停在默认频道（金鹰卡通）。
-      var cur = findChannel(id, name);
+      var cur = findChannel(id, name) || findByText(name);
       if (!cur || isSelected(cur)) {
         if (pictureReady()) tellReady(window.__tvboxMgtvPickGen);
         else layout();

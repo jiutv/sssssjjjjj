@@ -183,8 +183,15 @@ public class LiveActivity extends BaseActivity {
                 WebLiveScripts.inject(mWebLiveView, mWebLiveUrl, mWebLiveChannel);
                 // 页面里的 video 真正出画后再撤掉"正在打开网页…"，避免露出网页界面
                 mWebLiveView.evaluateJavascript(
-                        "(function(){try{var v=document.querySelector('video');"
-                                + "return !!(v && v.currentTime>0 && v.videoWidth>0);}catch(e){return false;}})();",
+                        "(function(){try{"
+                                + "function has(d){var vs=d.querySelectorAll('video');"
+                                + "for(var i=0;i<vs.length;i++){var v=vs[i];"
+                                + "if(v.videoWidth>0&&(v.currentTime>0||v.readyState>=2))return true;}"
+                                + "var fs=d.querySelectorAll('iframe');"
+                                + "for(var j=0;j<fs.length;j++){try{"
+                                + "if(fs[j].contentDocument&&has(fs[j].contentDocument))return true;}catch(e){}}"
+                                + "return false;}return has(document);"
+                                + "}catch(e){return false;}})();",
                         value -> {
                             if ("true".equals(value)) {
                                 mWebPlayStarted = true;
@@ -210,10 +217,16 @@ public class LiveActivity extends BaseActivity {
         }
     };
 
+    /** 兜底：迟迟没有画面时继续盖着黑幕（绝不露出网页），只更新提示文字 */
     private final Runnable mWebLoadingTimeoutRun = new Runnable() {
         @Override
         public void run() {
-            hideWebLoading();
+            if (mWebPlayStarted) return;
+            if (mWebStatus != null) {
+                mWebStatus.setVisibility(View.VISIBLE);
+                mWebStatus.setText("网页线路未就绪，可切换线路");
+            }
+            mHandler.postDelayed(this, 5000);
         }
     };
 
@@ -694,7 +707,17 @@ public class LiveActivity extends BaseActivity {
                     mWebLiveTries = 0;
                     mHandler.removeCallbacks(mWebLiveInjectRun);
                     mHandler.post(mWebLiveInjectRun);
-                    hideWebLoading();
+                    // 注意：这里不能撤黑幕。页面加载完不代表已经在播，
+                    // 提前撤掉会把网页本身（导航栏、频道列表）露出来。
+                    if (!mWebPlayStarted && mWebLoading != null) {
+                        mWebLoading.setVisibility(View.VISIBLE);
+                        mWebLoading.bringToFront();
+                        if (mWebControlBar != null) mWebControlBar.bringToFront();
+                    }
+                    if (!mWebPlayStarted) {
+                        mHandler.removeCallbacks(mWebLoadingTimeoutRun);
+                        mHandler.postDelayed(mWebLoadingTimeoutRun, 15000);
+                    }
                 }
             });
             RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
@@ -716,7 +739,7 @@ public class LiveActivity extends BaseActivity {
                 mWebControlBar.bringToFront();
             }
             if (mWebFullBtn != null) mWebFullBtn.setVisibility(View.VISIBLE);
-            // 兜底：15 秒还没加载完也把黑幕撤掉，避免一直停在"正在打开网页…"
+            // 兜底：15 秒还没出画面就保持黑幕并提示，绝不把网页界面露出来
             mHandler.postDelayed(mWebLoadingTimeoutRun, 15000);
             mWebPaused = false;
         } catch (Throwable t) {
@@ -767,8 +790,18 @@ public class LiveActivity extends BaseActivity {
         if (mWebLiveView == null) return;
         mWebLiveTries = 0;
         mWebPaused = false;
+        mWebPlayStarted = false;
+        mWebAutoSwitchCount = 0;
         if (mWebPlayBtn != null) mWebPlayBtn.setImageResource(R.drawable.ic_ctl_pause);
         if (mWebStatus != null) mWebStatus.setText("重新加载中…");
+        // 重新加载期间盖回黑幕，别让网页界面露出来
+        if (mWebLoading != null) {
+            mWebLoading.setVisibility(View.VISIBLE);
+            mWebLoading.bringToFront();
+            if (mWebControlBar != null) mWebControlBar.bringToFront();
+        }
+        mHandler.removeCallbacks(mWebLoadingTimeoutRun);
+        mHandler.postDelayed(mWebLoadingTimeoutRun, 15000);
         mWebLiveView.reload();
         mHandler.removeCallbacks(mWebLiveInjectRun);
         mHandler.postDelayed(mWebLiveInjectRun, 3000);

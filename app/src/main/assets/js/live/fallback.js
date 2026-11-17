@@ -182,4 +182,40 @@
   try {
     new MutationObserver(apply).observe(document.documentElement, { childList: true, subtree: true });
   } catch (e) {}
+
+  // 兜底选台：没有站点专用脚本的页面，按频道名点一下页面里的同名频道/标签。
+  // 仅在站点脚本没有定义 __tvboxInPageGo 时生效，避免和站点逻辑打架。
+  if (!window.__tvboxInPageGo) {
+    window.__tvboxInPageGo = function (url, liveName) {
+      var name = (liveName || '').replace(/^\s+|\s+$/g, '');
+      if (!name) return;
+      if (window.__tvboxGenericWant === name) return;
+      window.__tvboxGenericWant = name;
+      var n = 0;
+      function tryClick() {
+        var els = document.querySelectorAll('a,li,button,[role=tab]');
+        for (var i = 0; i < els.length; i++) {
+          var t = (els[i].textContent || '').replace(/[\s\u00a0]+/g, '');
+          if (!t || t.length > name.length + 4) continue;
+          if (t === name || t.indexOf(name) >= 0) {
+            var el = els[i];
+            try { el.click(); } catch (e) {}
+            try {
+              var ev = document.createEvent('MouseEvents');
+              ev.initMouseEvent('mousedown', true, true, window, 1, 0, 0, 0, 0,
+                false, false, false, false, 0, null);
+              el.dispatchEvent(ev);
+            } catch (e) {}
+            return true;
+          }
+        }
+        return false;
+      }
+      function loop() {
+        if (tryClick()) return;
+        if (++n < 20) setTimeout(loop, 300);
+      }
+      setTimeout(loop, 300);
+    };
+  }
 })();
