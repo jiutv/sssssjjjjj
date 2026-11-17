@@ -65,7 +65,9 @@ import com.github.tvbox.osc.util.FastClickCheckUtil;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.LOG;
 import com.github.tvbox.osc.util.live.LiveSniffer;
+import com.github.tvbox.osc.util.live.LiveSniffMemory;
 import com.github.tvbox.osc.util.live.TxtSubscribe;
+import com.github.tvbox.osc.util.live.WebLiveProfile;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.gyf.immersionbar.BarHide;
@@ -138,6 +140,8 @@ public class LiveActivity extends BaseActivity {
     private boolean mIsSniffing = false;
     private String mResolvedPlayUrl = null;
     private boolean mPlayFromWebSniff = false;
+    /** 当前交给 FullWebActivity 嗅探的地址，用于回写嗅探记忆 */
+    private String mPendingWebSniffUrl = null;
     private String mWebSniffFallbackChannel = null;
     private boolean mFirstResume = true;
     private int mWebLiveRelaunchCount = 0;
@@ -336,6 +340,12 @@ public class LiveActivity extends BaseActivity {
         findViewById(R.id.ic_pre_source).setOnClickListener(view -> playPreSource());
         findViewById(R.id.ic_next_source).setOnClickListener(view -> playNextSource());
         tv_srcinfo.setOnClickListener(view -> playNextSource());
+        // 长按线路信息：清除「网页嗅探失败」记忆，让所有频道重新尝试嗅探
+        tv_srcinfo.setOnLongClickListener(view -> {
+            LiveSniffMemory.clear();
+            ToastUtils.showShort("已清除嗅探记忆，下次重新尝试");
+            return true;
+        });
         //投屏/设置
         findViewById(R.id.ic_setting).setOnClickListener(view -> showSettingDialog(false));
         findViewById(R.id.ic_cast).setOnClickListener(view -> showCastDialog());
@@ -594,7 +604,7 @@ public class LiveActivity extends BaseActivity {
      * 3. webview:// / webview-sniff:// 打开 FullWebActivity SNIFF 模式：
      *    用户能看到网页（自动全屏），shouldInterceptRequest 抓流，
      *    命中回传给 LiveActivity → 原生播放器接手（NewBox / TVBoxOS 风格）；
-     *    2 分钟没抓到 → FullWebActivity 自己留在网页播放，用户手动按 back 返回。
+     *    15 秒内没抓到 → FullWebActivity 自己留在网页播放，用户手动按 back 返回。
      */
     private static final int REQ_FULL_WEB_SNIFF = 0x4657; // 'FW'
 
@@ -621,7 +631,19 @@ public class LiveActivity extends BaseActivity {
             startEmbeddedWebLive(pureUrl);
             return;
         } else if (rawUrl.startsWith("video://")) {
-            startSniff(pureUrl);
+            if (LiveSniffMemory.isFailed(pureUrl)) {
+                // 后台嗅探是黑屏等待，失败过的地址直接进网页播放，避免再次空等
+                LOG.i("🎬 video:// 上次未识别 → 直接网页播放 → " + pureUrl);
+                ToastUtils.showShort("该频道上次未识别到直链，直接网页播放");
+                mPendingWebSniffUrl = pureUrl;
+                mLastWebLiveRelaunchAt = System.currentTimeMillis();
+                Intent intent = new Intent(this, FullWebActivity.class);
+                intent.putExtra(FullWebActivity.EXTRA_URL, pureUrl);
+                intent.putExtra(FullWebActivity.EXTRA_MODE, FullWebActivity.MODE_BROWSE);
+                startActivityForResult(intent, REQ_FULL_WEB_SNIFF);
+            } else {
+                startSniff(pureUrl);
+            }
         } else {
             playDirect(rawUrl, null);
         }
@@ -631,11 +653,18 @@ public class LiveActivity extends BaseActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode != REQ_FULL_WEB_SNIFF) return;
-        if (resultCode != RESULT_OK || data == null) return;
+        String sniffedUrl = mPendingWebSniffUrl;
+        mPendingWebSniffUrl = null;
+        if (resultCode != RESULT_OK || data == null) {
+            // 网页里没抓到流就退出了：记住该地址，下次直接网页播放
+            if (!TextUtils.isEmpty(sniffedUrl)) LiveSniffMemory.markFailed(sniffedUrl);
+            return;
+        }
         try {
             String streamUrl = data.getStringExtra(FullWebActivity.RESULT_STREAM_URL);
             String headersEncoded = data.getStringExtra(FullWebActivity.RESULT_STREAM_HEADERS);
             if (TextUtils.isEmpty(streamUrl)) return;
+            if (!TextUtils.isEmpty(sniffedUrl)) LiveSniffMemory.markSuccess(sniffedUrl);
             LOG.i("🎬 FullWebActivity sniff 回传: " + streamUrl);
             HashMap<String, String> headers = FullWebActivity.decodeHeaders(headersEncoded);
             mResolvedPlayUrl = streamUrl;
@@ -667,9 +696,7 @@ public class LiveActivity extends BaseActivity {
 
             WebView wv = new WebView(this);
             WebSettings s = wv.getSettings();
-            if (FullWebActivity.isDesktopSite(url)) {
-                s.setUserAgentString(FullWebActivity.DESKTOP_UA);
-            }
+            s.setUserAgentString(WebLiveProfile.uaFor(url));
             s.setJavaScriptEnabled(true);
             s.setDomStorageEnabled(true);
             s.setDatabaseEnabled(true);
@@ -883,6 +910,7 @@ public class LiveActivity extends BaseActivity {
                 }
                 mIsSniffing = false;
                 mResolvedPlayUrl = url;
+                LiveSniffMemory.markSuccess(pageUrl);
                 if (mLiveSniffer != null) {
                     mLiveSniffer.stop();
                 }
@@ -895,6 +923,7 @@ public class LiveActivity extends BaseActivity {
                     return;
                 }
                 mIsSniffing = false;
+                LiveSniffMemory.markFailed(pageUrl);
                 ToastUtils.showShort(reason);
                 onLivePlayFailed();
             }

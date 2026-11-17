@@ -29,6 +29,9 @@ import com.github.tvbox.osc.base.BaseActivity;
 import com.github.tvbox.osc.util.AdBlocker;
 import com.github.tvbox.osc.util.LOG;
 import com.github.tvbox.osc.util.VideoParseRuler;
+import com.github.tvbox.osc.util.live.LiveSniffMemory;
+import com.github.tvbox.osc.util.live.StreamScore;
+import com.github.tvbox.osc.util.live.WebLiveProfile;
 import com.gyf.immersionbar.BarHide;
 import com.gyf.immersionbar.ImmersionBar;
 
@@ -66,12 +69,14 @@ public class FullWebActivity extends BaseActivity {
     public static final String EXTRA_URL = "url";
     public static final String EXTRA_MODE = "mode";
     public static final String MODE_SNIFF = "sniff";
+    /** 只做网页播放，不启动嗅探（用于已知抓不到流的频道，避免白等一轮） */
+    public static final String MODE_BROWSE = "browse";
     public static final String RESULT_STREAM_URL = "streamUrl";
     public static final String RESULT_STREAM_HEADERS = "streamHeaders";
 
     private static final long TOP_BAR_HIDE_MS = 4000L;
-    // 嗅探超时：2 分钟没抓到流就放弃（留用户手动操作网页）
-    private static final long SNIFF_TIMEOUT_MS = 120000L;
+    // 嗅探超时：页面加载完成后 15 秒内没抓到流就留在网页播放，不再空等
+    private static final long SNIFF_TIMEOUT_MS = 15000L;
 
     private WebView mWebView;
     private FrameLayout mRootContainer;
@@ -82,14 +87,10 @@ public class FullWebActivity extends BaseActivity {
     private TextView mTvMode;
 
     /** 桌面站点集合：这些站的 PC 播放器可自动播放，移动 UA 会引导下载 App 或给不可播的流 */
-    static final String DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            + "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+    static final String DESKTOP_UA = WebLiveProfile.DESKTOP_UA;
 
     static boolean isDesktopSite(String url) {
-        if (url == null) return false;
-        String l = url.toLowerCase();
-        return l.contains("yangshipin.cn") || l.contains("cctv.com")
-                || l.contains("cctv.cn") || l.contains("hebtv.com");
+        return WebLiveProfile.isDesktop(url);
     }
 
     /**
@@ -97,9 +98,7 @@ public class FullWebActivity extends BaseActivity {
      * 不走嗅探转原生，避免拿到 H.265 蓝光流后原生解码花屏。
      */
     static boolean isInPagePlayHost(String url) {
-        if (url == null) return false;
-        String l = url.toLowerCase();
-        return l.contains("yangshipin.cn");
+        return WebLiveProfile.isInPageHost(url);
     }
 
     private String mEntryUrl;
@@ -133,13 +132,14 @@ public class FullWebActivity extends BaseActivity {
         }
     };
 
-    /** 嗅探超时 —— 超时后不再拦截任何资源，网页正常渲染 */
+    /** 嗅探超时 —— 超时后不再拦截任何资源，网页正常渲染，并记住该地址下次不再白等 */
     private final Runnable mSniffTimeoutRun = new Runnable() {
         @Override
         public void run() {
             if (!mSniffFound) {
                 LOG.i("🎬 FullWebActivity 嗅探超时，留在网页播放");
                 mSniffFound = true; // 设为 true 阻止后续 shouldInterceptRequest 再拦截
+                LiveSniffMemory.markFailed(mEntryUrl);
                 // 没抓到流时至少让网页播放器铺满整屏，避免停在小窗口
                 try {
                     if (mWebView != null) {
@@ -150,6 +150,16 @@ public class FullWebActivity extends BaseActivity {
             }
         }
     };
+
+    /** 超时从页面加载完成开始计时，避免慢站点把整个窗口消耗在加载阶段 */
+    private boolean mTimeoutScheduled = false;
+
+    private void scheduleSniffTimeout() {
+        if (!mSniffMode || mTimeoutScheduled) return;
+        mTimeoutScheduled = true;
+        mHandler.removeCallbacks(mSniffTimeoutRun);
+        mHandler.postDelayed(mSniffTimeoutRun, SNIFF_TIMEOUT_MS);
+    }
 
     /** 静音自动播放注入：轮询 15 次（每 2 秒一次），适配异步渲染的 H5 播放器 */
     private int mAutoPlayTries = 0;
@@ -344,10 +354,6 @@ public class FullWebActivity extends BaseActivity {
         showTopBar();
         mTvMode.setText(mSniffMode ? "嗅探模式：抓到流自动切换播放器" : "浏览模式：仅网页内播放");
 
-        if (mSniffMode) {
-            mHandler.postDelayed(mSniffTimeoutRun, SNIFF_TIMEOUT_MS);
-        }
-
         LOG.i("🎬 FullWebActivity 加载: url=" + mEntryUrl + " mode=" + (mSniffMode ? "sniff" : "browse"));
         mWebView.loadUrl(mEntryUrl);
     }
@@ -362,11 +368,9 @@ public class FullWebActivity extends BaseActivity {
     private void initWebView() {
         WebSettings s = mWebView.getSettings();
 
-        // 站点差异：央视频 / 央视网 必须桌面 Chrome UA 才会给出 PC 播放器（H5 而非引导下载 App），
-        // 也是 NewBox 规则表里对 yangshipin/cctv 的固定配置
-        if (isDesktopSite(mEntryUrl)) {
-            s.setUserAgentString(DESKTOP_UA);
-        }
+        // 站点差异：央媒/卫视这类对移动 UA 只给 MSE 加密流或引导下载 App，
+        // 按域名改用桌面 UA；其余站点用移动 UA（很多站点的适配逻辑以移动端为准）
+        s.setUserAgentString(WebLiveProfile.uaFor(mEntryUrl));
 
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
@@ -492,6 +496,7 @@ public class FullWebActivity extends BaseActivity {
                 view.evaluateJavascript(SNIFF_HOOK_JS, null);
             } catch (Throwable ignored) {
             }
+            scheduleSniffTimeout();
             scheduleAutoPlay();
         }
 
@@ -531,25 +536,7 @@ public class FullWebActivity extends BaseActivity {
 
         /** 给候选流打分：直播播放列表优先，广告/预告/试看直接判负 */
         private int scoreUrl(String url) {
-            String l = url.toLowerCase();
-            if (l.contains("/ad/") || l.contains("/ads/") || l.contains("?ad=")
-                    || l.contains("&ad=") || l.contains("/preroll") || l.contains("/midroll")
-                    || l.contains("/postroll") || l.contains("trailer") || l.contains("preview")) {
-                return -100;
-            }
-            int score = 0;
-            if (l.contains(".m3u8")) score += 30;
-            if (l.contains(".mpd")) score += 20;
-            if (l.contains(".flv")) score += 15;
-            if (l.contains("/live/") || l.contains("/hls/") || l.contains("/stream/")) score += 10;
-            if (l.contains("index.m3u8") || l.contains("master.m3u8")
-                    || l.contains("playlist.m3u8") || l.contains("manifest.m3u8")) {
-                score += 15;
-            }
-            if (l.contains(".mp4")) score += 5;
-            if (url.length() > 150) score += 3;
-            if (url.length() > 250) score += 5;
-            return score;
+            return StreamScore.score(mEntryUrl, url);
         }
 
         /**
@@ -559,17 +546,7 @@ public class FullWebActivity extends BaseActivity {
          * - 排除单片段 .ts / 图片等，避免把广告分片交给播放器造成黑屏
          */
         private boolean isLiveStream(String url) {
-            String l = url.toLowerCase();
-            if (l.contains(".ts?") || l.endsWith(".ts")) return false;
-            if (l.contains(".mp4") || l.contains(".m4v") || l.contains(".mov")
-                    || l.contains(".mkv") || l.contains(".webm")) {
-                return l.contains("/live/") || l.contains("/stream/") || l.contains("/hls/");
-            }
-            if (l.contains(".m3u8") || l.contains(".mpd") || l.contains(".flv")
-                    || l.contains(".m3u") || l.contains("manifest")) {
-                return true;
-            }
-            return l.contains("/live/") || l.contains("/hls/") || l.contains("/stream/");
+            return StreamScore.looksLikeLive(url);
         }
     }
 
@@ -581,7 +558,13 @@ public class FullWebActivity extends BaseActivity {
         if (mSniffFound || isFinishing()) return;
         String l = url.toLowerCase();
         if (!l.startsWith("http")) return;
-        int score = 200;
+        if (StreamScore.isAd(url)) {
+            LOG.i("🎬 JS 上报流丢弃（广告特征） " + url);
+            return;
+        }
+        // 内容已验证过是播放列表，给高分基准；清晰度等启发式只做微调
+        int bonus = Math.max(0, Math.min(StreamScore.score(mEntryUrl, url), 40));
+        int score = 200 + bonus;
         if (l.contains(".mp4") && !l.contains("/live/") && !l.contains("/stream/") && !l.contains("/hls/")) {
             // 无后缀判定的 mp4 多为宣传片/预告，降权但仍保留
             score = 30;
@@ -616,6 +599,7 @@ public class FullWebActivity extends BaseActivity {
         }
         mSniffFound = true;
         mHandler.removeCallbacksAndMessages(null);
+        LiveSniffMemory.markSuccess(mEntryUrl);
         LOG.i("🎬 选定直播流 [" + bestScore + "] " + best);
         Intent result = new Intent();
         result.putExtra(RESULT_STREAM_URL, best);

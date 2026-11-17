@@ -55,8 +55,11 @@ public class LiveSniffer {
         void onFailed(String reason);
     }
 
-    /** 与点播嗅探保持一致 */
-    private static final long SNIFF_TIMEOUT = 20 * 1000L;
+    /** 与点播嗅探保持一致；页面加载完成后 15 秒内没命中就判定失败 */
+    private static final long SNIFF_TIMEOUT = 15 * 1000L;
+
+    /** 候选收集窗口：同一页面会陆续发出广告/预加载/低清副本，等一小会儿再挑最优 */
+    private static final long PICK_WINDOW = 1500L;
 
     private final Activity mActivity;
     private final Callback mCallback;
@@ -65,6 +68,17 @@ public class LiveSniffer {
     private WebView mWebView;
     private String mPageUrl;
     private volatile boolean mFinished;
+
+    private final HashMap<String, Integer> mCandidates = new HashMap<>();
+    private final HashMap<String, HashMap<String, String>> mCandidateHeaders = new HashMap<>();
+    private boolean mPickScheduled = false;
+
+    private final Runnable mPickRun = new Runnable() {
+        @Override
+        public void run() {
+            pickBest();
+        }
+    };
 
     private final Runnable mTimeoutRun = new Runnable() {
         @Override
@@ -99,6 +113,17 @@ public class LiveSniffer {
         mPageUrl = pageUrl;
         mFinished = false;
         ensureWebView();
+        synchronized (mCandidates) {
+            mCandidates.clear();
+            mCandidateHeaders.clear();
+            mPickScheduled = false;
+        }
+        mHandler.removeCallbacks(mPickRun);
+        // 站点画像：央媒/卫视用桌面 UA 才给干净的 HLS
+        try {
+            mWebView.getSettings().setUserAgentString(WebLiveProfile.uaFor(pageUrl));
+        } catch (Throwable ignored) {
+        }
         mHandler.removeCallbacks(mTimeoutRun);
         mHandler.postDelayed(mTimeoutRun, SNIFF_TIMEOUT);
         mWebView.stopLoading();
@@ -113,6 +138,7 @@ public class LiveSniffer {
         mFinished = true;
         mHandler.removeCallbacks(mHookRun);
         mHandler.removeCallbacks(mTimeoutRun);
+        mHandler.removeCallbacks(mPickRun);
         if (mWebView != null) {
             mWebView.stopLoading();
             mWebView.loadUrl("about:blank");
@@ -124,6 +150,7 @@ public class LiveSniffer {
         mFinished = true;
         mHandler.removeCallbacks(mHookRun);
         mHandler.removeCallbacks(mTimeoutRun);
+        mHandler.removeCallbacks(mPickRun);
         if (mWebView != null) {
             mWebView.stopLoading();
             mWebView.loadUrl("about:blank");
@@ -210,7 +237,7 @@ public class LiveSniffer {
                     } catch (Throwable ignored) {
                     }
                     LOG.i("LiveSniffer js found:" + url);
-                    found(url, headers);
+                    offer(url, headers);
                 }
             });
         }
@@ -329,8 +356,8 @@ public class LiveSniffer {
                         && !TextUtils.isEmpty(mPageUrl)) {
                     headers.put("Referer", mPageUrl);
                 }
-                found(url, headers);
-                // 命中后阻断 WebView 继续拉流，避免与原生播放器同时抢流
+                offer(url, headers);
+                // 命中候选后阻断 WebView 继续拉流，避免与原生播放器同时抢流
                 return AdBlocker.createEmptyResource();
             }
         } catch (Throwable th) {
@@ -357,6 +384,50 @@ public class LiveSniffer {
         return VideoParseRuler.checkIsVideoForParse(mPageUrl, url);
     }
 
+    /** 收集一个候选：同一页面会连发广告/预加载/低清副本，攒一小段时间后取最高分 */
+    private void offer(String url, HashMap<String, String> headers) {
+        if (mFinished) return;
+        int score = StreamScore.score(mPageUrl, url);
+        if (score <= 0) {
+            LOG.i("LiveSniffer drop [" + score + "] " + url);
+            return;
+        }
+        synchronized (mCandidates) {
+            Integer old = mCandidates.get(url);
+            if (old != null && old >= score) return;
+            mCandidates.put(url, score);
+            mCandidateHeaders.put(url, headers);
+            if (!mPickScheduled) {
+                mPickScheduled = true;
+                mHandler.postDelayed(mPickRun, PICK_WINDOW);
+            }
+        }
+    }
+
+    /** 收集窗口结束：取分数最高的候选交给原生播放器 */
+    private void pickBest() {
+        if (mFinished) return;
+        String best = null;
+        int bestScore = Integer.MIN_VALUE;
+        HashMap<String, String> bestHeaders = null;
+        synchronized (mCandidates) {
+            for (Map.Entry<String, Integer> e : mCandidates.entrySet()) {
+                if (e.getValue() > bestScore) {
+                    bestScore = e.getValue();
+                    best = e.getKey();
+                    bestHeaders = mCandidateHeaders.get(best);
+                }
+            }
+        }
+        if (best == null) {
+            // 这一批都是低分候选：继续观察，等下一批
+            mPickScheduled = false;
+            return;
+        }
+        LOG.i("LiveSniffer pick [" + bestScore + "] " + best);
+        found(best, bestHeaders);
+    }
+
     private void found(String url, HashMap<String, String> headers) {
         if (mFinished) {
             return;
@@ -364,6 +435,7 @@ public class LiveSniffer {
         mFinished = true;
         mHandler.removeCallbacks(mHookRun);
         mHandler.removeCallbacks(mTimeoutRun);
+        mHandler.removeCallbacks(mPickRun);
         final HashMap<String, String> resultHeaders = headers == null
                 ? new HashMap<String, String>() : headers;
         LOG.i("LiveSniffer found:" + url);
