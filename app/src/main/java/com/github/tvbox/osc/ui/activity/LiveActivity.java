@@ -455,6 +455,29 @@ public class LiveActivity extends BaseActivity {
                     "(function(){try{var v=document.querySelector('video');if(v)v.play();}catch(e){}})();", null);
         }
         mFirstResume = false;
+        // 回到前台时重刷沉浸式，防止系统导航条漏出来
+        applyImmersive();
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) applyImmersive();
+    }
+
+    /** 重新应用沉浸式隐藏：系统导航条 / 状态栏都不给露出来，和 NewBox 一致 */
+    private void applyImmersive() {
+        try {
+            View decor = getWindow().getDecorView();
+            int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+            decor.setSystemUiVisibility(flags);
+        } catch (Throwable ignored) {
+        }
     }
 
 
@@ -685,6 +708,10 @@ public class LiveActivity extends BaseActivity {
             mVideoView.setVisibility(View.GONE);
             mVideoView.pause();
 
+            // 网页播放期间隐藏 App 自己的底部导航（首页/直播/设置），
+            // 只保留画面 + 原生播放控制条，和 NewBox 一致
+            hideView(R.id.bottom_nav);
+
             WebView wv = new WebView(this);
             WebSettings s = wv.getSettings();
             s.setUserAgentString(WebLiveProfile.uaFor(url));
@@ -817,6 +844,8 @@ public class LiveActivity extends BaseActivity {
         if (mWebFullBtn != null) mWebFullBtn.setVisibility(View.GONE);
         if (mWebControlBar != null) mWebControlBar.setVisibility(View.GONE);
         if (mWebLoading != null) mWebLoading.setVisibility(View.GONE);
+        // 退出网页播放时还原 App 底部导航
+        showView(R.id.bottom_nav);
         if (mWebLiveView != null) {
             try {
                 ViewGroup parent = (ViewGroup) mWebLiveView.getParent();
@@ -937,7 +966,8 @@ public class LiveActivity extends BaseActivity {
 
         showView(R.id.ll_epg);
         showView(R.id.tvLeftChannnelListLayout);
-        showView(R.id.bottom_nav);
+        // 如果还在网页播放就不还原底部导航（网页播放全程隐藏）
+        if (mWebLiveView == null) showView(R.id.bottom_nav);
         showView(R.id.tvChannel);
 
         View container = findViewById(R.id.video_container);
