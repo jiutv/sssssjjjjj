@@ -669,6 +669,14 @@ public class LiveActivity extends BaseActivity {
             startActivityForResult(intent, REQ_FULL_WEB_SNIFF);
             return;
         }
+
+        // 同一域名下的频道间换台 → 复用 WebView，只在页面里切台（像 NewBox CCTV1→CCTV2 那样）
+        // 跨域名才销毁重建
+        if (mWebLiveView != null && isSameHost(mWebLiveUrl, url)) {
+            switchChannelInPage(url, currentLiveChannelItem == null ? null : currentLiveChannelItem.getChannelName());
+            return;
+        }
+
         releaseEmbeddedWebLive();
         mWebLiveUrl = url;
         mWebLiveChannel = currentLiveChannelItem == null ? null : currentLiveChannelItem.getChannelName();
@@ -749,6 +757,57 @@ public class LiveActivity extends BaseActivity {
     }
 
     /** 释放内嵌 WebView，恢复原生播放器显示 */
+    /** 同一域名下换台：复用 WebView，只在页面里切目标频道，不 reload 网页，
+     * 避免每次换台都重新加载整个页面（像 NewBox CCTV1→CCTV2 那样）。 */
+    private void switchChannelInPage(String newUrl, String newChannelName) {
+        if (mWebLiveView == null) return;
+        mWebLiveUrl = newUrl;
+        mWebLiveChannel = newChannelName;
+        mWebLiveTries = 0;
+        mWebPlayStarted = false;
+        mWebPaused = false;
+        mWebAutoSwitchCount = 0;
+        if (mWebPlayBtn != null) mWebPlayBtn.setImageResource(R.drawable.ic_ctl_pause);
+        if (mWebStatus != null) mWebStatus.setText("切换频道…");
+        // 先停掉旧视频，避免两个播放器同时存在
+        try {
+            mWebLiveView.evaluateJavascript(
+                    "(function(){try{var v=document.querySelector('video');if(v){v.pause();try{v.src='';}catch(e){}}}catch(e){}})();",
+                    null);
+        } catch (Throwable ignored) {
+        }
+        // 盖回黑幕，别让切换过程露出网页
+        if (mWebLoading != null) {
+            mWebLoading.setVisibility(View.VISIBLE);
+            mWebLoading.bringToFront();
+        }
+        if (mWebControlBar != null) mWebControlBar.bringToFront();
+        mHandler.removeCallbacks(mWebLiveInjectRun);
+        mHandler.removeCallbacks(mWebLoadingTimeoutRun);
+        mHandler.postDelayed(mWebLiveInjectRun, 200);
+        mHandler.postDelayed(mWebLoadingTimeoutRun, 15000);
+        LOG.i("🎬 同域切台（复用 WebView）：" + newChannelName);
+    }
+
+    /** 两个 URL 是否同域名（只取 host，忽略 www 前缀和路径） */
+    private static boolean isSameHost(String a, String b) {
+        if (TextUtils.isEmpty(a) || TextUtils.isEmpty(b)) return false;
+        try {
+            String ha = Uri.parse(a).getHost();
+            String hb = Uri.parse(b).getHost();
+            if (ha == null || hb == null) return false;
+            ha = ha.toLowerCase();
+            hb = hb.toLowerCase();
+            if (ha.equals(hb)) return true;
+            // 忽略 www. 前缀差异
+            if (ha.startsWith("www.")) ha = ha.substring(4);
+            if (hb.startsWith("www.")) hb = hb.substring(4);
+            return ha.equals(hb);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
     private void releaseEmbeddedWebLive() {
         mWebLiveUrl = null;
         mWebLiveChannel = null;
