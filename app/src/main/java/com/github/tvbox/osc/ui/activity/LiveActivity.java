@@ -154,10 +154,7 @@ public class LiveActivity extends BaseActivity {
     // 保持直播页自身的排版与频道列表（和 NewBox 一致），不跳独立网页页面 =====
     private WebView mWebLiveView = null;
     private int mWebLiveTries = 0;
-    private ImageView mWebFullBtn = null;
-    private LinearLayout mWebControlBar = null;
-    private ImageView mWebPlayBtn = null;
-    private TextView mWebStatus = null;
+    private TextView mWebLoadingText = null;
     private View mWebLoading = null;
     private boolean mWebPaused = false;
     /** 网页播放器是否已经出过画面（用于判断线路是否可用） */
@@ -176,11 +173,15 @@ public class LiveActivity extends BaseActivity {
     private final Runnable mWebLiveInjectRun = new Runnable() {
         @Override
         public void run() {
-            if (mWebLiveView == null || mWebLiveTries++ >= 20) return;
+            if (mWebLiveView == null) return;
+            mWebLiveTries++;
             try {
-                mWebLiveView.evaluateJavascript(FullWebActivity.AUTO_PLAY_JS, null);
-                // 站点适配脚本（NewBox 同款）：藏站点 UI + 播放器铺满 + 必要时点选频道
-                WebLiveScripts.inject(mWebLiveView, mWebLiveUrl, mWebLiveChannel);
+                // 检测 500ms 一次；注入脚本 2 秒一次就够了（脚本较重）
+                if (mWebLiveTries % 4 == 1) {
+                    mWebLiveView.evaluateJavascript(FullWebActivity.AUTO_PLAY_JS, null);
+                    // 站点适配脚本（NewBox 同款）：藏站点 UI + 播放器铺满 + 必要时点选频道
+                    WebLiveScripts.inject(mWebLiveView, mWebLiveUrl, mWebLiveChannel);
+                }
                 // 页面里的 video 真正出画后再撤掉"正在打开网页…"，避免露出网页界面
                 mWebLiveView.evaluateJavascript(
                         "(function(){try{"
@@ -196,14 +197,13 @@ public class LiveActivity extends BaseActivity {
                             if ("true".equals(value)) {
                                 mWebPlayStarted = true;
                                 hideWebLoading();
-                            } else if (!mWebPlayStarted && mWebLiveTries >= 6 && mWebStatus != null) {
+                            } else if (!mWebPlayStarted && mWebLiveTries >= 12) {
                                 // 页面已加载完但一直没有画面：多半是站点改版/需要登录，给个明确提示
-                                mWebStatus.setVisibility(View.VISIBLE);
-                                mWebStatus.setText("网页线路未就绪，可切换线路");
+                                setWebLoadingText("网页线路未就绪，可切换线路");
                                 // 再等几秒仍无画面就自动切下一条线路（同一频道只切一次）
                                 String ch = currentLiveChannelItem == null ? null
                                         : currentLiveChannelItem.getChannelName();
-                                if (mWebLiveTries >= 8 && mWebAutoSwitchCount < 1) {
+                                if (mWebLiveTries >= 24 && mWebAutoSwitchCount < 1) {
                                     mWebAutoSwitchCount++;
                                     mWebAutoSwitchChannel = ch;
                                     ToastUtils.showShort("网页线路无画面，自动切换线路");
@@ -213,7 +213,8 @@ public class LiveActivity extends BaseActivity {
                         });
             } catch (Throwable ignored) {
             }
-            mHandler.postDelayed(this, 2000);
+            // 出画后就不用再轮询了；没出画时 500ms 一次，尽量快地撤掉黑幕
+            if (!mWebPlayStarted && mWebLiveTries < 60) mHandler.postDelayed(this, 500);
         }
     };
 
@@ -222,19 +223,25 @@ public class LiveActivity extends BaseActivity {
         @Override
         public void run() {
             if (mWebPlayStarted) return;
-            if (mWebStatus != null) {
-                mWebStatus.setVisibility(View.VISIBLE);
-                mWebStatus.setText("网页线路未就绪，可切换线路");
-            }
+            setWebLoadingText("网页线路未就绪，可切换线路");
             mHandler.postDelayed(this, 5000);
         }
     };
+
+    /** 更新"正在打开网页…"黑幕上的提示文字 */
+    private void setWebLoadingText(String text) {
+        if (mWebLoading == null) return;
+        if (mWebLoading.getVisibility() != View.VISIBLE) {
+            mWebLoading.setVisibility(View.VISIBLE);
+            mWebLoading.bringToFront();
+        }
+        if (mWebLoadingText != null) mWebLoadingText.setText(text);
+    }
 
     /** 撤掉"正在打开网页…"黑幕，露出网页播放画面 */
     private void hideWebLoading() {
         mHandler.removeCallbacks(mWebLoadingTimeoutRun);
         if (mWebLoading != null) mWebLoading.setVisibility(View.GONE);
-        if (mWebControlBar != null) mWebControlBar.bringToFront();
     }
 
 //EPG   by 龍
@@ -322,23 +329,8 @@ public class LiveActivity extends BaseActivity {
         //投屏/设置
         findViewById(R.id.ic_setting).setOnClickListener(view -> showSettingDialog(false));
         findViewById(R.id.ic_cast).setOnClickListener(view -> showCastDialog());
-        mWebFullBtn = findViewById(R.id.btn_web_fullscreen);
-        if (mWebFullBtn != null) {
-            mWebFullBtn.setOnClickListener(view -> toggleWebFullscreen());
-        }
-        mWebControlBar = findViewById(R.id.web_control_bar);
         mWebLoading = findViewById(R.id.web_loading);
-        mWebPlayBtn = findViewById(R.id.btn_web_play);
-        mWebStatus = findViewById(R.id.tv_web_status);
-        if (mWebPlayBtn != null) {
-            mWebPlayBtn.setOnClickListener(view -> toggleWebPlay());
-        }
-        ImageView prev = findViewById(R.id.btn_web_prev);
-        if (prev != null) prev.setOnClickListener(view -> playPreSource());
-        ImageView next = findViewById(R.id.btn_web_next);
-        if (next != null) next.setOnClickListener(view -> playNextSource());
-        ImageView reload = findViewById(R.id.btn_web_reload);
-        if (reload != null) reload.setOnClickListener(view -> reloadWebLive());
+        mWebLoadingText = findViewById(R.id.tv_web_loading_text);
 
         initVideoView();
         initChannelGroupView();
@@ -725,14 +717,36 @@ public class LiveActivity extends BaseActivity {
                 s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
             }
             wv.setBackgroundColor(Color.BLACK);
-            // 网页只当画面用（和 NewBox 一致）：不给焦点、吞掉所有触摸，
-            // 控制一律走原生控制栏，避免误点到网页里的其它页面。
+            // 网页只当画面用（和 NewBox 一致）：不给焦点、吞掉所有触摸。
+            // 手势沿用原生播放器的习惯：单击 播放/暂停，双击 全屏，长按 重载。
+            final android.view.GestureDetector gesture = new android.view.GestureDetector(this,
+                    new android.view.GestureDetector.SimpleOnGestureListener() {
+                        @Override
+                        public boolean onSingleTapConfirmed(android.view.MotionEvent e) {
+                            toggleWebPlay();
+                            return true;
+                        }
+
+                        @Override
+                        public boolean onDoubleTap(android.view.MotionEvent e) {
+                            toggleWebFullscreen();
+                            return true;
+                        }
+
+                        @Override
+                        public void onLongPress(android.view.MotionEvent e) {
+                            ToastUtils.showShort("重新加载网页");
+                            reloadWebLive();
+                        }
+                    });
             wv.setFocusable(false);
             wv.setFocusableInTouchMode(false);
             wv.setClickable(false);
             wv.setLongClickable(false);
-            wv.setOnTouchListener((v, e) -> true);
-            wv.setOnLongClickListener(v -> true);
+            wv.setOnTouchListener((v, e) -> {
+                gesture.onTouchEvent(e);
+                return true;
+            });
             s.setSupportZoom(false);
             s.setBuiltInZoomControls(false);
             s.setDisplayZoomControls(false);
@@ -744,12 +758,8 @@ public class LiveActivity extends BaseActivity {
                     mHandler.post(mWebLiveInjectRun);
                     // 注意：这里不能撤黑幕。页面加载完不代表已经在播，
                     // 提前撤掉会把网页本身（导航栏、频道列表）露出来。
-                    if (!mWebPlayStarted && mWebLoading != null) {
-                        mWebLoading.setVisibility(View.VISIBLE);
-                        mWebLoading.bringToFront();
-                        if (mWebControlBar != null) mWebControlBar.bringToFront();
-                    }
                     if (!mWebPlayStarted) {
+                        setWebLoadingText("正在打开网页…");
                         mHandler.removeCallbacks(mWebLoadingTimeoutRun);
                         mHandler.postDelayed(mWebLoadingTimeoutRun, 15000);
                     }
@@ -764,16 +774,7 @@ public class LiveActivity extends BaseActivity {
             wv.loadUrl(url);
             LOG.i("🎬 内嵌 WebView 已创建：" + url);
             // WebView 是最后 addView 的，会盖住加载层，这里重新置顶
-            if (mWebLoading != null) {
-                mWebLoading.setVisibility(View.VISIBLE);
-                mWebLoading.bringToFront();
-            }
-            // 手机版直接用原生控制栏（上一台/播放/重载/下一台/全屏）
-            if (mWebControlBar != null) {
-                mWebControlBar.setVisibility(View.VISIBLE);
-                mWebControlBar.bringToFront();
-            }
-            if (mWebFullBtn != null) mWebFullBtn.setVisibility(View.VISIBLE);
+            setWebLoadingText("正在打开网页…");
             // 兜底：15 秒还没出画面就保持黑幕并提示，绝不把网页界面露出来
             mHandler.postDelayed(mWebLoadingTimeoutRun, 15000);
             mWebPaused = false;
@@ -783,7 +784,6 @@ public class LiveActivity extends BaseActivity {
         }
     }
 
-    /** 释放内嵌 WebView，恢复原生播放器显示 */
     /** 同一域名下换台：复用 WebView，只在页面里切目标频道，不 reload 网页，
      * 避免每次换台都重新加载整个页面（像 NewBox CCTV1→CCTV2 那样）。 */
     private void switchChannelInPage(String newUrl, String newChannelName) {
@@ -794,25 +794,28 @@ public class LiveActivity extends BaseActivity {
         mWebPlayStarted = false;
         mWebPaused = false;
         mWebAutoSwitchCount = 0;
-        if (mWebPlayBtn != null) mWebPlayBtn.setImageResource(R.drawable.ic_ctl_pause);
-        if (mWebStatus != null) mWebStatus.setText("切换频道…");
-        // 先停掉旧视频，避免两个播放器同时存在
+        // 先停掉旧视频，避免两个播放器同时存在（只暂停，不动 src：
+        // 清 src 会把站点播放器实例弄坏，导致点频道后一直不出画）
         try {
             mWebLiveView.evaluateJavascript(
-                    "(function(){try{var v=document.querySelector('video');if(v){v.pause();try{v.src='';}catch(e){}}}catch(e){}})();",
+                    "(function(){try{var v=document.querySelector('video');if(v)v.pause();}catch(e){}})();",
                     null);
         } catch (Throwable ignored) {
         }
         // 盖回黑幕，别让切换过程露出网页
-        if (mWebLoading != null) {
-            mWebLoading.setVisibility(View.VISIBLE);
-            mWebLoading.bringToFront();
-        }
-        if (mWebControlBar != null) mWebControlBar.bringToFront();
+        setWebLoadingText("切换频道…");
         mHandler.removeCallbacks(mWebLiveInjectRun);
         mHandler.removeCallbacks(mWebLoadingTimeoutRun);
         mHandler.postDelayed(mWebLiveInjectRun, 200);
         mHandler.postDelayed(mWebLoadingTimeoutRun, 15000);
+        // 同域切台 8 秒还没出画：退回整页重载，保证不会卡死在黑幕
+        final String want = newChannelName;
+        mHandler.postDelayed(() -> {
+            if (mWebLiveView == null || mWebPlayStarted) return;
+            if (!TextUtils.equals(want, mWebLiveChannel)) return;
+            LOG.i("🎬 同域切台超时，整页重载：" + want);
+            reloadWebLive();
+        }, 8000);
         LOG.i("🎬 同域切台（复用 WebView）：" + newChannelName);
     }
 
@@ -841,8 +844,6 @@ public class LiveActivity extends BaseActivity {
         mHandler.removeCallbacks(mWebLiveInjectRun);
         mHandler.removeCallbacks(mWebLoadingTimeoutRun);
         if (mWebFullscreen) exitWebFullscreen();
-        if (mWebFullBtn != null) mWebFullBtn.setVisibility(View.GONE);
-        if (mWebControlBar != null) mWebControlBar.setVisibility(View.GONE);
         if (mWebLoading != null) mWebLoading.setVisibility(View.GONE);
         // 退出网页播放时还原 App 底部导航
         showView(R.id.bottom_nav);
@@ -867,10 +868,7 @@ public class LiveActivity extends BaseActivity {
                 + (mWebPaused ? "v.pause();" : "v.muted=false;v.play();")
                 + "}catch(e){}})();";
         mWebLiveView.evaluateJavascript(js, null);
-        if (mWebPlayBtn != null) {
-            mWebPlayBtn.setImageResource(mWebPaused ? R.drawable.ic_ctl_play : R.drawable.ic_ctl_pause);
-        }
-        if (mWebStatus != null) mWebStatus.setText(mWebPaused ? "已暂停" : "网页播放");
+        ToastUtils.showShort(mWebPaused ? "已暂停" : "继续播放");
     }
 
     /** 网页播放刷新：重新加载页面并重新注入适配脚本 */
@@ -880,19 +878,13 @@ public class LiveActivity extends BaseActivity {
         mWebPaused = false;
         mWebPlayStarted = false;
         mWebAutoSwitchCount = 0;
-        if (mWebPlayBtn != null) mWebPlayBtn.setImageResource(R.drawable.ic_ctl_pause);
-        if (mWebStatus != null) mWebStatus.setText("重新加载中…");
         // 重新加载期间盖回黑幕，别让网页界面露出来
-        if (mWebLoading != null) {
-            mWebLoading.setVisibility(View.VISIBLE);
-            mWebLoading.bringToFront();
-            if (mWebControlBar != null) mWebControlBar.bringToFront();
-        }
+        setWebLoadingText("重新加载中…");
         mHandler.removeCallbacks(mWebLoadingTimeoutRun);
         mHandler.postDelayed(mWebLoadingTimeoutRun, 15000);
         mWebLiveView.reload();
         mHandler.removeCallbacks(mWebLiveInjectRun);
-        mHandler.postDelayed(mWebLiveInjectRun, 3000);
+        mHandler.postDelayed(mWebLiveInjectRun, 800);
     }
 
     /** 全屏 / 退出全屏：网页播放同样支持横屏铺满（原播放器的全屏能力） */
@@ -929,8 +921,6 @@ public class LiveActivity extends BaseActivity {
                 View.SYSTEM_UI_FLAG_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
-        if (mWebFullBtn != null) mWebFullBtn.setImageResource(R.drawable.ic_web_fullscreen_exit);
-        if (mWebControlBar != null) mWebControlBar.bringToFront();
         syncWebLiveViewport();
     }
 
@@ -994,7 +984,6 @@ public class LiveActivity extends BaseActivity {
             mVideoView.setLayoutParams(vlp);
         }
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
-        if (mWebFullBtn != null) mWebFullBtn.setImageResource(R.drawable.ic_web_fullscreen_enter);
         syncWebLiveViewport();
     }
 
