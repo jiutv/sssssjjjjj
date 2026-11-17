@@ -76,8 +76,9 @@ public class FullWebActivity extends BaseActivity {
     public static final String RESULT_STREAM_HEADERS = "streamHeaders";
 
     private static final long TOP_BAR_HIDE_MS = 4000L;
-    // 嗅探超时：页面加载完成后 15 秒内没抓到流就留在网页播放，不再空等
-    private static final long SNIFF_TIMEOUT_MS = 15000L;
+    // 嗅探超时：页面加载完成后 45 秒内没抓到流才留在网页播放。
+    // 太短（15s）会让 SPA 站点来不及发出播放列表，导致大量频道退化成网页播放。
+    private static final long SNIFF_TIMEOUT_MS = 45000L;
 
     private WebView mWebView;
     private FrameLayout mRootContainer;
@@ -140,7 +141,8 @@ public class FullWebActivity extends BaseActivity {
             if (!mSniffFound) {
                 LOG.i("🎬 FullWebActivity 嗅探超时，留在网页播放");
                 mSniffFound = true; // 设为 true 阻止后续 shouldInterceptRequest 再拦截
-                LiveSniffMemory.markFailed(mEntryUrl);
+                // 注意：这里不再写失败记忆。超时可能只是站点加载慢，
+                // 记住会让该频道之后一直直接走网页、再也回不到原生播放。
                 // 没抓到流时至少让网页播放器铺满整屏，避免停在小窗口
                 try {
                     if (mWebView != null) {

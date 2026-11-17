@@ -13,12 +13,13 @@ import java.util.Map;
  *
  * <p>没抓到的地址下次直接进网页播放，不再干等一轮嗅探；
  * 抓成功过的地址会清掉记录，保证站点改版/源更新后能重新尝试。
- * 记录带 7 天有效期，避免一次失败永久粘住。</p>
+ * 记录带 1 天有效期，避免一次失败永久粘住。</p>
  */
 public final class LiveSniffMemory {
 
     private static final String KEY = "live_sniff_fail_v1";
-    private static final long TTL_MS = 7L * 24 * 60 * 60 * 1000;
+    // 记忆只保留 1 天：太久会让频道长期卡在「直接网页播放」回不到原生
+    private static final long TTL_MS = 24L * 60 * 60 * 1000;
     private static final int MAX_SIZE = 200;
 
     private LiveSniffMemory() {

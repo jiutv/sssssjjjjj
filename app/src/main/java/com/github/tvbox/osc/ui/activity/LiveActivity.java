@@ -160,6 +160,11 @@ public class LiveActivity extends BaseActivity {
     private TextView mWebStatus = null;
     private View mWebLoading = null;
     private boolean mWebPaused = false;
+    /** 网页播放器是否已经出过画面（用于判断线路是否可用） */
+    private boolean mWebPlayStarted = false;
+    /** 网页线路一直没画面时自动切下一条线路：同一频道最多一次，避免来回循环 */
+    private int mWebAutoSwitchCount = 0;
+    private String mWebAutoSwitchChannel = null;
     private boolean mWebFullscreen = false;
     // 进入全屏前的方向，退出时恢复；手机/云手机统一回竖屏
     private int mOrientationBeforeWebFull = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
@@ -182,7 +187,23 @@ public class LiveActivity extends BaseActivity {
                         "(function(){try{var v=document.querySelector('video');"
                                 + "return !!(v && v.currentTime>0 && v.videoWidth>0);}catch(e){return false;}})();",
                         value -> {
-                            if ("true".equals(value)) hideWebLoading();
+                            if ("true".equals(value)) {
+                                mWebPlayStarted = true;
+                                hideWebLoading();
+                            } else if (!mWebPlayStarted && mWebLiveTries >= 6 && mWebStatus != null) {
+                                // 页面已加载完但一直没有画面：多半是站点改版/需要登录，给个明确提示
+                                mWebStatus.setVisibility(View.VISIBLE);
+                                mWebStatus.setText("网页线路未就绪，可切换线路");
+                                // 再等几秒仍无画面就自动切下一条线路（同一频道只切一次）
+                                String ch = currentLiveChannelItem == null ? null
+                                        : currentLiveChannelItem.getChannelName();
+                                if (mWebLiveTries >= 8 && mWebAutoSwitchCount < 1) {
+                                    mWebAutoSwitchCount++;
+                                    mWebAutoSwitchChannel = ch;
+                                    ToastUtils.showShort("网页线路无画面，自动切换线路");
+                                    playNextSource();
+                                }
+                            }
                         });
             } catch (Throwable ignored) {
             }
@@ -608,14 +629,20 @@ public class LiveActivity extends BaseActivity {
      * 2. video:// 启动 LiveSniffer 后台嗅探，命中后把真实地址交给原生播放器；
      * 3. webview:// / webview-sniff:// 打开 FullWebActivity SNIFF 模式：
      *    用户能看到网页（自动全屏），shouldInterceptRequest 抓流，
-     *    命中回传给 LiveActivity → 原生播放器接手（NewBox / TVBoxOS 风格）；
-     *    15 秒内没抓到 → FullWebActivity 自己留在网页播放，用户手动按 back 返回。
+     *    命中回传给 LiveActivity → 原生播放器接手；
+     *    45 秒内没抓到 → FullWebActivity 自己留在网页播放，用户手动按 back 返回。
      */
     private static final int REQ_FULL_WEB_SNIFF = 0x4657; // 'FW'
 
     private void startLivePlay(LiveChannelItem item) {
         if (item == null) return;
         String rawUrl = item.getUrl();
+        // 换了频道就重置「网页无画面自动切线路」的计数，同频道内最多自动切一次
+        String curChannel = item.getChannelName();
+        if (curChannel == null || !curChannel.equals(mWebAutoSwitchChannel)) {
+            mWebAutoSwitchCount = 0;
+            mWebAutoSwitchChannel = null;
+        }
         if (TextUtils.isEmpty(rawUrl)) {
             mHandler.postDelayed(new Runnable() {
                 @Override
@@ -637,14 +664,15 @@ public class LiveActivity extends BaseActivity {
             return;
         } else if (rawUrl.startsWith("video://")) {
             if (LiveSniffMemory.isFailed(pureUrl)) {
-                // 后台嗅探是黑屏等待，失败过的地址直接进网页播放，避免再次空等
-                LOG.i("🎬 video:// 上次未识别 → 直接网页播放 → " + pureUrl);
-                ToastUtils.showShort("该频道上次未识别到直链，直接网页播放");
+                // 后台嗅探是黑屏等待，失败过的地址改为「网页 + 嗅探」：
+                // 至少能看到网页，同时仍然继续尝试抓流，不会永久退化成网页
+                LOG.i("🎬 video:// 上次未识别 → 网页+嗅探 → " + pureUrl);
+                ToastUtils.showShort("该频道上次未识别到直链，改用网页播放");
                 mPendingWebSniffUrl = pureUrl;
                 mLastWebLiveRelaunchAt = System.currentTimeMillis();
                 Intent intent = new Intent(this, FullWebActivity.class);
                 intent.putExtra(FullWebActivity.EXTRA_URL, pureUrl);
-                intent.putExtra(FullWebActivity.EXTRA_MODE, FullWebActivity.MODE_BROWSE);
+                intent.putExtra(FullWebActivity.EXTRA_MODE, FullWebActivity.MODE_SNIFF);
                 startActivityForResult(intent, REQ_FULL_WEB_SNIFF);
             } else {
                 startSniff(pureUrl);
@@ -697,6 +725,7 @@ public class LiveActivity extends BaseActivity {
         releaseEmbeddedWebLive();
         mWebLiveUrl = url;
         mWebLiveChannel = currentLiveChannelItem == null ? null : currentLiveChannelItem.getChannelName();
+        mWebPlayStarted = false;
         try {
             mVideoView.setVisibility(View.GONE);
             mVideoView.pause();
@@ -837,6 +866,32 @@ public class LiveActivity extends BaseActivity {
                         | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         if (mWebFullBtn != null) mWebFullBtn.setImageResource(R.drawable.ic_web_fullscreen_exit);
         if (mWebControlBar != null) mWebControlBar.bringToFront();
+        syncWebLiveViewport();
+    }
+
+    /**
+     * 全屏进入/退出后同步网页视口。
+     *
+     * <p>站点脚本按当前可视区域算尺寸（部分是像素值），容器一变化就必须重新排版，
+     * 否则会出现「退出全屏后网页还按全屏尺寸显示、盖住频道列表」。</p>
+     */
+    private void syncWebLiveViewport() {
+        if (mWebLiveView == null) return;
+        try {
+            mWebLiveView.evaluateJavascript(
+                    "(function(){try{window.dispatchEvent(new Event('resize'));"
+                            + "if(window.__tvboxRelayout)window.__tvboxRelayout();"
+                            + "if(window.__mboxFallback)window.__mboxFallback();}catch(e){}})()", null);
+        } catch (Throwable ignored) {
+        }
+        final String url = mWebLiveUrl;
+        final String channel = mWebLiveChannel;
+        // 等布局稳定后按新尺寸重新铺一次
+        mHandler.postDelayed(() -> {
+            if (mWebLiveView != null && url != null) {
+                WebLiveScripts.inject(mWebLiveView, url, channel);
+            }
+        }, 500);
     }
 
     private void exitWebFullscreen() {
@@ -854,6 +909,18 @@ public class LiveActivity extends BaseActivity {
             ViewGroup.LayoutParams lp = container.getLayoutParams();
             lp.height = mContainerHeightPx > 0 ? mContainerHeightPx : ConvertUtils.dp2px(240);
             container.setLayoutParams(lp);
+            // 网页内容超出容器时不能画到频道列表上去
+            if (container instanceof ViewGroup) {
+                ((ViewGroup) container).setClipChildren(true);
+                ((ViewGroup) container).setClipToPadding(true);
+            }
+        }
+        if (mWebLiveView != null) {
+            ViewGroup.LayoutParams wlp = mWebLiveView.getLayoutParams();
+            wlp.width = ViewGroup.LayoutParams.MATCH_PARENT;
+            wlp.height = ViewGroup.LayoutParams.MATCH_PARENT;
+            mWebLiveView.setLayoutParams(wlp);
+            mWebLiveView.requestLayout();
         }
         if (mVideoView != null) {
             ViewGroup.LayoutParams vlp = mVideoView.getLayoutParams();
@@ -862,6 +929,7 @@ public class LiveActivity extends BaseActivity {
         }
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
         if (mWebFullBtn != null) mWebFullBtn.setImageResource(R.drawable.ic_web_fullscreen_enter);
+        syncWebLiveViewport();
     }
 
     /**

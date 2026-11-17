@@ -27,6 +27,12 @@ public final class WebLiveScripts {
     /** 通用兜底脚本：选面积最大的 video/iframe 铺满 */
     private static final String GENERIC = "js/live/webview.js";
 
+    /**
+     * 最终兜底：不认任何站点选择器，按「面积最大的播放器」铺满。
+     * 站点脚本失效（改版）时靠它保证至少能全屏观看。
+     */
+    private static final String FALLBACK = "js/live/fallback.js";
+
     /** [域名正则, 脚本] —— 顺序敏感，特殊域名放前面 */
     private static final String[][] SITES = {
             {"(^|\\.)cctv\\.com$|(^|\\.)cctv\\.cn$", "js/live/cctv.js"},
@@ -109,6 +115,8 @@ public final class WebLiveScripts {
             }
             String generic = read(ctx, GENERIC);
             if (!TextUtils.isEmpty(generic)) view.evaluateJavascript(generic, null);
+            String fallback = read(ctx, FALLBACK);
+            if (!TextUtils.isEmpty(fallback)) view.evaluateJavascript(fallback, null);
             // 支持频道自动点选的站点脚本需要页面地址与频道名
             String call = "(function(){try{if(window.__tvboxInPageGo){window.__tvboxInPageGo("
                     + JSONObject.quote(pageUrl) + "," + JSONObject.quote(channelName == null ? "" : channelName)
