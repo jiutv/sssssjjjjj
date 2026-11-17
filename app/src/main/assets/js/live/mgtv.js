@@ -101,76 +101,84 @@
     } catch (e) {}
   }
 
-  function cameraIdFrom(url) {
+  function idFrom(url) {
+    var id = "";
     try {
-      return new URL(url || location.href, location.href).searchParams.get("cameraId") || "";
+      var u = new URL(url || location.href, location.href);
+      id = u.searchParams.get("sid") || u.searchParams.get("channelSid")
+        || u.searchParams.get("channel") || u.searchParams.get("channelId")
+        || u.searchParams.get("cameraId") || "";
     } catch (e) {}
-    return "";
+    return /^\d+$/.test(id) ? id : "";
   }
 
   function compact(s) {
-    return (s || "").replace(/\s+/g, "");
+    return (s || "").replace(/[\s\u00a0]+/g, "");
   }
 
   function channelLabel(el) {
-    return (el.getAttribute("title") || el.getAttribute("data-title") || el.textContent || "");
+    var name = el.querySelector ? el.querySelector(".name") : null;
+    return (el.getAttribute("data-channel-name") || el.getAttribute("title")
+      || (name ? name.textContent : "") || el.textContent || "");
   }
 
   function isSelected(el) {
     return (" " + (el.className || "") + " ").indexOf(" selected ") >= 0;
   }
 
-  function clickById(id) {
-    var links = document.querySelectorAll(".channels a.channel");
-    for (var i = 0; i < links.length; i++) {
-      var el = links[i];
-      if ((el.getAttribute("data-channel-sid") || "") !== id) continue;
-      if (isSelected(el)) return true;
-      el.click();
-      return true;
-    }
-    return false;
+  /** 频道项：新版直播页是页面顶层的 a.channel[data-channel-sid]，旧版外面还包着一层 .channels */
+  function channelEls() {
+    return document.querySelectorAll("a.channel, .channels a.channel");
   }
 
-  function clickByName(name) {
-    var want = compact(name);
-    if (!want) return false;
-    var links = document.querySelectorAll(".channels a.channel");
-    for (var i = 0; i < links.length; i++) {
-      var el = links[i];
-      if (compact(channelLabel(el)) !== want) continue;
-      if (isSelected(el)) return true;
-      el.click();
-      return true;
+  /** 按 sid 或频道名找频道：先精确匹配，再容忍「湖南都市 / 湖南都市频道」这类后缀差异 */
+  function findChannel(id, name) {
+    var els = channelEls();
+    var i;
+    if (id) {
+      for (i = 0; i < els.length; i++) {
+        if ((els[i].getAttribute("data-channel-sid") || "") === id) return els[i];
+      }
     }
-    return false;
+    var want = compact(name);
+    if (!want) return null;
+    var partial = null;
+    for (i = 0; i < els.length; i++) {
+      var lab = compact(channelLabel(els[i]));
+      if (!lab) continue;
+      if (lab === want) return els[i];
+      if (!partial && (lab.indexOf(want) >= 0 || want.indexOf(lab) >= 0)) partial = els[i];
+    }
+    return partial;
   }
 
   function clickWant(id, liveName) {
-    if (id) {
-      if (clickById(id)) {
-        window.__tvboxMgtvTab = 0;
-        return true;
-      }
-    } else if (liveName) {
-      if (clickByName(liveName)) {
-        window.__tvboxMgtvTab = 0;
-        return true;
-      }
-    } else {
-      return !!playerBox();
-    }
-    var tabs = document.querySelectorAll(".channels .tabs .item");
-    if (!tabs.length) return false;
-    var i = window.__tvboxMgtvTab || 0;
-    if (i >= tabs.length) {
+    var el = findChannel(id, liveName);
+    if (el) {
       window.__tvboxMgtvTab = 0;
+      if (isSelected(el)) return true;
+      var now = Date.now();
+      // 站点没刷新 selected 样式时，别每 2 秒重复点同一条，避免流被反复重载
+      if (window.__tvboxMgtvClickEl === el && now - (window.__tvboxMgtvClickAt || 0) < 10000) return true;
+      window.__tvboxMgtvClickEl = el;
+      window.__tvboxMgtvClickAt = now;
+      el.click();
+      return true;
+    }
+    if (id || liveName) {
+      var tabs = document.querySelectorAll(".channels .tabs .item");
+      if (!tabs.length) return false;
+      var i = window.__tvboxMgtvTab || 0;
+      if (i >= tabs.length) {
+        window.__tvboxMgtvTab = 0;
+        return false;
+      }
+      var tab = tabs[i];
+      window.__tvboxMgtvTab = i + 1;
+      if ((" " + tab.className + " ").indexOf(" selected ") < 0) tab.click();
       return false;
     }
-    var tab = tabs[i];
-    window.__tvboxMgtvTab = i + 1;
-    if ((" " + tab.className + " ").indexOf(" selected ") < 0) tab.click();
-    return false;
+    return !!playerBox();
   }
 
   function waitFrame(gen) {
@@ -191,13 +199,18 @@
   }
 
   window.__tvboxInPageGo = function (url, liveName) {
-    var id = cameraIdFrom(url);
+    var id = idFrom(url);
     var name = (liveName || "").replace(/^\s+|\s+$/g, "");
     var want = id ? ("id:" + id) : (name ? ("nm:" + name) : "");
     if (want && want === window.__tvboxMgtvWant) {
-      if (pictureReady()) tellReady(window.__tvboxMgtvPickGen);
-      else layout();
-      return;
+      // 每次注入都会走到这里：只有目标频道已经选中、或页面压根没有频道列表时才提前返回。
+      // 否则继续重试点击，避免频道列表比脚本晚渲染时一直停在默认频道（金鹰卡通）。
+      var cur = findChannel(id, name);
+      if (!cur || isSelected(cur)) {
+        if (pictureReady()) tellReady(window.__tvboxMgtvPickGen);
+        else layout();
+        return;
+      }
     }
     window.__tvboxMgtvWant = want;
     window.__tvboxMgtvTab = 0;
