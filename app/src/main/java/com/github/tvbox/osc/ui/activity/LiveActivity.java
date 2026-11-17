@@ -67,6 +67,7 @@ import com.github.tvbox.osc.util.LOG;
 import com.github.tvbox.osc.util.live.LiveSniffer;
 import com.github.tvbox.osc.util.live.TxtSubscribe;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.gyf.immersionbar.BarHide;
 import com.gyf.immersionbar.ImmersionBar;
 import com.lxj.xpopup.XPopup;
