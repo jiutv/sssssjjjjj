@@ -140,6 +140,13 @@ public class FullWebActivity extends BaseActivity {
             if (!mSniffFound) {
                 LOG.i("🎬 FullWebActivity 嗅探超时，留在网页播放");
                 mSniffFound = true; // 设为 true 阻止后续 shouldInterceptRequest 再拦截
+                // 没抓到流时至少让网页播放器铺满整屏，避免停在小窗口
+                try {
+                    if (mWebView != null) {
+                        mWebView.evaluateJavascript(PAGE_FULLSCREEN_JS, null);
+                    }
+                } catch (Throwable ignored) {
+                }
             }
         }
     };
@@ -191,12 +198,61 @@ public class FullWebActivity extends BaseActivity {
                     + "if(v){v.muted=false;v.controls=false;if(v.paused)v.play();}}catch(e){}"
                     + "})();";
 
+    /**
+     * 页面内 JS 钩子：很多站点（如奔腾融媒等地方台）的流地址没有 .m3u8 后缀，
+     * 单纯靠 shouldInterceptRequest 看 URL 识别不出来。
+     * 这里在页面里挂钩 XMLHttpRequest / fetch，判断响应体是否以 #EXTM3U 开头，
+     * 命中后通过 MBoxSniffer 桥回传给原生播放器；同时兜底扫描 <video> 的地址。
+     */
+    public static final String SNIFF_HOOK_JS = "(function(){"
+            + "if(window.__mboxHookInstalled)return;window.__mboxHookInstalled=true;"
+            + "function rep(u){try{if(u&&window.MBoxSniffer)window.MBoxSniffer.report(String(u));}catch(e){}}"
+            + "function pl(t){return typeof t==='string'&&t.indexOf('#EXTM3U')>=0;}"
+            + "var XO=XMLHttpRequest.prototype.open,XS=XMLHttpRequest.prototype.send;"
+            + "XMLHttpRequest.prototype.open=function(m,u){try{this.__mboxUrl=u;}catch(e){}return XO.apply(this,arguments);};"
+            + "XMLHttpRequest.prototype.send=function(){var x=this;"
+            + "x.addEventListener('load',function(){try{"
+            + "var ct=(x.getResponseHeader('Content-Type')||'').toLowerCase();"
+            + "var u=x.responseURL||x.__mboxUrl||'';"
+            + "if(ct.indexOf('mpegurl')>=0||ct.indexOf('m3u8')>=0){rep(u);return;}"
+            + "if(x.responseType===''||x.responseType==='text'){if(pl(x.responseText))rep(u);}"
+            + "}catch(e){}});return XS.apply(this,arguments);};"
+            + "if(window.fetch){var F=window.fetch;window.fetch=function(i,o){"
+            + "var u=(typeof i==='string')?i:((i&&i.url)||'');"
+            + "return F.apply(this,arguments).then(function(r){try{"
+            + "var ct=(r.headers.get('Content-Type')||'').toLowerCase();"
+            + "if(ct.indexOf('mpegurl')>=0||ct.indexOf('m3u8')>=0){rep(r.url||u);}"
+            + "else if(u.toLowerCase().indexOf('.m3u8')>=0){rep(r.url||u);}"
+            + "else if(ct.indexOf('text')>=0||ct===''){"
+            + "r.clone().text().then(function(t){if(pl(t))rep(r.url||u);}).catch(function(){});}"
+            + "}catch(e){}return r;});};}"
+            + "function scan(){try{var vs=document.querySelectorAll('video');"
+            + "for(var i=0;i<vs.length;i++){var s=vs[i].currentSrc||vs[i].src||'';"
+            + "if(s.indexOf('http')===0)rep(s);}}catch(e){}}"
+            + "setInterval(scan,2000);document.addEventListener('DOMContentLoaded',scan);"
+            + "})();";
+
+    /** JS 层的搜索桥：页面脚本抓到播放列表地址后回传给原生 */
+    private class SniffBridge {
+        @android.webkit.JavascriptInterface
+        public void report(final String url) {
+            if (!mSniffMode || TextUtils.isEmpty(url)) return;
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    onJsReport(url);
+                }
+            });
+        }
+    }
+
     private final Runnable mAutoPlayRun = new Runnable() {
         @Override
         public void run() {
             if (mWebView == null || mSniffFound || isFinishing()) return;
             if (mAutoPlayTries++ >= 15) return;
             try {
+                mWebView.evaluateJavascript(SNIFF_HOOK_JS, null);
                 mWebView.evaluateJavascript(AUTO_PLAY_JS, null);
                 if (isInPagePlayHost(mEntryUrl)) {
                     mWebView.evaluateJavascript(PAGE_FULLSCREEN_JS, null);
@@ -302,7 +358,7 @@ public class FullWebActivity extends BaseActivity {
      * - 开启 JS、自动播放、Cookie 全放行
      * - 嗅探模式下挂 SniffWebViewClient，浏览模式下挂 BrowseWebViewClient
      */
-    @SuppressLint("SetJavaScriptEnabled")
+    @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     private void initWebView() {
         WebSettings s = mWebView.getSettings();
 
@@ -327,6 +383,11 @@ public class FullWebActivity extends BaseActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             s.setAllowFileAccessFromFileURLs(true);
             s.setAllowUniversalAccessFromFileURLs(true);
+        }
+
+        // 嗅探模式：暴露 JS 桥，页面脚本抓到播放列表地址后回传
+        if (mSniffMode) {
+            mWebView.addJavascriptInterface(new SniffBridge(), "MBoxSniffer");
         }
 
         // Cookie 全放行
@@ -416,12 +477,21 @@ public class FullWebActivity extends BaseActivity {
         public void onPageStarted(WebView view, String url, Bitmap favicon) {
             showTopBar();
             super.onPageStarted(view, url, favicon);
+            // 尽早注入钩子，尽量赶在播放器发起请求之前
+            try {
+                view.evaluateJavascript(SNIFF_HOOK_JS, null);
+            } catch (Throwable ignored) {
+            }
         }
 
         @Override
         public void onPageFinished(WebView view, String url) {
             showTopBar();
             super.onPageFinished(view, url);
+            try {
+                view.evaluateJavascript(SNIFF_HOOK_JS, null);
+            } catch (Throwable ignored) {
+            }
             scheduleAutoPlay();
         }
 
@@ -500,6 +570,29 @@ public class FullWebActivity extends BaseActivity {
                 return true;
             }
             return l.contains("/live/") || l.contains("/hls/") || l.contains("/stream/");
+        }
+    }
+
+    /**
+     * 页面脚本通过 JS 桥上报的流地址（很多站点地址没有后缀，URL 规则识别不到）。
+     * 这类地址直接给高分，优先于普通候选。
+     */
+    private void onJsReport(String url) {
+        if (mSniffFound || isFinishing()) return;
+        String l = url.toLowerCase();
+        if (!l.startsWith("http")) return;
+        int score = 200;
+        if (l.contains(".mp4") && !l.contains("/live/") && !l.contains("/stream/") && !l.contains("/hls/")) {
+            // 无后缀判定的 mp4 多为宣传片/预告，降权但仍保留
+            score = 30;
+        }
+        LOG.i("🎬 JS 上报流 [" + score + "] " + url);
+        synchronized (mCandidates) {
+            mCandidates.put(url, score);
+        }
+        if (!mPickScheduled) {
+            mPickScheduled = true;
+            mHandler.postDelayed(mPickBestRun, PICK_DELAY_MS);
         }
     }
 

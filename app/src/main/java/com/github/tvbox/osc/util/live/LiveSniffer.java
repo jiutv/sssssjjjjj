@@ -23,6 +23,7 @@ import android.webkit.WebViewClient;
 
 import androidx.annotation.Nullable;
 
+import com.github.tvbox.osc.ui.activity.FullWebActivity;
 import com.github.tvbox.osc.util.AdBlocker;
 import com.github.tvbox.osc.util.DefaultConfig;
 import com.github.tvbox.osc.util.LOG;
@@ -72,6 +73,19 @@ public class LiveSniffer {
         }
     };
 
+    /** 周期性注入页面钩子，适配异步渲染的 H5 播放器 */
+    private final Runnable mHookRun = new Runnable() {
+        @Override
+        public void run() {
+            if (mFinished || mWebView == null) return;
+            try {
+                mWebView.evaluateJavascript(FullWebActivity.SNIFF_HOOK_JS, null);
+            } catch (Throwable ignored) {
+            }
+            mHandler.postDelayed(this, 1500);
+        }
+    };
+
     public LiveSniffer(Activity activity, Callback callback) {
         mActivity = activity;
         mCallback = callback;
@@ -89,12 +103,15 @@ public class LiveSniffer {
         mHandler.postDelayed(mTimeoutRun, SNIFF_TIMEOUT);
         mWebView.stopLoading();
         mWebView.loadUrl(pageUrl);
+        mHandler.removeCallbacks(mHookRun);
+        mHandler.postDelayed(mHookRun, 300);
         LOG.i("LiveSniffer start:" + pageUrl);
     }
 
     /** 停止当前嗅探，保留 WebView 以便复用 */
     public void stop() {
         mFinished = true;
+        mHandler.removeCallbacks(mHookRun);
         mHandler.removeCallbacks(mTimeoutRun);
         if (mWebView != null) {
             mWebView.stopLoading();
@@ -105,6 +122,7 @@ public class LiveSniffer {
     /** 直播页销毁时调用 */
     public void destroy() {
         mFinished = true;
+        mHandler.removeCallbacks(mHookRun);
         mHandler.removeCallbacks(mTimeoutRun);
         if (mWebView != null) {
             mWebView.stopLoading();
@@ -115,7 +133,7 @@ public class LiveSniffer {
         }
     }
 
-    @SuppressLint("SetJavaScriptEnabled")
+    @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     private void ensureWebView() {
         if (mWebView != null) {
             return;
@@ -169,7 +187,33 @@ public class LiveSniffer {
             }
         });
         webView.setWebViewClient(new SniffWebClient());
+        // 页面脚本抓到播放列表地址后通过 JS 桥回传（适配没有 .m3u8 后缀的站点）
+        webView.addJavascriptInterface(new HookBridge(), "MBoxSniffer");
         mWebView = webView;
+    }
+
+    /** JS 桥：页面内 XHR/fetch 钩子识别出播放列表后回传 */
+    private class HookBridge {
+        @android.webkit.JavascriptInterface
+        public void report(final String url) {
+            if (mFinished || TextUtils.isEmpty(url) || !url.startsWith("http")) return;
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (mFinished) return;
+                    HashMap<String, String> headers = new HashMap<>();
+                    if (!TextUtils.isEmpty(mPageUrl)) {
+                        headers.put("Referer", mPageUrl);
+                    }
+                    try {
+                        headers.put("User-Agent", mWebView.getSettings().getUserAgentString());
+                    } catch (Throwable ignored) {
+                    }
+                    LOG.i("LiveSniffer js found:" + url);
+                    found(url, headers);
+                }
+            });
+        }
     }
 
     private class SniffWebClient extends WebViewClient {
@@ -178,6 +222,15 @@ public class LiveSniffer {
         @Override
         public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
             handler.proceed();
+        }
+
+        @Override
+        public void onPageFinished(WebView view, String url) {
+            super.onPageFinished(view, url);
+            try {
+                view.evaluateJavascript(FullWebActivity.SNIFF_HOOK_JS, null);
+            } catch (Throwable ignored) {
+            }
         }
 
         @Override
@@ -309,6 +362,7 @@ public class LiveSniffer {
             return;
         }
         mFinished = true;
+        mHandler.removeCallbacks(mHookRun);
         mHandler.removeCallbacks(mTimeoutRun);
         final HashMap<String, String> resultHeaders = headers == null
                 ? new HashMap<String, String>() : headers;
@@ -329,6 +383,7 @@ public class LiveSniffer {
             return;
         }
         mFinished = true;
+        mHandler.removeCallbacks(mHookRun);
         mHandler.removeCallbacks(mTimeoutRun);
         if (mWebView != null) {
             mWebView.stopLoading();
