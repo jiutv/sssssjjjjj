@@ -63,6 +63,81 @@ public class TxtSubscribe {
         }
     }
 
+    /**
+     * 解析 M3U/M3U8 直播订阅（#EXTINF + group-title/tvg-name）
+     */
+    public static void parseM3u(LinkedHashMap<String, LinkedHashMap<String, ArrayList<String>>> out, String str) {
+        try {
+            BufferedReader reader = new BufferedReader(new StringReader(str));
+            String group = "未分组";
+            String name = null;
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty()) {
+                    continue;
+                }
+                if (line.startsWith("#EXTINF")) {
+                    String title = "";
+                    int comma = line.lastIndexOf(',');
+                    if (comma >= 0 && comma < line.length() - 1) {
+                        title = line.substring(comma + 1).trim();
+                    }
+                    String tvgName = attr(line, "tvg-name");
+                    String groupTitle = attr(line, "group-title");
+                    if (groupTitle != null && !groupTitle.trim().isEmpty()) {
+                        group = groupTitle.trim();
+                    }
+                    name = (tvgName == null || tvgName.trim().isEmpty()) ? title : tvgName.trim();
+                    if (name.isEmpty()) {
+                        name = "未命名";
+                    }
+                } else if (line.startsWith("#EXTGRP:")) {
+                    String extGroup = line.substring(8).trim();
+                    group = extGroup.isEmpty() ? "未分组" : extGroup;
+                } else if (line.startsWith("#")) {
+                    continue;
+                } else if (name != null) {
+                    add(out, group, name, line);
+                    name = null;
+                }
+            }
+            reader.close();
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private static void add(LinkedHashMap<String, LinkedHashMap<String, ArrayList<String>>> out,
+                            String group, String name, String url) {
+        if (!(url.startsWith("http") || url.startsWith("rtp") || url.startsWith("rtsp")
+                || url.startsWith("rtmp") || url.startsWith("video://") || url.startsWith("webview://"))) {
+            return;
+        }
+        LinkedHashMap<String, ArrayList<String>> channels = out.get(group);
+        if (channels == null) {
+            channels = new LinkedHashMap<>();
+            out.put(group, channels);
+        }
+        ArrayList<String> urls = channels.get(name);
+        if (urls == null) {
+            urls = new ArrayList<>();
+            channels.put(name, urls);
+        }
+        if (!urls.contains(url)) {
+            urls.add(url);
+        }
+    }
+
+    private static String attr(String line, String key) {
+        int idx = line.indexOf(key + "=\"");
+        if (idx < 0) {
+            return null;
+        }
+        int start = idx + key.length() + 2;
+        int end = line.indexOf('"', start);
+        return end > start ? line.substring(start, end) : null;
+    }
+
     public static JsonArray live2JsonArray(LinkedHashMap<String, LinkedHashMap<String, ArrayList<String>>> linkedHashMap) {
         JsonArray jsonarr = new JsonArray();
         for (String str : linkedHashMap.keySet()) {

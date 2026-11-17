@@ -1387,7 +1387,86 @@ public class LiveActivity extends BaseActivity {
         loadLiveSource(sourceUrl);
     }
 
-    /** 拉取并解析直播源（txt），成功后交给直播列表 */
+    /**
+     * 解析直播 JSON，兼容 {"groups":[...]}、裸数组、单个分组对象三种写法
+     */
+    private JsonArray parseJsonLives(String content) {
+        try {
+            com.google.gson.JsonElement element = new com.google.gson.JsonParser().parse(content);
+            if (element.isJsonArray()) {
+                return normalizeLives(element.getAsJsonArray());
+            }
+            if (element.isJsonObject()) {
+                com.google.gson.JsonObject obj = element.getAsJsonObject();
+                if (obj.has("groups") && obj.get("groups").isJsonArray()) {
+                    return normalizeLives(obj.getAsJsonArray("groups"));
+                }
+                if (obj.has("channels")) {
+                    JsonArray single = new JsonArray();
+                    single.add(obj);
+                    return normalizeLives(single);
+                }
+            }
+        } catch (Throwable e) {
+            android.util.Log.i("LiveSource", "直播 JSON 解析失败: " + e.getMessage());
+        }
+        return new JsonArray();
+    }
+
+    /**
+     * 统一成 ApiConfig.loadLives 需要的结构：{group, channels:[{name, urls:[]}]}
+     */
+    private JsonArray normalizeLives(JsonArray groups) {
+        JsonArray result = new JsonArray();
+        for (com.google.gson.JsonElement groupElement : groups) {
+            if (!groupElement.isJsonObject()) continue;
+            com.google.gson.JsonObject group = groupElement.getAsJsonObject();
+            String groupName = jsonStr(group, "group", jsonStr(group, "groupName", "未分组"));
+            JsonArray channels = group.has("channels") && group.get("channels").isJsonArray()
+                    ? group.getAsJsonArray("channels") : new JsonArray();
+            JsonArray outChannels = new JsonArray();
+            for (com.google.gson.JsonElement channelElement : channels) {
+                if (!channelElement.isJsonObject()) continue;
+                com.google.gson.JsonObject channel = channelElement.getAsJsonObject();
+                String name = jsonStr(channel, "name", jsonStr(channel, "channelName", ""));
+                if (name.isEmpty()) continue;
+                JsonArray urls = new JsonArray();
+                if (channel.has("urls") && channel.get("urls").isJsonArray()) {
+                    for (com.google.gson.JsonElement urlElement : channel.getAsJsonArray("urls")) {
+                        String url = urlElement.isJsonPrimitive() ? urlElement.getAsString().trim() : "";
+                        if (!url.isEmpty()) urls.add(url);
+                    }
+                } else if (channel.has("url") && channel.get("url").isJsonPrimitive()) {
+                    String url = channel.get("url").getAsString().trim();
+                    if (!url.isEmpty()) urls.add(url);
+                }
+                if (urls.size() == 0) continue;
+                JsonObject item = new JsonObject();
+                item.addProperty("name", name);
+                item.add("urls", urls);
+                outChannels.add(item);
+            }
+            if (outChannels.size() == 0) continue;
+            JsonObject outGroup = new JsonObject();
+            outGroup.addProperty("group", groupName.isEmpty() ? "未分组" : groupName);
+            outGroup.add("channels", outChannels);
+            result.add(outGroup);
+        }
+        return result;
+    }
+
+    private String jsonStr(com.google.gson.JsonObject obj, String key, String def) {
+        if (obj.has(key) && obj.get(key).isJsonPrimitive()) {
+            try {
+                String value = obj.get(key).getAsString().trim();
+                if (!value.isEmpty()) return value;
+            } catch (Throwable ignored) {
+            }
+        }
+        return def;
+    }
+
+    /** 拉取并解析直播源（txt / m3u / json），成功后交给直播列表 */
     private void loadLiveSource(String url) {
         showLoading();
         android.util.Log.i("LiveSource", "加载直播源: " + url);
@@ -1401,11 +1480,30 @@ public class LiveActivity extends BaseActivity {
             @Override
             public void onSuccess(Response<String> response) {
                 JsonArray livesArray;
-                LinkedHashMap<String, LinkedHashMap<String, ArrayList<String>>> linkedHashMap = new LinkedHashMap<>();
                 String content = response.body() == null ? "" : response.body();
-                android.util.Log.i("LiveSource", "直播源内容长度: " + content.length());
-                TxtSubscribe.parse(linkedHashMap, content);
-                livesArray = TxtSubscribe.live2JsonArray(linkedHashMap);
+                String trimmed = content.trim();
+                if (trimmed.startsWith("\uFEFF")) {
+                    // 部分订阅源带 UTF-8 BOM，会导致首行判断失败
+                    trimmed = trimmed.substring(1).trim();
+                }
+                String format;
+                LinkedHashMap<String, LinkedHashMap<String, ArrayList<String>>> linkedHashMap = new LinkedHashMap<>();
+                if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+                    // 标准 TVBox 直播 JSON：{"groups":[{"group":"央视","channels":[{"name":"CCTV-1","urls":["..."]}]}]}
+                    format = "json";
+                    livesArray = parseJsonLives(trimmed);
+                } else if (trimmed.startsWith("#EXTM3U") || trimmed.contains("#EXTINF")) {
+                    // M3U/M3U8 播放列表：常见订阅源格式
+                    format = "m3u";
+                    TxtSubscribe.parseM3u(linkedHashMap, content);
+                    livesArray = TxtSubscribe.live2JsonArray(linkedHashMap);
+                } else {
+                    format = "txt";
+                    TxtSubscribe.parse(linkedHashMap, content);
+                    livesArray = TxtSubscribe.live2JsonArray(linkedHashMap);
+                }
+                android.util.Log.i("LiveSource", "直播源格式: " + format + "，长度: " + content.length()
+                        + "，分组数: " + livesArray.size());
 
                 ApiConfig.get().loadLives(livesArray);
                 List<LiveChannelGroup> list = ApiConfig.get().getChannelGroupList();
