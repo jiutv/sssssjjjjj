@@ -181,7 +181,6 @@ public class LiveActivity extends BaseActivity {
                 mWebLiveView.evaluateJavascript(FullWebActivity.AUTO_PLAY_JS, null);
                 // 站点适配脚本（NewBox 同款）：藏站点 UI + 播放器铺满 + 必要时点选频道
                 WebLiveScripts.inject(mWebLiveView, mWebLiveUrl, mWebLiveChannel);
-                mWebLiveView.evaluateJavascript(WEB_LIVE_BAR_JS, null);
                 // 页面里的 video 真正出画后再撤掉"正在打开网页…"，避免露出网页界面
                 mWebLiveView.evaluateJavascript(
                         "(function(){try{var v=document.querySelector('video');"
@@ -217,71 +216,6 @@ public class LiveActivity extends BaseActivity {
             hideWebLoading();
         }
     };
-
-    /** JS 桥：网页内控制条按钮回调原生（切台 / 全屏） */
-    public class WebLiveBridge {
-        @android.webkit.JavascriptInterface
-        public void prev() {
-            runOnUiThread(() -> playPreSource());
-        }
-
-        @android.webkit.JavascriptInterface
-        public void next() {
-            runOnUiThread(() -> playNextSource());
-        }
-
-        @android.webkit.JavascriptInterface
-        public void fullscreen() {
-            runOnUiThread(() -> toggleWebFullscreen());
-        }
-    }
-
-    // 网页播放时控制条必须画在网页 DOM 里：HTML5 视频走 SurfaceView，
-    // 系统层级永远高于同窗口的原生 View，原生控制条怎么置顶都会被盖住。
-    // DOM 里的层叠是页面自己合成的，所以能正常盖在视频上；按钮通过 mbox 桥回调原生。
-    private static final String WEB_LIVE_BAR_JS =
-            "(function(){"
-                    + "if(window.__mboxBar){window.__mboxSync&&window.__mboxSync();return;}"
-                    + "window.__mboxBar=1;"
-                    + "var barCss='position:fixed;left:0;right:0;bottom:0;height:44px;z-index:2147483647;"
-                    + "display:flex;align-items:center;justify-content:space-between;padding:0 8px;"
-                    + "box-sizing:border-box;background:linear-gradient(to top,rgba(0,0,0,.82),rgba(0,0,0,.25),rgba(0,0,0,0));"
-                    + "color:#fff;transition:opacity .3s;opacity:1;pointer-events:auto;';"
-                    + "var gCss='display:flex;align-items:center;';"
-                    + "var bCss='width:44px;height:44px;display:flex;align-items:center;justify-content:center;';"
-                    + "var I={"
-                    + "prev:'<svg width=\\'22\\' height=\\'22\\' viewBox=\\'0 0 24 24\\' fill=\\'#fff\\'><path d=\\'M6 5h2.4v14H6z\\'/><path d=\\'M20 5v14L9.5 12z\\'/></svg>',"
-                    + "next:'<svg width=\\'22\\' height=\\'22\\' viewBox=\\'0 0 24 24\\' fill=\\'#fff\\'><path d=\\'M15.6 5H18v14h-2.4z\\'/><path d=\\'M4 5v14l10.5-7z\\'/></svg>',"
-                    + "play:'<svg width=\\'22\\' height=\\'22\\' viewBox=\\'0 0 24 24\\' fill=\\'#fff\\'><path d=\\'M8 5l12 7-12 7z\\'/></svg>',"
-                    + "pause:'<svg width=\\'22\\' height=\\'22\\' viewBox=\\'0 0 24 24\\' fill=\\'#fff\\'><path d=\\'M7 5h3.6v14H7zM13.4 5H17v14h-3.6z\\'/></svg>',"
-                    + "reload:'<svg width=\\'22\\' height=\\'22\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'#fff\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\'><path d=\\'M20 12a8 8 0 1 1-3.4-6.6\\'/><path d=\\'M20 4v5h-5\\'/></svg>',"
-                    + "full:'<svg width=\\'22\\' height=\\'22\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'#fff\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\'><path d=\\'M4 9V4h5\\'/><path d=\\'M20 15v5h-5\\'/><path d=\\'M15 4h5v5\\'/><path d=\\'M9 20H4v-5\\'/></svg>'"
-                    + "};"
-                    + "var bar=document.createElement('div');bar.id='mbox-bar';bar.style.cssText=barCss;"
-                    + "var L=document.createElement('div');L.style.cssText=gCss;"
-                    + "var R=document.createElement('div');R.style.cssText=gCss;"
-                    + "function mk(html,fn){var b=document.createElement('div');b.style.cssText=bCss;b.innerHTML=html;"
-                    + "b.addEventListener('click',function(e){e.stopPropagation();fn();show();},false);return b;}"
-                    + "function video(){try{return document.querySelector('video');}catch(e){return null;}}"
-                    + "function sync(){var v=video();if(bPlay&&v){bPlay.innerHTML=v.paused?I.play:I.pause;}}"
-                    + "var bPlay=mk(I.play,function(){var v=video();if(!v)return;"
-                    + "if(v.paused){v.play();}else{v.pause();}setTimeout(sync,300);});"
-                    + "var bPrev=mk(I.prev,function(){try{mbox.prev();}catch(e){}});"
-                    + "var bReload=mk(I.reload,function(){location.reload();});"
-                    + "var bNext=mk(I.next,function(){try{mbox.next();}catch(e){}});"
-                    + "var bFull=mk(I.full,function(){try{mbox.fullscreen();}catch(e){}});"
-                    + "L.appendChild(bPrev);L.appendChild(bPlay);L.appendChild(bReload);L.appendChild(bNext);"
-                    + "R.appendChild(bFull);bar.appendChild(L);bar.appendChild(R);"
-                    + "window.__mboxSync=sync;"
-                    + "var t=null;"
-                    + "function show(){bar.style.opacity='1';bar.style.pointerEvents='auto';"
-                    + "if(t)clearTimeout(t);"
-                    + "t=setTimeout(function(){bar.style.opacity='0';bar.style.pointerEvents='none';},5000);}"
-                    + "document.addEventListener('click',function(){show();},true);"
-                    + "document.addEventListener('touchstart',function(){show();},true);"
-                    + "(document.body||document.documentElement).appendChild(bar);"
-                    + "sync();show();"
-                    + "})();";
 
     /** 撤掉"正在打开网页…"黑幕，露出网页播放画面 */
     private void hideWebLoading() {
@@ -743,18 +677,13 @@ public class LiveActivity extends BaseActivity {
                 s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
             }
             wv.setBackgroundColor(Color.BLACK);
-            // 网页只当画面用（和 NewBox 一致）：不给焦点、吞掉触摸，
-            // 遥控器与点击一律由原生控制条处理，避免误点到网页里的其它页面。
+            // 网页只当画面用（和 NewBox 一致）：不给焦点、吞掉所有触摸，
+            // 控制一律走原生控制栏，避免误点到网页里的其它页面。
             wv.setFocusable(false);
             wv.setFocusableInTouchMode(false);
             wv.setClickable(false);
             wv.setLongClickable(false);
-            wv.setOnTouchListener((v, e) -> {
-                // 只有底部我们自己那条控制栏（网页内 DOM）允许点击，
-                // 其余区域一律吞掉：网页只当画面用，避免误点到站内其它页面。
-                float barPx = 56 * getResources().getDisplayMetrics().density;
-                return !(e.getY() >= v.getHeight() - barPx);
-            });
+            wv.setOnTouchListener((v, e) -> true);
             wv.setOnLongClickListener(v -> true);
             s.setSupportZoom(false);
             s.setBuiltInZoomControls(false);
@@ -774,10 +703,6 @@ public class LiveActivity extends BaseActivity {
             ((ViewGroup) container).addView(wv, lp);
             mWebLiveView = wv;
             mWebLiveTries = 0;
-            try {
-                wv.addJavascriptInterface(new WebLiveBridge(), "mbox");
-            } catch (Throwable ignored) {
-            }
             wv.loadUrl(url);
             LOG.i("🎬 内嵌 WebView 已创建：" + url);
             // WebView 是最后 addView 的，会盖住加载层，这里重新置顶
@@ -785,9 +710,12 @@ public class LiveActivity extends BaseActivity {
                 mWebLoading.setVisibility(View.VISIBLE);
                 mWebLoading.bringToFront();
             }
-            // 原生控制条会被网页视频的 SurfaceView 盖住，改用网页内 DOM 控制条
-            if (mWebControlBar != null) mWebControlBar.setVisibility(View.GONE);
-            if (mWebFullBtn != null) mWebFullBtn.setVisibility(View.GONE);
+            // 手机版直接用原生控制栏（上一台/播放/重载/下一台/全屏）
+            if (mWebControlBar != null) {
+                mWebControlBar.setVisibility(View.VISIBLE);
+                mWebControlBar.bringToFront();
+            }
+            if (mWebFullBtn != null) mWebFullBtn.setVisibility(View.VISIBLE);
             // 兜底：15 秒还没加载完也把黑幕撤掉，避免一直停在"正在打开网页…"
             mHandler.postDelayed(mWebLoadingTimeoutRun, 15000);
             mWebPaused = false;
