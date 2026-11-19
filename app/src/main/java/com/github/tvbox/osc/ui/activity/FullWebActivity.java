@@ -284,20 +284,21 @@ public class FullWebActivity extends BaseActivity {
     private final Runnable mAutoPlayRun = new Runnable() {
         @Override
         public void run() {
-            // 注意：不能因为 mSniffFound（嗅探超时）就停止补注。超时后页面还在，
-            // SPA 一重建 DOM 样式就没了，网页顶栏/频道列表会重新露出来。
             if (mWebView == null || isFinishing()) return;
-            // 站点多为 SPA，DOM 可能几十秒后才稳定，且重建 DOM 会把注入的 <style> 冲掉，
-            // 所以只要页面还在就每 2 秒补注一次，不设次数上限
             mAutoPlayTries++;
             try {
                 mWebView.evaluateJavascript(SNIFF_HOOK_JS, null);
                 mWebView.evaluateJavascript(AUTO_PLAY_JS, null);
-                // 首次注入同时触发页内切台；之后只补样式/铺满，不重复切台
+                // 首次注入完整站点脚本（含 CSS + MutationObserver + relayout + 页内切台）
+                // 之后只调 relayout：MutationObserver 已在页面里常驻，SPA DOM 重建时会自愈，
+                // 不需要反复 evaluate 整份 8-10KB 的 JS 文件（页面打开时慢就是因为这个）
                 if (mAutoPlayTries == 1) {
                     WebLiveScripts.inject(mWebView, mEntryUrl, null);
                 } else {
-                    WebLiveScripts.injectScripts(mWebView, mEntryUrl);
+                    mWebView.evaluateJavascript(
+                            "(function(){try{window.dispatchEvent(new Event('resize'));" +
+                                    "if(window.__tvboxRelayout)window.__tvboxRelayout();" +
+                                    "}catch(e){}})();", null);
                 }
             } catch (Throwable t) {
                 LOG.i("autoPlay 注入失败: " + t);
@@ -423,6 +424,9 @@ public class FullWebActivity extends BaseActivity {
         s.setLoadWithOverviewMode(true);
         // 允许网页视频自动播放（不走用户手势）
         s.setMediaPlaybackRequiresUserGesture(false);
+        // 性能：关掉 WebView 内部过渡动画 + 提升渲染优先级，让页面加载/切换更快
+        s.setEnableSmoothTransition(false);
+        s.setRenderPriority(WebSettings.RenderPriority.HIGH);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);

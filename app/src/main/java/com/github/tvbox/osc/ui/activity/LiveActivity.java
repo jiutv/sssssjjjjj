@@ -175,22 +175,27 @@ public class LiveActivity extends BaseActivity {
     private String mWebLiveUrl = null;
     private String mWebLiveChannel = null;
     /**
-     * 页面加载后周期性补注站点脚本。
+     * 网页播放期间周期性重排（只调 relayout，不重注入完整站点脚本）。
      *
-     * <p>这些站点多是 Vue SPA，加载完成后还会重建 DOM，早先注入的 &lt;style&gt; 节点
-     * 会被整体替换掉，表现为过一会儿顶栏、频道列表又露出来。补注只重放脚本，
-     * 不调 __tvboxInPageGo，所以不会把已经切好的频道再切一次。</p>
+     * <p>站点脚本和通用兜底都带 MutationObserver，SPA 重建 DOM 时会自动重新 bind video、
+     * 重刷 CSS，不需要 Android 层反复 evaluate 整份 8-10KB 的 JS 文件——否则每 5 秒一次
+     * 会让 WebView 持续解析执行脚本，页面加载/切换时速度明显变慢。
+     *
+     * <p>完整脚本只在 onPageFinished、换台（navigateWebLive / switchChannelInPage）、
+     * 进/退全屏这些关键时机手动注入一次即可。</p>
      */
     private final Runnable mWebLiveReinjectRun = new Runnable() {
         @Override
         public void run() {
             if (mWebLiveView == null || mWebLiveUrl == null) return;
             try {
-                WebLiveScripts.injectScripts(mWebLiveView, mWebLiveUrl);
+                // 只调 relayout：让 fillBox / paint 按最新视口尺寸重算 fixed 像素值
+                mWebLiveView.evaluateJavascript(
+                        "(function(){try{window.dispatchEvent(new Event('resize'));" +
+                                "if(window.__tvboxRelayout)window.__tvboxRelayout();" +
+                                "}catch(e){}})();", null);
             } catch (Throwable ignored) {
             }
-            // 网页播放期间一直补注：站点是 SPA，随时可能重建 DOM 把注入的样式冲掉，
-            // 只补 60 秒的话看一会儿网页顶栏、频道列表又会露出来
             mHandler.postDelayed(this, 5000);
         }
     };
@@ -774,6 +779,9 @@ public class LiveActivity extends BaseActivity {
             s.setUseWideViewPort(true);
             s.setLoadWithOverviewMode(true);
             s.setMediaPlaybackRequiresUserGesture(false);
+            // 性能：关掉 WebView 内部过渡动画 + 提升渲染优先级，让页面加载/切换更快
+            s.setEnableSmoothTransition(false);
+            s.setRenderPriority(WebSettings.RenderPriority.HIGH);
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
                 s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
             }
