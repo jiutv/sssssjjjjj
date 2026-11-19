@@ -270,6 +270,17 @@ public class FullWebActivity extends BaseActivity {
         }
     }
 
+    private void relayoutWebPage() {
+        if (mWebView == null) return;
+        try {
+            mWebView.evaluateJavascript(
+                    "(function(){try{window.dispatchEvent(new Event('resize'));" +
+                            "if(window.__tvboxRelayout)window.__tvboxRelayout();" +
+                            "}catch(e){}})();", null);
+        } catch (Throwable ignored) {
+        }
+    }
+
     private final Runnable mAutoPlayRun = new Runnable() {
         @Override
         public void run() {
@@ -314,6 +325,17 @@ public class FullWebActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
 
         mWebView = findViewById(R.id.full_web_view);
+        // 窗口/全屏尺寸变化时同步网页视口：网页里 fixed 定位的播放器不会自动跟着缩，
+        // 不然退出全屏后画面还按全屏尺寸排版，站点自己的频道列表又露出来
+        mWebView.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            @Override
+            public void onLayoutChange(View v, int left, int top, int right, int bottom,
+                                       int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                if ((right - left) != (oldRight - oldLeft) || (bottom - top) != (oldBottom - oldTop)) {
+                    relayoutWebPage();
+                }
+            }
+        });
         mRootContainer = findViewById(R.id.root_container);
         mTopBar = findViewById(R.id.top_bar);
         mBtnBack = findViewById(R.id.btn_back);

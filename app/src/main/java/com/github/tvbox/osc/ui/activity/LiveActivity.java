@@ -836,6 +836,17 @@ public class LiveActivity extends BaseActivity {
                     RelativeLayout.LayoutParams.MATCH_PARENT);
             ((ViewGroup) container).addView(wv, lp);
             mWebLiveView = wv;
+            // WebView 尺寸一变（进出全屏、桌面窗口缩放）就同步网页视口，
+            // 否则网页里 fixed 定位的播放器不会跟着缩，退全屏后画面还按全屏尺寸排
+            wv.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+                @Override
+                public void onLayoutChange(View v, int left, int top, int right, int bottom,
+                                           int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                    if ((right - left) != (oldRight - oldLeft) || (bottom - top) != (oldBottom - oldTop)) {
+                        syncWebLiveViewport();
+                    }
+                }
+            });
             mWebLiveTries = 0;
             wv.loadUrl(url);
             LOG.i("🎬 内嵌 WebView 已创建：" + url);
@@ -1080,6 +1091,17 @@ public class LiveActivity extends BaseActivity {
         }
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
         syncWebLiveViewport();
+        // 退出全屏时方向切换、容器高度恢复都有延迟，立即同步时 WebView 还是全屏尺寸，
+        // 等布局稳定后再补一次，避免画面按旧视口尺寸排版、把频道列表又挡住
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (mWebLiveView != null) {
+                    mWebLiveView.requestLayout();
+                    syncWebLiveViewport();
+                }
+            }
+        }, 350);
     }
 
     /**

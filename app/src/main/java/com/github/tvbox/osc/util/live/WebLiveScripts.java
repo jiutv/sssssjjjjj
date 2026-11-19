@@ -131,6 +131,10 @@ public final class WebLiveScripts {
             // 通用兜底（live.webview.js），选面积最大的播放器铺满
             String generic = read(ctx, GENERIC);
             if (!TextUtils.isEmpty(generic)) view.evaluateJavascript(generic, null);
+            // 补注时顺手重排一次：SPA 重建 DOM 后旧的 fixed 尺寸可能已失效
+            view.evaluateJavascript(
+                    "(function(){try{if(window.__tvboxRelayout)window.__tvboxRelayout();}catch(e){}})();",
+                    null);
         } catch (Throwable t) {
             Log.e(TAG, "注入脚本失败: " + pageUrl, t);
         }

@@ -1,5 +1,11 @@
 (function () {
-  if (window.__tvboxWebLiveBoot) return;
+  if (window.__tvboxWebLiveBoot) {
+    // 站点脚本每次补注都会重新定义 __tvboxRelayout，这里要把它重新包一层
+    try {
+      if (window.__tvboxInstallRelayout) window.__tvboxInstallRelayout();
+    } catch (e) {}
+    return;
+  }
   window.__tvboxWebLiveBoot = 1;
 
   var CTRL = [
@@ -32,7 +38,10 @@
 
   function canFill() {
     if (!siteMode) return true;
-    if (window.__tvboxLayoutReady) return false; // 站点脚本已铺满，别和它抢
+    // 站点脚本自称已铺满（__tvboxLayoutReady=1）时不能直接相信：
+    // 类名失效后它可能只把播放器塞在页面顶部，下面的线路栏、频道列表照样露着。
+    // 这里按「播放器有没有真的盖住视口」复核一次。
+    if (window.__tvboxLayoutReady) return !playerShown();
     return Date.now() >= forceAt;
   }
 
@@ -87,6 +96,23 @@
       } catch (e) {}
     }
     return null;
+  }
+
+  function coversViewport(el, s) {
+    if (!el || !el.getBoundingClientRect) return false;
+    var r = el.getBoundingClientRect();
+    return r.width >= s.w * 0.92 && r.height >= s.h * 0.92
+        && Math.abs(r.left - s.x) <= 6 && Math.abs(r.top - s.y) <= 6;
+  }
+
+  /** 播放器是否真的铺满视口（站点脚本的 data-tvbox-box 标记只作为参考） */
+  function playerShown() {
+    var s = vp();
+    var v = videoEl();
+    if (v && coversViewport(v, s)) return true;
+    var box = document.querySelector("[data-tvbox-box]");
+    if (box && coversViewport(box, s)) return true;
+    return false;
   }
 
   function iframeEl() {
@@ -232,13 +258,30 @@
     }
   }
 
-  window.__tvboxRelayout = window.__tvboxRelayout || function () {
-    if (!canFill()) return;
-    var el = videoEl() || iframeEl();
-    if (!el) return;
-    el.removeAttribute("data-tvbox-fill");
-    paint(el);
-  };
+  // 站点脚本通常自己定义了 __tvboxRelayout，但它的 layout 可能因类名失效而空转；
+  // 这里保留站点版本，同时叠加通用复检，保证退出全屏/窗口变化后还能重新铺满。
+  // 站点脚本补注时会覆盖掉这个函数，所以包装器做成可重复安装的。
+  function installRelayout() {
+    var cur = window.__tvboxRelayout;
+    if (cur && cur.__tvboxWrapped) return;
+    var siteRelayout = cur;
+    var wrap = function () {
+      if (siteRelayout) {
+        try {
+          siteRelayout();
+        } catch (e) {}
+      }
+      if (!canFill()) return;
+      var el = videoEl() || iframeEl();
+      if (!el) return;
+      el.removeAttribute("data-tvbox-fill");
+      paint(el);
+    };
+    wrap.__tvboxWrapped = 1;
+    window.__tvboxRelayout = wrap;
+  }
+  window.__tvboxInstallRelayout = installRelayout;
+  installRelayout();
 
   if (document.body && window.MutationObserver) {
     try {
@@ -254,7 +297,7 @@
   cssOnce();
   var n = 0;
   function tick() {
-    if (readySent || window.__tvboxLayoutReady) return;
+    if (readySent) return;
     try {
       bindVideo();
       tellReady();
