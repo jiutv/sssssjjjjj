@@ -62,6 +62,8 @@ public final class WebLiveScripts {
             {"(^|\\.)cditv\\.(cn|com)$", "js/live/cditv.js"},
             {"(^|\\.)dtradio\\.(com|cn)$", "js/live/dtradio.js"},
             {"(^|\\.)fjtv\\.net$", "js/live/fjtv.js"},
+            {"(^|\\.)iqilu\\.com$", "js/live/iqilu.js"},
+            {"(^|\\.)kankanews\\.com$", "js/live/kankanews.js"},
     };
 
     private static final Map<String, String> CACHE = new HashMap<>();

@@ -8,11 +8,16 @@
     var s = document.createElement("style");
     s.id = "tvbox-gzstv-css";
     s.textContent =
-      "html,body{margin:0!important;padding:0!important;width:100%!important;height:100%!important;" +
-      "overflow:hidden!important;background:#000!important}" +
-      ".page-header,.menubar,.video-attr,.djnews,footer,.site-info,.site-links," +
-      ".vjs-poster,.vjs-big-play-button,.vjs-control-bar,.vjs-loading-spinner,.vjs-error-display" +
-      "{display:none!important;pointer-events:none!important}" +
+      "html,body,#__nuxt,#__layout,.container-view,.live-main-wrap,.videoplayer-wrap{" +
+      "margin:0!important;padding:0!important;background:#000!important}" +
+      "html,body{width:100%!important;height:100%!important;overflow:hidden!important}" +
+      ".page-header,.menubar,.gzstv-logo,.menu,.navbtn,.nav-menu,.dropdown-menu," +
+      ".video-attr,.djnews,.footer,.links-wrap,.links,.site-info,.nuxt-progress," +
+      ".vjs-poster,.vjs-big-play-button,.vjs-control-bar,.vjs-loading-spinner," +
+      ".vjs-error-display,.vjs-text-track-display,.vjs-modal-dialog,.vjs-overlay," +
+      ".vjs-dock,.vjs-title-bar,.vjs-menu,.vjs-hidden" +
+      "{display:none!important;visibility:hidden!important;pointer-events:none!important;opacity:0!important}" +
+      ".video-js>:not(video):not(.vjs-tech){display:none!important;pointer-events:none!important}" +
       "video::-webkit-media-controls{display:none!important}";
     parent.appendChild(s);
   }
@@ -39,8 +44,7 @@
   }
 
   function hideSiblings(el) {
-    if (!el || el.getAttribute("data-tvbox-hid") === "1") return;
-    el.setAttribute("data-tvbox-hid", "1");
+    if (!el) return;
     var n = el;
     while (n && n !== document.body && n !== document.documentElement) {
       var p = n.parentElement;
@@ -52,6 +56,7 @@
         var tag = c.tagName;
         if (tag === "SCRIPT" || tag === "STYLE" || tag === "LINK" || tag === "META") continue;
         c.style.setProperty("display", "none", "important");
+        c.style.setProperty("visibility", "hidden", "important");
       }
       n = p;
     }
@@ -68,6 +73,7 @@
         n.style.setProperty("clip", "auto", "important");
         n.style.setProperty("clip-path", "none", "important");
         n.style.setProperty("contain", "none", "important");
+        n.style.setProperty("background", "#000", "important");
       }
       n = n.parentElement;
     }
@@ -90,10 +96,7 @@
     var s = vp();
     var box = playerBox();
     var v = videoEl();
-    if (box) {
-      hideSiblings(box);
-      pin(box, s, 9998);
-    }
+    if (box) hideSiblings(box);
     if (v) {
       unclip(v);
       try {
@@ -138,12 +141,6 @@
     if (readySent) return;
     if (!pictureReady()) return;
     readySent = 1;
-    if (mo) {
-      try {
-        mo.disconnect();
-      } catch (e) {}
-      mo = null;
-    }
     tellReady();
   }
 
@@ -182,7 +179,7 @@
       mo = new MutationObserver(function () {
         layout();
         bindVideo();
-        maybeReady();
+        if (!readySent) maybeReady();
       });
       mo.observe(document.documentElement, { childList: true, subtree: true });
     } catch (e) {}
@@ -193,8 +190,8 @@
     try {
       layout();
       bindVideo();
-      maybeReady();
-      if (readySent) return;
+      if (!readySent) maybeReady();
+      else if (n > 80) return;
     } catch (e) {}
     n += 1;
     if (n < 40) setTimeout(tick, 80);

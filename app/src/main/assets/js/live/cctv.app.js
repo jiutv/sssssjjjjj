@@ -57,6 +57,9 @@
       stopChromeNet();
       laid = true;
       window.__tvboxLayoutReady = 1;
+      try {
+        if (window.TvboxWebLive) window.TvboxWebLive.onReady(window.__tvboxCoverSeq || 0);
+      } catch (e) {}
     }
     return true;
   }

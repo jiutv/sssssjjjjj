@@ -159,6 +159,10 @@ public class LiveActivity extends BaseActivity {
     private boolean mWebPaused = false;
     /** 网页播放器是否已经出过画面（用于判断线路是否可用） */
     private boolean mWebPlayStarted = false;
+    /** 站点脚本是否回调过 onReady（NewBox 的 TvboxWebLive 桥） */
+    private boolean mWebBridgeSeen = false;
+    /** 正在同页切台，等站点脚本确认新频道出画（避免把旧画面当就绪） */
+    private boolean mWebSwitchPending = false;
     /** 网页线路一直没画面时自动切下一条线路：同一频道最多一次，避免来回循环 */
     private int mWebAutoSwitchCount = 0;
     private String mWebAutoSwitchChannel = null;
@@ -176,8 +180,9 @@ public class LiveActivity extends BaseActivity {
             if (mWebLiveView == null) return;
             mWebLiveTries++;
             try {
-                // 检测 500ms 一次；注入脚本 2 秒一次就够了（脚本较重）
-                if (mWebLiveTries % 4 == 1) {
+                // 检测 500ms 一次；脚本注入只在开始和 6 秒后各一次
+                // （NewBox 脚本内部自带重试，反复注入会开出多条并行等待链）
+                if (mWebLiveTries == 1 || mWebLiveTries == 13) {
                     mWebLiveView.evaluateJavascript(FullWebActivity.AUTO_PLAY_JS, null);
                     // 站点适配脚本（NewBox 同款）：藏站点 UI + 播放器铺满 + 必要时点选频道
                     WebLiveScripts.inject(mWebLiveView, mWebLiveUrl, mWebLiveChannel);
@@ -195,15 +200,19 @@ public class LiveActivity extends BaseActivity {
                                 + "}catch(e){return false;}})();",
                         value -> {
                             if ("true".equals(value)) {
+                                // 同页切台时，旧画面往往还在播；只有站点脚本 onReady
+                                // 或 8 秒兜底重载后才算新频道就绪
+                                if (mWebSwitchPending && !mWebBridgeSeen) return;
                                 mWebPlayStarted = true;
+                                mWebSwitchPending = false;
                                 hideWebLoading();
-                            } else if (!mWebPlayStarted && mWebLiveTries >= 12) {
+                            } else if (!mWebPlayStarted && mWebLiveTries >= 24) {
                                 // 页面已加载完但一直没有画面：多半是站点改版/需要登录，给个明确提示
                                 setWebLoadingText("网页线路未就绪，可切换线路");
                                 // 再等几秒仍无画面就自动切下一条线路（同一频道只切一次）
                                 String ch = currentLiveChannelItem == null ? null
                                         : currentLiveChannelItem.getChannelName();
-                                if (mWebLiveTries >= 24 && mWebAutoSwitchCount < 1) {
+                                if (mWebLiveTries >= 48 && mWebAutoSwitchCount < 1) {
                                     mWebAutoSwitchCount++;
                                     mWebAutoSwitchChannel = ch;
                                     ToastUtils.showShort("网页线路无画面，自动切换线路");
@@ -227,6 +236,20 @@ public class LiveActivity extends BaseActivity {
             mHandler.postDelayed(this, 5000);
         }
     };
+
+    /** 网页播放原生桥（NewBox 同款）：站点脚本在目标频道真正出画后调用 onReady */
+    public class WebLiveBridge {
+        @android.webkit.JavascriptInterface
+        public void onReady(int seq) {
+            runOnUiThread(() -> {
+                if (mWebLiveView == null) return;
+                mWebBridgeSeen = true;
+                mWebSwitchPending = false;
+                mWebPlayStarted = true;
+                hideWebLoading();
+            });
+        }
+    }
 
     /** 更新"正在打开网页…"黑幕上的提示文字 */
     private void setWebLoadingText(String text) {
@@ -685,10 +708,16 @@ public class LiveActivity extends BaseActivity {
             return;
         }
 
-        // 同一域名下的频道间换台 → 复用 WebView，只在页面里切台（像 NewBox CCTV1→CCTV2 那样）
-        // 跨域名才销毁重建
+        // 同一域名下的频道间换台 → 复用 WebView
+        // URL 变了（如央视频 ?pid=xxx 每个频道不同）→ 在同一个 WebView 里 loadUrl；
+        // URL 完全一样（如芒果TV 全部是 /live/）→ 只在页面里点选频道，不重载
         if (mWebLiveView != null && isSameHost(mWebLiveUrl, url)) {
-            switchChannelInPage(url, currentLiveChannelItem == null ? null : currentLiveChannelItem.getChannelName());
+            String chName = currentLiveChannelItem == null ? null : currentLiveChannelItem.getChannelName();
+            if (!TextUtils.equals(url, mWebLiveUrl)) {
+                navigateWebLive(url, chName);
+            } else {
+                switchChannelInPage(url, chName);
+            }
             return;
         }
 
@@ -696,6 +725,8 @@ public class LiveActivity extends BaseActivity {
         mWebLiveUrl = url;
         mWebLiveChannel = currentLiveChannelItem == null ? null : currentLiveChannelItem.getChannelName();
         mWebPlayStarted = false;
+        mWebBridgeSeen = false;
+        mWebSwitchPending = false;
         try {
             mVideoView.setVisibility(View.GONE);
             mVideoView.pause();
@@ -750,6 +781,9 @@ public class LiveActivity extends BaseActivity {
             s.setSupportZoom(false);
             s.setBuiltInZoomControls(false);
             s.setDisplayZoomControls(false);
+            // NewBox 同款原生桥：站点脚本在"新频道真的出画"后回调 onReady，
+            // 比通用 video 检测可靠（切换时旧画面还在播，不能算就绪）
+            wv.addJavascriptInterface(new WebLiveBridge(), "TvboxWebLive");
             wv.setWebViewClient(new WebViewClient() {
                 @Override
                 public void onPageFinished(WebView view, String u) {
@@ -784,6 +818,26 @@ public class LiveActivity extends BaseActivity {
         }
     }
 
+    /** 同一 WebView 内换地址（央视频 ?pid=xxx 这类每个频道 URL 不同的站点）：
+     *  不销毁 WebView，直接 loadUrl，比整页重建快很多。 */
+    private void navigateWebLive(String newUrl, String newChannelName) {
+        if (mWebLiveView == null) return;
+        mWebLiveUrl = newUrl;
+        mWebLiveChannel = newChannelName;
+        mWebLiveTries = 0;
+        mWebPlayStarted = false;
+        mWebBridgeSeen = false;
+        mWebSwitchPending = false;
+        mWebPaused = false;
+        mWebAutoSwitchCount = 0;
+        setWebLoadingText("正在打开网页…");
+        mHandler.removeCallbacks(mWebLiveInjectRun);
+        mHandler.removeCallbacks(mWebLoadingTimeoutRun);
+        mHandler.postDelayed(mWebLoadingTimeoutRun, 15000);
+        mWebLiveView.loadUrl(newUrl);
+        LOG.i("🎬 同域换地址（复用 WebView）：" + newChannelName + " " + newUrl);
+    }
+
     /** 同一域名下换台：复用 WebView，只在页面里切目标频道，不 reload 网页，
      * 避免每次换台都重新加载整个页面（像 NewBox CCTV1→CCTV2 那样）。 */
     private void switchChannelInPage(String newUrl, String newChannelName) {
@@ -792,6 +846,9 @@ public class LiveActivity extends BaseActivity {
         mWebLiveChannel = newChannelName;
         mWebLiveTries = 0;
         mWebPlayStarted = false;
+        mWebBridgeSeen = false;
+        // 有站点脚本时，等它 onReady 才算切换完成；否则旧画面会被误判为就绪
+        mWebSwitchPending = WebLiveScripts.hasSite(newUrl);
         mWebPaused = false;
         mWebAutoSwitchCount = 0;
         // 先停掉旧视频，避免两个播放器同时存在（只暂停，不动 src：
@@ -877,6 +934,8 @@ public class LiveActivity extends BaseActivity {
         mWebLiveTries = 0;
         mWebPaused = false;
         mWebPlayStarted = false;
+        mWebBridgeSeen = false;
+        mWebSwitchPending = false;
         mWebAutoSwitchCount = 0;
         // 重新加载期间盖回黑幕，别让网页界面露出来
         setWebLoadingText("重新加载中…");

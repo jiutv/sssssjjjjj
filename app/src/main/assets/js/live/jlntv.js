@@ -7,7 +7,7 @@
     jlsh: "生活频道",
     jlys: "影视频道",
     jlxc: "乡村频道",
-    jlzy: "综艺",
+    jlzy: "综艺·文化",
     cczh: "长春综合"
   };
 
@@ -18,25 +18,38 @@
     var s = document.createElement("style");
     s.id = "tvbox-jlntv-css";
     s.textContent =
-      "html,body,#app{margin:0!important;padding:0!important;overflow:hidden!important;" +
-      "background:#000!important;height:100%!important;width:100%!important}" +
+      "html,body,#app{margin:0!important;padding:0!important;width:100%!important;height:100%!important;" +
+      "overflow:hidden!important;background:#000!important}" +
       "header,.header,footer,.footer,.brdeadcrumb,.video-list-wp," +
       ".vjs-poster,.vjs-big-play-button,.vjs-control-bar,.vjs-loading-spinner,.player-error" +
       "{display:none!important;pointer-events:none!important}" +
-      ".player-content-wp .vjs-fluid,.player-content-wp .video-js.vjs-16-9" +
-      "{padding-top:0!important;height:100%!important}" +
       "video::-webkit-media-controls{display:none!important}";
     parent.appendChild(s);
+  }
+
+  function vp() {
+    var v = window.visualViewport;
+    if (v && v.width > 0 && v.height > 0) {
+      return { x: v.offsetLeft || 0, y: v.offsetTop || 0, w: v.width, h: v.height };
+    }
+    return { x: 0, y: 0, w: window.innerWidth || 0, h: window.innerHeight || 0 };
   }
 
   function playerBox() {
     return document.querySelector(".player-content-wp")
       || document.getElementById("live-player")
-      || document.querySelector(".live-player");
+      || document.querySelector(".video-js")
+      || document.querySelector("video");
+  }
+
+  function videoEl() {
+    var box = playerBox();
+    if (box && box.tagName === "VIDEO") return box;
+    return (box && box.querySelector("video")) || document.querySelector("video");
   }
 
   function hideSiblings(el) {
-    if (el.getAttribute("data-tvbox-hid")) return;
+    if (!el || el.getAttribute("data-tvbox-hid") === "1") return;
     el.setAttribute("data-tvbox-hid", "1");
     var n = el;
     while (n && n !== document.body && n !== document.documentElement) {
@@ -54,38 +67,54 @@
     }
   }
 
-  function vp() {
-    var v = window.visualViewport;
-    if (v && v.width > 0 && v.height > 0) {
-      return { x: v.offsetLeft || 0, y: v.offsetTop || 0, w: v.width, h: v.height };
+  function unclip(el) {
+    var n = el;
+    while (n && n !== document.documentElement) {
+      if (n.style) {
+        n.style.setProperty("overflow", "visible", "important");
+        n.style.setProperty("transform", "none", "important");
+        n.style.setProperty("filter", "none", "important");
+        n.style.setProperty("perspective", "none", "important");
+        n.style.setProperty("clip", "auto", "important");
+        n.style.setProperty("clip-path", "none", "important");
+        n.style.setProperty("contain", "none", "important");
+      }
+      n = n.parentElement;
     }
-    return { x: 0, y: 0, w: window.innerWidth, h: window.innerHeight };
   }
 
-  function fillBox() {
-    var el = playerBox();
-    if (!el || !el.style) return false;
-    var s = vp();
-    var key = s.x + "," + s.y + "," + s.w + "," + s.h;
-    var h = el.offsetHeight || 0;
-    if (el.getAttribute("data-tvbox-box") === key && h >= s.h - 4) {
-      window.__tvboxLayoutReady = 1;
-      return true;
-    }
-    el.setAttribute("data-tvbox-box", key);
+  function pin(el, s, z) {
+    if (!el || !el.style || s.w < 8 || s.h < 8) return;
     el.style.cssText =
-      "position:fixed!important;left:" + s.x + "px!important;top:" + s.y + "px!important;" +
+      "display:block!important;position:fixed!important;" +
+      "left:" + s.x + "px!important;top:" + s.y + "px!important;" +
       "width:" + s.w + "px!important;height:" + s.h + "px!important;" +
-      "z-index:9999!important;margin:0!important;padding:0!important;" +
-      "background:#000!important;overflow:hidden!important";
-    hideSiblings(el);
-    window.__tvboxLayoutReady = 1;
-    return (el.offsetHeight || 0) >= s.h - 4;
+      "max-width:none!important;max-height:none!important;min-width:0!important;min-height:0!important;" +
+      "margin:0!important;padding:0!important;border:none!important;" +
+      "z-index:" + z + "!important;background:#000!important;overflow:hidden!important;" +
+      "object-fit:contain!important;transform:none!important";
   }
 
-  function videoEl() {
+  function layout() {
+    cssOnce();
+    var s = vp();
     var box = playerBox();
-    return (box && box.querySelector("video")) || document.querySelector("video");
+    var v = videoEl();
+    if (box) {
+      hideSiblings(box);
+      pin(box, s, 9998);
+      var vjs = box.querySelector ? box.querySelector(".video-js") : null;
+      if (vjs && vjs !== box) pin(vjs, s, 9999);
+    }
+    if (v) {
+      unclip(v);
+      try {
+        v.controls = false;
+      } catch (e) {}
+      pin(v, s, 10000);
+    }
+    window.__tvboxLayoutReady = !!(v && s.w > 8 && s.h > 8);
+    return window.__tvboxLayoutReady;
   }
 
   function srcOf(v) {
@@ -97,68 +126,10 @@
     var v = videoEl();
     if (!v) return;
     try {
-      v.controls = false;
       v.muted = false;
       v.volume = 1;
       if (v.paused && v.readyState >= 1) v.play();
     } catch (e) {}
-  }
-
-  function parseQuery(search) {
-    var out = {};
-    var s = (search || "").replace(/^\?/, "");
-    if (!s) return out;
-    var parts = s.split("&");
-    for (var i = 0; i < parts.length; i++) {
-      var p = parts[i];
-      var cut = p.indexOf("=");
-      var k = cut < 0 ? p : p.slice(0, cut);
-      var v = cut < 0 ? "" : p.slice(cut + 1);
-      try {
-        k = decodeURIComponent(k.replace(/\+/g, " ")).toLowerCase();
-        v = decodeURIComponent(v.replace(/\+/g, " "));
-      } catch (e) {}
-      if (k && out[k] == null) out[k] = v;
-    }
-    return out;
-  }
-
-  function parseKey(url, liveName) {
-    var name = (liveName || "").replace(/^\s+|\s+$/g, "");
-    if (name) return name;
-    try {
-      var u = new URL(url || location.href, location.href);
-      var q = parseQuery(u.search);
-      return (q.tvbox || q.ch || q.name || q.title || "");
-    } catch (e) {}
-    return "";
-  }
-
-  function channelItems() {
-    var a = document.querySelectorAll(".list-outer .item-wp");
-    if (a.length) return a;
-    return document.querySelectorAll(".phone-wp .list-wp .item-wp");
-  }
-
-  function compact(s) {
-    return (s || "").replace(/\s+/g, "");
-  }
-
-  function findWant(key) {
-    var items = channelItems();
-    if (!items.length) return null;
-    var raw = (key || "").replace(/^\s+|\s+$/g, "");
-    if (!raw) return items[0];
-    var want = compact(EN_NAME[raw.toLowerCase()] || raw);
-    for (var i = 0; i < items.length; i++) {
-      if (compact(items[i].textContent) === want) return items[i];
-    }
-    return null;
-  }
-
-  function layout() {
-    cssOnce();
-    return fillBox();
   }
 
   function pictureOk(prevSrc, needNewSrc) {
@@ -187,11 +158,13 @@
     v.setAttribute("data-tvbox-g", String(gen));
     function onEv() {
       if (gen !== window.__tvboxJlntvPickGen) return;
+      layout();
       if (pictureOk(prevSrc, needNewSrc)) tellReady(gen);
     }
     v.addEventListener("loadeddata", onEv);
     v.addEventListener("playing", onEv);
     v.addEventListener("canplay", onEv);
+    v.addEventListener("resize", onEv);
   }
 
   function waitFrame(gen, prevSrc, needNewSrc) {
@@ -206,6 +179,65 @@
       else tellReady(gen);
     }
     tick();
+  }
+
+  function parseQuery(search) {
+    var out = {};
+    var s = (search || "").replace(/^\?/, "");
+    if (!s) return out;
+    var parts = s.split("&");
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      var cut = p.indexOf("=");
+      var k = cut < 0 ? p : p.slice(0, cut);
+      var val = cut < 0 ? "" : p.slice(cut + 1);
+      try {
+        k = decodeURIComponent(k.replace(/\+/g, " ")).toLowerCase();
+        val = decodeURIComponent(val.replace(/\+/g, " "));
+      } catch (e) {}
+      if (k && out[k] == null) out[k] = val;
+    }
+    return out;
+  }
+
+  function parseKey(url, liveName) {
+    var name = (liveName || "").replace(/^\s+|\s+$/g, "");
+    if (name) return name;
+    try {
+      var u = new URL(url || location.href, location.href);
+      var q = parseQuery(u.search);
+      return q.tvbox || q.ch || q.name || q.title || "";
+    } catch (e) {}
+    return "";
+  }
+
+  function channelItems() {
+    var a = document.querySelectorAll(".list-outer .item-wp");
+    if (a.length) return a;
+    return document.querySelectorAll(".phone-wp .list-wp .item-wp");
+  }
+
+  function compact(s) {
+    return (s || "").replace(/\s+/g, "");
+  }
+
+  function findWant(key) {
+    var items = channelItems();
+    if (!items.length) return null;
+    var raw = (key || "").replace(/^\s+|\s+$/g, "");
+    if (!raw) return items[0];
+    var want = compact(EN_NAME[raw.toLowerCase()] || raw);
+    var i;
+    var t;
+    for (i = 0; i < items.length; i++) {
+      t = compact(items[i].textContent);
+      if (t === want) return items[i];
+    }
+    for (i = 0; i < items.length; i++) {
+      t = compact(items[i].textContent);
+      if (want.length >= 2 && t.indexOf(want) >= 0) return items[i];
+    }
+    return null;
   }
 
   window.__tvboxInPageGo = window.__tvboxJlntvGo = function (url, liveName) {
@@ -240,17 +272,15 @@
   };
 
   window.__tvboxRelayout = function () {
-    var el = playerBox();
-    if (el) el.removeAttribute("data-tvbox-box");
     layout();
   };
 
   cssOnce();
   if (!window.__tvboxJlntvBoot) {
     window.__tvboxJlntvBoot = 1;
-    window.addEventListener("resize", window.__tvboxRelayout);
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", window.__tvboxRelayout);
+      window.visualViewport.addEventListener("scroll", window.__tvboxRelayout);
     }
   }
 })();

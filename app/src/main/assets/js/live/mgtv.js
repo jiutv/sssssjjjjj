@@ -1,6 +1,12 @@
 (function () {
   window.__tvboxSkipVideoFill = 1;
 
+  var needNew = 0;
+  var prevSrc = "";
+  var prevTime = 0;
+  var seenGap = 0;
+  var didSwitch = 0;
+
   function cssOnce() {
     if (document.getElementById("tvbox-mgtv-css")) return;
     var parent = document.head || document.documentElement;
@@ -8,7 +14,17 @@
     var s = document.createElement("style");
     s.id = "tvbox-mgtv-css";
     s.textContent =
-      "html,body{margin:0!important;padding:0!important;overflow:hidden!important;background:#000!important;height:100%!important;width:100%!important}" +
+      "html,body,#__nuxt,#__layout,#mgtv-default-layout,.content,.channel-page,.channel-page-wrapper{" +
+      "margin:0!important;padding:0!important;overflow:hidden!important;background:#000!important;" +
+      "width:100%!important;height:100%!important}" +
+      "#m-topheader,header,footer,.channel-left-nav,.channel-left-list,.channel-left-skeleton," +
+      ".m-topheader-channel,.channel-top-bg-header,.side-float,.side-float-bar," +
+      ".mango-control-bar,.ControlBar,[class*=\"ControlBar\"]," +
+      ".vjs-control-bar,.vjs-big-play-button,.vjs-poster" +
+      "{display:none!important;visibility:hidden!important;pointer-events:none!important}" +
+      "video,.live-player-tv-module video{" +
+      "object-fit:contain!important;object-position:center center!important;" +
+      "transform:none!important;zoom:1!important}" +
       "video::-webkit-media-controls{display:none!important}";
     parent.appendChild(s);
   }
@@ -18,18 +34,26 @@
     if (v && v.width > 0 && v.height > 0) {
       return { x: v.offsetLeft || 0, y: v.offsetTop || 0, w: v.width, h: v.height };
     }
-    return { x: 0, y: 0, w: window.innerWidth, h: window.innerHeight };
+    return { x: 0, y: 0, w: window.innerWidth || 0, h: window.innerHeight || 0 };
   }
 
   function playerBox() {
-    return document.querySelector(".live-player-container")
-      || document.querySelector(".live-player-tv-module")
-      || document.querySelector(".player-container .player");
+    return document.querySelector(".live-player-tv-module")
+      || document.querySelector(".player-container .player")
+      || document.querySelector("[class*='live-player']")
+      || document.querySelector("[class*='LivePlayer']")
+      || document.querySelector(".mango-player")
+      || document.querySelector("video");
+  }
+
+  function videoEl() {
+    var box = playerBox();
+    if (box && box.tagName === "VIDEO") return box;
+    return (box && box.querySelector("video")) || document.querySelector("video");
   }
 
   function hideSiblings(el) {
-    if (el.getAttribute("data-tvbox-hid")) return;
-    el.setAttribute("data-tvbox-hid", "1");
+    if (!el) return;
     var n = el;
     while (n && n !== document.body && n !== document.documentElement) {
       var p = n.parentElement;
@@ -39,35 +63,99 @@
         var c = kids[i];
         if (c === n) continue;
         var tag = c.tagName;
-        if (tag === "SCRIPT" || tag === "STYLE" || tag === "LINK") continue;
+        if (tag === "SCRIPT" || tag === "STYLE" || tag === "LINK" || tag === "META") continue;
         c.style.setProperty("display", "none", "important");
+        c.style.setProperty("visibility", "hidden", "important");
       }
       n = p;
     }
   }
 
-  function fillBox() {
-    var el = playerBox();
-    if (!el || !el.style) return false;
-    var s = vp();
-    var key = s.x + "," + s.y + "," + s.w + "," + s.h;
-    var h = el.offsetHeight || 0;
-    if (el.getAttribute("data-tvbox-box") === key && h >= s.h - 4) return true;
-    el.setAttribute("data-tvbox-box", key);
-    el.style.cssText =
-      "position:fixed!important;left:" + s.x + "px!important;top:" + s.y + "px!important;" +
-      "width:" + s.w + "px!important;height:" + s.h + "px!important;" +
-      "z-index:9999!important;margin:0!important;padding:0!important;background:#000!important;overflow:hidden!important";
-    hideSiblings(el);
-    try {
-      window.dispatchEvent(new Event("resize"));
-    } catch (e) {}
-    return (el.offsetHeight || 0) >= s.h - 4;
+  function unclip(el) {
+    var n = el;
+    while (n && n !== document.documentElement) {
+      if (n.getAttribute && n.getAttribute("data-tvbox-box")) {
+        n = n.parentElement;
+        continue;
+      }
+      if (n.style) {
+        n.style.setProperty("overflow", "visible", "important");
+        n.style.setProperty("transform", "none", "important");
+        n.style.setProperty("filter", "none", "important");
+        n.style.setProperty("clip-path", "none", "important");
+        n.style.setProperty("zoom", "1", "important");
+        n.style.setProperty("background", "#000", "important");
+      }
+      n = n.parentElement;
+    }
   }
 
-  function videoEl() {
+  function pinBox(el, s, z) {
+    if (!el || !el.style || s.w < 8 || s.h < 8) return;
+    var key = s.x + "," + s.y + "," + s.w + "," + s.h + "," + z;
+    if (el.getAttribute("data-tvbox-box") === key && (el.offsetWidth || 0) >= s.w - 8) return;
+    el.setAttribute("data-tvbox-box", key);
+    el.style.cssText =
+      "display:block!important;position:fixed!important;" +
+      "left:" + s.x + "px!important;top:" + s.y + "px!important;" +
+      "width:" + s.w + "px!important;height:" + s.h + "px!important;" +
+      "max-width:none!important;max-height:none!important;min-width:0!important;min-height:0!important;" +
+      "margin:0!important;padding:0!important;border:none!important;" +
+      "z-index:" + z + "!important;background:#000!important;overflow:hidden!important;" +
+      "transform:none!important;zoom:1!important";
+  }
+
+  function fillMedia(el) {
+    if (!el || !el.style) return;
+    var tf = (el.style.transform || "").replace(/\s/g, "");
+    if (el.getAttribute("data-tvbox-m") === "1" && (!tf || tf === "none")) return;
+    el.setAttribute("data-tvbox-m", "1");
+    el.style.cssText =
+      "display:block!important;position:absolute!important;" +
+      "left:0!important;top:0!important;right:0!important;bottom:0!important;" +
+      "width:100%!important;height:100%!important;" +
+      "max-width:none!important;max-height:none!important;min-width:0!important;min-height:0!important;" +
+      "margin:0!important;padding:0!important;border:none!important;" +
+      "object-fit:contain!important;object-position:center center!important;" +
+      "transform:none!important;zoom:1!important;background:#000!important";
+  }
+
+  var laying = 0;
+
+  function layout() {
+    if (laying) return !!window.__tvboxLayoutReady;
+    laying = 1;
+    try {
+      return layoutWork();
+    } finally {
+      laying = 0;
+    }
+  }
+
+  function layoutWork() {
+    cssOnce();
+    var s = vp();
+    if (s.w < 8 || s.h < 8) return false;
     var box = playerBox();
-    return (box && box.querySelector("video")) || document.querySelector("video");
+    var v = videoEl();
+    if (box) {
+      hideSiblings(box);
+      pinBox(box, s, 9998);
+    }
+    if (v) {
+      unclip(v);
+      try {
+        v.controls = false;
+        v.removeAttribute("x5-video-player-fullscreen");
+        v.setAttribute("playsinline", "");
+        v.setAttribute("webkit-playsinline", "true");
+      } catch (e) {}
+      if (box && v !== box) fillMedia(v);
+      else pinBox(v, s, 10000);
+    }
+    var ok = !!(v && s.w > 8 && s.h > 8);
+    window.__tvboxLayoutReady = ok && !needNew;
+    return ok;
   }
 
   function unmute() {
@@ -82,19 +170,58 @@
     } catch (e) {}
   }
 
-  function layout() {
-    cssOnce();
-    return fillBox();
+  function srcOf(v) {
+    if (!v) return "";
+    try {
+      return v.currentSrc || v.src || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function markSwitch() {
+    var v = videoEl();
+    prevSrc = srcOf(v);
+    prevTime = v ? v.currentTime || 0 : 0;
+    seenGap = 0;
+    needNew = 1;
+    window.__tvboxLayoutReady = 0;
   }
 
   function pictureReady() {
     var v = videoEl();
-    return !!(v && v.videoWidth * v.videoHeight !== 0 && layout());
+    if (!v || v.videoWidth * v.videoHeight === 0 || v.readyState < 2) {
+      if (needNew) seenGap = 1;
+      return false;
+    }
+    if (!layout()) return false;
+    if (!needNew) return true;
+    var src = srcOf(v);
+    if (prevSrc && src && src !== prevSrc) return true;
+    if (v.currentTime + 0.35 < prevTime) return true;
+    return !!seenGap;
+  }
+
+  function bindVideo(gen) {
+    var v = videoEl();
+    if (!v || v.getAttribute("data-tvbox-g") === String(gen)) return;
+    v.setAttribute("data-tvbox-g", String(gen));
+    function onEv() {
+      if (gen !== window.__tvboxMgtvPickGen) return;
+      if (v.readyState < 2 || v.videoWidth * v.videoHeight === 0) seenGap = 1;
+      if (pictureReady()) tellReady(gen);
+    }
+    v.addEventListener("emptied", onEv);
+    v.addEventListener("loadstart", onEv);
+    v.addEventListener("loadeddata", onEv);
+    v.addEventListener("playing", onEv);
+    v.addEventListener("canplay", onEv);
   }
 
   function tellReady(gen) {
     if (gen !== window.__tvboxMgtvPickGen) return;
     if (!pictureReady()) return;
+    needNew = 0;
     unmute();
     window.__tvboxLayoutReady = 1;
     try {
@@ -102,128 +229,121 @@
     } catch (e) {}
   }
 
-  function idFrom(url) {
-    var id = "";
+  function cameraIdFrom(url) {
+    var m = String(url || "").match(/[?&#]cameraId=(\d+)/i);
+    if (m) return m[1];
     try {
-      var u = new URL(url || location.href, location.href);
-      id = u.searchParams.get("sid") || u.searchParams.get("channelSid")
-        || u.searchParams.get("channel") || u.searchParams.get("channelId")
-        || u.searchParams.get("cameraId") || "";
+      return new URL(url || location.href, location.href).searchParams.get("cameraId") || "";
     } catch (e) {}
-    return /^\d+$/.test(id) ? id : "";
+    return "";
   }
 
   function compact(s) {
-    return (s || "").replace(/[\s\u00a0]+/g, "");
+    return String(s || "").replace(/\s+/g, "");
   }
 
   function channelLabel(el) {
-    var name = el.querySelector ? el.querySelector(".name") : null;
-    return (el.getAttribute("data-channel-name") || el.getAttribute("title")
-      || (name ? name.textContent : "") || el.textContent || "");
+    return el.getAttribute("title")
+      || el.getAttribute("data-title")
+      || el.getAttribute("aria-label")
+      || el.textContent
+      || "";
+  }
+
+  function idOf(el) {
+    return el.getAttribute("data-channel-sid")
+      || el.getAttribute("data-sid")
+      || cameraIdFrom(el.getAttribute("href") || "");
+  }
+
+  function channelNodes() {
+    return document.querySelectorAll(
+      "a.channel,[data-channel-sid],[data-sid],a[href*='cameraId='],.channels a"
+    );
   }
 
   function isSelected(el) {
-    return (" " + (el.className || "") + " ").indexOf(" selected ") >= 0;
-  }
-
-  /** 频道项：新版直播页是页面顶层的 a.channel[data-channel-sid]，旧版外面还包着一层 .channels */
-  function channelEls() {
-    return document.querySelectorAll("a.channel, .channels a.channel");
-  }
-
-  /** 按 sid 或频道名找频道：先精确匹配，再容忍「湖南都市 / 湖南都市频道」这类后缀差异 */
-  function findChannel(id, name) {
-    var els = channelEls();
-    var i;
-    if (id) {
-      for (i = 0; i < els.length; i++) {
-        if ((els[i].getAttribute("data-channel-sid") || "") === id) return els[i];
-      }
-    }
-    var want = compact(name);
-    if (!want) return null;
-    var partial = null;
-    for (i = 0; i < els.length; i++) {
-      var lab = compact(channelLabel(els[i]));
-      if (!lab) continue;
-      if (lab === want) return els[i];
-      if (!partial && (lab.indexOf(want) >= 0 || want.indexOf(lab) >= 0)) partial = els[i];
-    }
-    return partial;
-  }
-
-  /** 兜底：站点改版后没有 a.channel 时，按文本找最贴近频道名的那层可点节点 */
-  function findByText(name) {
-    var want = compact(name);
-    if (!want) return null;
-    var els = document.querySelectorAll("a,li,button,div,span,p");
-    var best = null;
-    var bestLen = 9999;
-    for (var i = 0; i < els.length; i++) {
-      var el = els[i];
-      var t = compact(el.textContent || "");
-      if (!t || t.length > want.length + 4) continue;
-      if (t.indexOf(want) < 0) continue;
-      if (el.children.length > 2) continue;
-      if (t.length < bestLen) {
-        best = el;
-        bestLen = t.length;
-      }
-    }
-    return best;
-  }
-
-  /** 模拟一整套鼠标事件：部分页面不响应元素上的 .click()，但对 mousedown/mouseup 有反应 */
-  function fire(el, type) {
-    if (!el) return;
-    try {
-      var ev = document.createEvent("MouseEvents");
-      ev.initMouseEvent(type, true, true, window, 1, 0, 0, 0, 0,
-        false, false, false, false, 0, null);
-      el.dispatchEvent(ev);
-    } catch (e) {}
+    var c = " " + (el.className || "") + " ";
+    return c.indexOf(" selected ") >= 0 || c.indexOf(" active ") >= 0
+      || el.getAttribute("aria-current") === "true";
   }
 
   function clickEl(el) {
-    if (!el) return;
-    var name = el.querySelector ? el.querySelector(".name") : null;
-    var targets = name && name !== el ? [el, name] : [el];
-    for (var i = 0; i < targets.length; i++) {
-      fire(targets[i], "mousedown");
-      fire(targets[i], "mouseup");
-      fire(targets[i], "click");
-      try { targets[i].click(); } catch (e) {}
+    if (!el) return false;
+    if (isSelected(el)) return true;
+    didSwitch = 1;
+    try {
+      el.click();
+    } catch (e) {}
+    return true;
+  }
+
+  function clickById(id) {
+    if (!id) return false;
+    var links = channelNodes();
+    var i;
+    for (i = 0; i < links.length; i++) {
+      if (idOf(links[i]) === id) return clickEl(links[i]);
     }
+    return false;
+  }
+
+  function clickByName(name) {
+    var want = compact(name);
+    if (!want) return false;
+    var links = channelNodes();
+    var i;
+    var label;
+    for (i = 0; i < links.length; i++) {
+      if (compact(channelLabel(links[i])) === want) return clickEl(links[i]);
+    }
+    links = document.querySelectorAll("a");
+    for (i = 0; i < links.length; i++) {
+      label = compact(channelLabel(links[i]));
+      if (label === want) return clickEl(links[i]);
+    }
+    return false;
+  }
+
+  function clickTab() {
+    var tabs = document.querySelectorAll(".channels .tabs .item");
+    if (!tabs.length) {
+      var names = { "热门": 1, "卫视台": 1, "卫视": 1, "地方台": 1, "特色频道": 1 };
+      var all = document.querySelectorAll("a,button");
+      var found = [];
+      var i;
+      for (i = 0; i < all.length; i++) {
+        if (names[compact(channelLabel(all[i]))]) found.push(all[i]);
+      }
+      tabs = found;
+    }
+    if (!tabs.length) return false;
+    var i = window.__tvboxMgtvTab || 0;
+    if (i >= tabs.length) {
+      window.__tvboxMgtvTab = 0;
+      return false;
+    }
+    var tab = tabs[i];
+    window.__tvboxMgtvTab = i + 1;
+    if (!isSelected(tab)) {
+      try {
+        tab.click();
+      } catch (e) {}
+    }
+    return false;
   }
 
   function clickWant(id, liveName) {
-    var el = findChannel(id, liveName) || findByText(liveName);
-    if (el) {
+    if (id && clickById(id)) {
       window.__tvboxMgtvTab = 0;
-      if (isSelected(el)) return true;
-      var now = Date.now();
-      // 站点没刷新 selected 样式时，别每 2 秒重复点同一条，避免流被反复重载
-      if (window.__tvboxMgtvClickEl === el && now - (window.__tvboxMgtvClickAt || 0) < 10000) return true;
-      window.__tvboxMgtvClickEl = el;
-      window.__tvboxMgtvClickAt = now;
-      clickEl(el);
       return true;
     }
-    if (id || liveName) {
-      var tabs = document.querySelectorAll(".channels .tabs .item");
-      if (!tabs.length) return false;
-      var i = window.__tvboxMgtvTab || 0;
-      if (i >= tabs.length) {
-        window.__tvboxMgtvTab = 0;
-        return false;
-      }
-      var tab = tabs[i];
-      window.__tvboxMgtvTab = i + 1;
-      if ((" " + tab.className + " ").indexOf(" selected ") < 0) tab.click();
-      return false;
+    if (liveName && clickByName(liveName)) {
+      window.__tvboxMgtvTab = 0;
+      return true;
     }
-    return !!playerBox();
+    if (!id && !liveName) return !!playerBox();
+    return clickTab();
   }
 
   function waitFrame(gen) {
@@ -232,30 +352,25 @@
       if (gen !== window.__tvboxMgtvPickGen) return;
       try {
         layout();
-        unmute();
+        bindVideo(gen);
         if (pictureReady()) {
           tellReady(gen);
           return;
         }
       } catch (e) {}
-      if (++n < 48) setTimeout(tick, 150);
+      if (++n < 72) setTimeout(tick, n < 12 ? 80 : 150);
     }
     tick();
   }
 
   window.__tvboxInPageGo = function (url, liveName) {
-    var id = idFrom(url);
-    var name = (liveName || "").replace(/^\s+|\s+$/g, "");
+    var id = cameraIdFrom(url || location.href);
+    var name = compact(liveName);
     var want = id ? ("id:" + id) : (name ? ("nm:" + name) : "");
     if (want && want === window.__tvboxMgtvWant) {
-      // 每次注入都会走到这里：只有目标频道已经选中、或页面压根没有频道列表时才提前返回。
-      // 否则继续重试点击，避免频道列表比脚本晚渲染时一直停在默认频道（金鹰卡通）。
-      var cur = findChannel(id, name) || findByText(name);
-      if (!cur || isSelected(cur)) {
-        if (pictureReady()) tellReady(window.__tvboxMgtvPickGen);
-        else layout();
-        return;
-      }
+      if (pictureReady()) tellReady(window.__tvboxMgtvPickGen);
+      else layout();
+      return;
     }
     window.__tvboxMgtvWant = want;
     window.__tvboxMgtvTab = 0;
@@ -269,7 +384,10 @@
     function tryClick() {
       if (gen !== window.__tvboxMgtvPickGen) return;
       window.__tvboxMgtvTimer = 0;
+      cssOnce();
+      didSwitch = 0;
       if (clickWant(id, name)) {
+        if (didSwitch) markSwitch();
         waitFrame(gen);
         return;
       }
@@ -282,6 +400,8 @@
   window.__tvboxRelayout = function () {
     var el = playerBox();
     if (el) el.removeAttribute("data-tvbox-box");
+    var v = videoEl();
+    if (v) v.removeAttribute("data-tvbox-m");
     layout();
   };
 
@@ -290,6 +410,17 @@
     window.__tvboxMgtvResize = 1;
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", window.__tvboxRelayout);
+      window.visualViewport.addEventListener("scroll", window.__tvboxRelayout);
     }
+    window.addEventListener("resize", window.__tvboxRelayout);
+  }
+
+  if (!window.__tvboxMgtvBoot) {
+    window.__tvboxMgtvBoot = 1;
+    setTimeout(function () {
+      if (window.__tvboxMgtvPickGen) return;
+      window.__tvboxMgtvPickGen = 1;
+      waitFrame(1);
+    }, 0);
   }
 })();

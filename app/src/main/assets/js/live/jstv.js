@@ -14,7 +14,7 @@
     jszy: "江苏综艺",
     jsys: "江苏影视",
     jsxx: "江苏学习",
-    jsty: "江苏体育",
+    jsty: "体育休闲",
     jsjy: "江苏教育",
     jsgj: "江苏国际",
     ymkt: "优漫卡通"
@@ -75,7 +75,9 @@
     return out;
   }
 
-  function parseKey(url) {
+  function parseKey(url, liveName) {
+    var name = (liveName || "").replace(/^\s+|\s+$/g, "");
+    if (name) return name;
     try {
       var u = new URL(url || location.href, location.href);
       var q = parseQuery(u.search);
@@ -87,7 +89,75 @@
     return "";
   }
 
+  function compact(s) {
+    return (s || "").replace(/\s+/g, "");
+  }
+
+  function itemTitle(el) {
+    var t = el && el.querySelector(".title");
+    return compact(t ? t.textContent : "");
+  }
+
+  function isOn(el) {
+    var n = el;
+    while (n && n !== document.body && n !== document.documentElement) {
+      var c = " " + (n.className || "") + " ";
+      if (c.indexOf(" active ") >= 0) return true;
+      n = n.parentElement;
+    }
+    return false;
+  }
+
+  function findWant(key) {
+    var items = document.querySelectorAll(".item");
+    if (!items.length) return null;
+    var raw = (key || "").replace(/^\s+|\s+$/g, "");
+    if (!raw) return items[0];
+    var code = raw.toLowerCase();
+    var want = compact(EN_NAME[code] || raw);
+    var skip4k = want === "江苏卫视" || code === "jsws";
+    var i;
+    var imgHit = null;
+    var exact = null;
+    for (i = 0; i < items.length; i++) {
+      var el = items[i];
+      var title = itemTitle(el);
+      if (!title) continue;
+      if (skip4k && title.indexOf("4K") >= 0) continue;
+      if (EN_NAME[code]) {
+        var img = el.querySelector("img");
+        var src = (img && img.getAttribute("src")) || "";
+        if (src.indexOf(code + "_live-screenshot") >= 0 || src.indexOf("/" + code + "_") >= 0) {
+          imgHit = el;
+          break;
+        }
+      }
+      if (title === want) {
+        exact = el;
+        break;
+      }
+    }
+    return imgHit || exact;
+  }
+
+  function clickWant(key) {
+    var el = findWant(key);
+    if (!el) return false;
+    if (isOn(el)) return true;
+    try {
+      el.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+    } catch (e) {
+      try {
+        el.click();
+      } catch (e2) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   function unmute() {
+    if (window.__tvboxMediaPaused) return;
     var n = document.querySelectorAll("video,audio");
     for (var i = 0; i < n.length; i++) {
       try {
@@ -110,35 +180,13 @@
     } catch (e) {}
   }
 
-  function clickWant(key) {
-    var items = document.querySelectorAll(".item");
-    if (!items.length) return false;
-    if (!key) {
-      items[0].click();
-      return true;
+  function srcOf(v) {
+    if (!v) return "";
+    try {
+      return v.currentSrc || v.src || "";
+    } catch (e) {
+      return "";
     }
-    var name = EN_NAME[key] || "";
-    var i;
-    for (i = 0; i < items.length; i++) {
-      var el = items[i];
-      var img = el.querySelector("img");
-      var src = (img && img.getAttribute("src")) || "";
-      if (src.indexOf(key + "_live-screenshot") >= 0 || src.indexOf("/" + key + "_") >= 0) {
-        el.click();
-        return true;
-      }
-    }
-    if (name) {
-      for (i = 0; i < items.length; i++) {
-        var text = (items[i].textContent || "").replace(/\s+/g, "");
-        if (key === "jsws" && text.indexOf("4K") >= 0) continue;
-        if (text.indexOf(name.replace(/\s+/g, "")) >= 0) {
-          items[i].click();
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   function tellReady(gen) {
@@ -150,27 +198,31 @@
     } catch (e) {}
   }
 
-  function waitFrame(gen) {
+  function waitFrame(gen, prevSrc, needNew) {
     var n = 0;
     function tick() {
       if (gen !== window.__tvboxJstvPickGen) return;
       cssOnce();
       var box = playerBox();
       if (box) fill(box);
-      unmute();
       var v = document.querySelector("video");
-      if (v && v.videoWidth * v.videoHeight !== 0) {
+      var src = srcOf(v);
+      var sized = !!(v && v.videoWidth * v.videoHeight !== 0 && v.readyState >= 2);
+      var fresh = !needNew || !prevSrc || src !== prevSrc;
+      if (sized && fresh) {
         tellReady(gen);
         return;
       }
       if (++n < 40) setTimeout(tick, 250);
-      else tellReady(gen);
     }
     tick();
   }
 
-  window.__tvboxInPageGo = window.__tvboxJstvGo = function (url) {
-    window.__tvboxJstvKey = parseKey(url || location.href);
+  window.__tvboxInPageGo = window.__tvboxJstvGo = function (url, liveName) {
+    var v0 = document.querySelector("video");
+    var prevSrc = srcOf(v0);
+    var needNew = !!(prevSrc || (v0 && v0.videoWidth * v0.videoHeight !== 0));
+    window.__tvboxJstvKey = parseKey(url || location.href, liveName);
     window.__tvboxJstvPickGen = (window.__tvboxJstvPickGen || 0) + 1;
     var gen = window.__tvboxJstvPickGen;
     if (window.__tvboxJstvTimer) {
@@ -184,14 +236,11 @@
       cssOnce();
       if (clickWant(window.__tvboxJstvKey)) {
         window.__tvboxJstvPicked = 1;
-        setTimeout(function () {
-          if (gen !== window.__tvboxJstvPickGen) return;
-          waitFrame(gen);
-        }, 400);
+        waitFrame(gen, prevSrc, needNew);
         return;
       }
-      if (++n < 40) window.__tvboxJstvTimer = setTimeout(tryClick, 200);
-      else waitFrame(gen);
+      if (++n < 80) window.__tvboxJstvTimer = setTimeout(tryClick, n < 20 ? 50 : 120);
+      else waitFrame(gen, prevSrc, needNew);
     }
     tryClick();
   };
