@@ -284,10 +284,12 @@ public class FullWebActivity extends BaseActivity {
     private final Runnable mAutoPlayRun = new Runnable() {
         @Override
         public void run() {
-            if (mWebView == null || mSniffFound || isFinishing()) return;
+            // 注意：不能因为 mSniffFound（嗅探超时）就停止补注。超时后页面还在，
+            // SPA 一重建 DOM 样式就没了，网页顶栏/频道列表会重新露出来。
+            if (mWebView == null || isFinishing()) return;
             // 站点多为 SPA，DOM 可能几十秒后才稳定，且重建 DOM 会把注入的 <style> 冲掉，
-            // 因此持续补注 60 秒（每 2 秒一次），而不是只试 30 秒就放弃。
-            if (mAutoPlayTries++ >= 30) return;
+            // 所以只要页面还在就每 2 秒补注一次，不设次数上限
+            mAutoPlayTries++;
             try {
                 mWebView.evaluateJavascript(SNIFF_HOOK_JS, null);
                 mWebView.evaluateJavascript(AUTO_PLAY_JS, null);

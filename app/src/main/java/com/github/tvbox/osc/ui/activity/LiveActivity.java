@@ -181,7 +181,6 @@ public class LiveActivity extends BaseActivity {
      * 会被整体替换掉，表现为过一会儿顶栏、频道列表又露出来。补注只重放脚本，
      * 不调 __tvboxInPageGo，所以不会把已经切好的频道再切一次。</p>
      */
-    private int mWebReinjectLeft = 0;
     private final Runnable mWebLiveReinjectRun = new Runnable() {
         @Override
         public void run() {
@@ -190,20 +189,20 @@ public class LiveActivity extends BaseActivity {
                 WebLiveScripts.injectScripts(mWebLiveView, mWebLiveUrl);
             } catch (Throwable ignored) {
             }
-            if (--mWebReinjectLeft > 0) mHandler.postDelayed(this, 5000);
+            // 网页播放期间一直补注：站点是 SPA，随时可能重建 DOM 把注入的样式冲掉，
+            // 只补 60 秒的话看一会儿网页顶栏、频道列表又会露出来
+            mHandler.postDelayed(this, 5000);
         }
     };
 
-    /** 重新开始补注窗口：60 秒内每 5 秒补一次 */
+    /** 开始补注（一直持续到退出网页播放） */
     private void restartWebReinject() {
         mHandler.removeCallbacks(mWebLiveReinjectRun);
-        mWebReinjectLeft = 12;
         mHandler.postDelayed(mWebLiveReinjectRun, 5000);
     }
 
     private void stopWebReinject() {
         mHandler.removeCallbacks(mWebLiveReinjectRun);
-        mWebReinjectLeft = 0;
     }
     private final Runnable mWebLiveInjectRun = new Runnable() {
         @Override
@@ -1069,7 +1068,7 @@ public class LiveActivity extends BaseActivity {
         View container = findViewById(R.id.video_container);
         if (container != null) {
             ViewGroup.LayoutParams lp = container.getLayoutParams();
-            lp.height = mContainerHeightPx > 0 ? mContainerHeightPx : ConvertUtils.dp2px(240);
+            lp.height = ConvertUtils.dp2px(240);
             container.setLayoutParams(lp);
             // 网页内容超出容器时不能画到频道列表上去
             if (container instanceof ViewGroup) {

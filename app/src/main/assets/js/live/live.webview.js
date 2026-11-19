@@ -221,16 +221,6 @@
   }
 
   var readySent = 0;
-  var mo = null;
-
-  function stopWatch() {
-    if (mo) {
-      try {
-        mo.disconnect();
-      } catch (e) {}
-      mo = null;
-    }
-  }
 
   function tellReady() {
     layout();
@@ -239,7 +229,6 @@
     if (!window.__tvboxLayoutReady) return;
     if (!pictureReady()) return;
     readySent = 1;
-    stopWatch();
     try {
       if (window.TvboxWebLive) window.TvboxWebLive.onReady(window.__tvboxCoverSeq || 0);
     } catch (e) {}
@@ -283,13 +272,26 @@
   window.__tvboxInstallRelayout = installRelayout;
   installRelayout();
 
+  // 站点是 SPA，出画之后仍会频繁重建 DOM（切线路、切台、弹层），
+  // 每次重建都可能把注入的 <style> 冲掉、把 fixed 尺寸清空。
+  // 所以观察器常驻，DOM 一变就重新补样式/重新铺满，而不是出画后就撒手不管。
+  var fixTimer = 0;
+  function scheduleFix() {
+    if (fixTimer) return;
+    fixTimer = setTimeout(function () {
+      fixTimer = 0;
+      try {
+        cssOnce();
+        bindVideo();
+        layout();
+        tellReady();
+      } catch (e) {}
+    }, 300);
+  }
+
   if (document.body && window.MutationObserver) {
     try {
-      mo = new MutationObserver(function () {
-        if (readySent) return;
-        bindVideo();
-        tellReady();
-      });
+      var mo = new MutationObserver(scheduleFix);
       mo.observe(document.body, { childList: true, subtree: true });
     } catch (e) {}
   }

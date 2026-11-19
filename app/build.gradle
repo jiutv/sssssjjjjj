@@ -8,9 +8,9 @@ android {
         applicationId 'com.github.tvbox.osc'
         minSdkVersion 24
         targetSdkVersion 30
-        versionCode 84
-        // 版本名：CI 通过 -PappVersionName 注入（nightly 显示为 1.7.6-nightly.N），
-        // 本地直接构建时用下面的默认值
+        // 版本号：CI 通过 -PappVersionCode / -PappVersionName 注入，
+        // nightly 版本名逐个递增（1.7.149、1.7.150 ……），本地构建用下面的默认值
+        versionCode (project.findProperty('appVersionCode') ?: 84) as int
         versionName project.findProperty('appVersionName') ?: '1.7.6'
         multiDexEnabled true
         //设置room的Schema的位置
