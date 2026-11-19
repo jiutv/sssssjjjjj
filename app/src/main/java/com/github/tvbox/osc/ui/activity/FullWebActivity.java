@@ -95,11 +95,20 @@ public class FullWebActivity extends BaseActivity {
     /**
      * 这些站点适合「网页内播放」：页面自带播放器能正常解码，只是需要把网页 UI 藏掉、播放器铺满。
      * 不走嗅探转原生，避免拿到 H.265 蓝光流后原生解码花屏。
+     * 同域名频道间切换也走页面内机制（央视频 changeTV / 芒果TV 页面内点击），秒切不重载。
      */
     static boolean isInPagePlayHost(String url) {
         if (url == null) return false;
         String l = url.toLowerCase();
-        return l.contains("yangshipin.cn");
+        return l.contains("yangshipin.cn")
+                || l.contains("cctv.com")
+                || l.contains("cctv.cn")
+                || l.contains("mgtv.com")
+                || l.contains("gdtv.cn")
+                || l.contains("hbtv.com.cn")
+                || l.contains("snrtv.com")
+                || l.contains("nxtv.com")
+                || l.contains("hebtv.com");
     }
 
     private String mEntryUrl;

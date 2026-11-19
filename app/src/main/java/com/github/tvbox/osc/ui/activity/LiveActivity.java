@@ -65,6 +65,7 @@ import com.github.tvbox.osc.util.FastClickCheckUtil;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.live.LiveSniffer;
 import com.github.tvbox.osc.util.live.TxtSubscribe;
+import com.github.tvbox.osc.util.live.WebLiveScripts;
 import com.google.gson.JsonArray;
 import com.gyf.immersionbar.BarHide;
 import com.gyf.immersionbar.ImmersionBar;
@@ -151,16 +152,24 @@ public class LiveActivity extends BaseActivity {
     private boolean mWebFullscreen = false;
     private int mContainerHeightPx = 0;
     private int mVideoHeightPx = 0;
+    private String mWebLiveUrl = null;
+    private String mWebLiveChName = null;
+
+    /**
+     * 网页脚本注入轮询：站点脚本自带内部重试（pickGen + setTimeout），
+     * 这里只在初次加载 + 换台后各注入一次，避免多个并行等待链。
+     * 200ms 间隔检测画面是否就绪（脚本会通过 TvboxWebLive.onReady 主动通知）。
+     */
     private final Runnable mWebLiveInjectRun = new Runnable() {
         @Override
         public void run() {
-            if (mWebLiveView == null || mWebLiveTries++ >= 20) return;
+            if (mWebLiveView == null) return;
+            // 站点脚本已内置 __tvboxRelayout 视觉适配，PAGE_FULLSCREEN_JS 不再需要
+            // AUTO_PLAY_JS 保留兜底（有些站没被任何脚本覆盖时至少能自动播放）
             try {
                 mWebLiveView.evaluateJavascript(FullWebActivity.AUTO_PLAY_JS, null);
-                mWebLiveView.evaluateJavascript(FullWebActivity.PAGE_FULLSCREEN_JS, null);
-            } catch (Throwable ignored) {
-            }
-            mHandler.postDelayed(this, 2000);
+            } catch (Throwable ignored) {}
+            mHandler.postDelayed(this, 200);
         }
     };
 
@@ -482,6 +491,11 @@ public class LiveActivity extends BaseActivity {
      *    用户能看到网页（自动全屏），shouldInterceptRequest 抓流，
      *    命中回传给 LiveActivity → 原生播放器接手（NewBox / TVBoxOS 风格）；
      *    2 分钟没抓到 → FullWebActivity 自己留在网页播放，用户手动按 back 返回。
+     *
+     * NewBox 同域名秒切策略：
+     *   已经在内嵌网页模式 + 新频道也是 webview:// + 域名相同 → 页面内切台
+     *   （调 __tvboxInPageGo，央视频走 changeTV / 芒果TV 走页面内点击）
+     *   域名变了才重建 WebView。
      */
     private static final int REQ_FULL_WEB_SNIFF = 0x4657; // 'FW'
 
@@ -505,8 +519,16 @@ public class LiveActivity extends BaseActivity {
             // 央视频这类站点：网页播放器解码正常，但流转原生会花屏（H.265）。
             // 直接把 WebView 嵌进当前视频区域，保持直播页排版与频道列表自适应。
             if (FullWebActivity.isInPagePlayHost(pureUrl)) {
-                LOG.i("🎬 直播线路：内嵌网页播放 → " + pureUrl);
-                startEmbeddedWebLive(pureUrl);
+                // NewBox 同域名秒切：已在内嵌网页模式 + 域名相同 → 页面内切台，不重建 WebView
+                String oldHost = mWebLiveUrl == null ? "" : hostOf(mWebLiveUrl);
+                String newHost = hostOf(pureUrl);
+                if (mWebLiveView != null && TextUtils.equals(oldHost, newHost)) {
+                    LOG.i("🎬 同域名秒切: " + oldHost + " → " + pureUrl);
+                    switchChannelInPage(pureUrl, item.getChannelName());
+                } else {
+                    LOG.i("🎬 直播线路：内嵌网页播放 → " + pureUrl);
+                    startEmbeddedWebLive(pureUrl);
+                }
                 return;
             }
             // 其他站点：打开 FullWebActivity SNIFF 模式，抓到流自动切原生；没抓到留在网页播放
@@ -518,9 +540,60 @@ public class LiveActivity extends BaseActivity {
             intent.putExtra(FullWebActivity.EXTRA_MODE, FullWebActivity.MODE_SNIFF);
             startActivityForResult(intent, REQ_FULL_WEB_SNIFF);
         } else if (rawUrl.startsWith("video://")) {
+            // 换源切到嗅探 → 先退掉内嵌网页
+            if (mWebLiveView != null) releaseEmbeddedWebLive();
             startSniff(pureUrl);
         } else {
+            // 换源切到原生直连 → 先退掉内嵌网页
+            if (mWebLiveView != null) releaseEmbeddedWebLive();
             playDirect(rawUrl, null);
+        }
+    }
+
+    /** 提取 URL 的 host 部分，用于判断是否同域名 */
+    private static String hostOf(String url) {
+        if (TextUtils.isEmpty(url)) return "";
+        try {
+            return new java.net.URL(url).getHost().toLowerCase();
+        } catch (Throwable e) {
+            return "";
+        }
+    }
+
+    /**
+     * NewBox 同域名页面内切台：不销毁 WebView，
+     * 直接调 __tvboxInPageGo 让站点脚本用页面内机制切台。
+     * 央视频 → vm.changeTV(item) 按 pid 或频道名
+     * 芒果TV → 页面内点 a.channel[data-channel-sid]
+     */
+    private void switchChannelInPage(String newUrl, String channelName) {
+        if (mWebLiveView == null) {
+            startEmbeddedWebLive(newUrl);
+            return;
+        }
+        mWebLiveUrl = newUrl;
+        mWebLiveChName = channelName != null ? channelName : "";
+        final String goUrl = newUrl.replace("'", "\\'");
+        final String goName = (channelName != null ? channelName : "").replace("'", "\\'");
+        try {
+            mWebLiveView.evaluateJavascript(
+                    "(function(){try{window.__tvboxCoverSeq=(window.__tvboxCoverSeq||0)+1;" +
+                    "if(window.__tvboxInPageGo)" +
+                    "window.__tvboxInPageGo('" + goUrl + "','" + goName + "');" +
+                    "}}catch(e){}})();",
+                    null);
+            // 兜底：如果域名变了但 isInPagePlayHost 没覆盖，直接 loadUrl 切换
+            // （央视频用 ?pid= 参数，同域 loadUrl 也能秒切）
+        } catch (Throwable t) {
+            LOG.i("🎬 页面内切台失败，回退 loadUrl: " + t);
+            mWebLiveView.loadUrl(newUrl);
+            // loadUrl 后需要重新注入脚本
+            mWebLiveView.setWebViewClient(new WebViewClient() {
+                @Override
+                public void onPageFinished(WebView view, String u) {
+                    injectWebLiveScripts(view);
+                }
+            });
         }
     }
 
@@ -558,6 +631,8 @@ public class LiveActivity extends BaseActivity {
             return;
         }
         releaseEmbeddedWebLive();
+        mWebLiveUrl = url;
+        mWebLiveChName = channel_Name != null ? channel_Name.getChannelName() : "";
         try {
             mVideoView.setVisibility(View.GONE);
             mVideoView.pause();
@@ -577,21 +652,25 @@ public class LiveActivity extends BaseActivity {
                 s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
             }
             wv.setBackgroundColor(Color.BLACK);
+
+            // NewBox 原生桥：站点脚本通过 TvboxWebLive.onReady(seq) 通知原生画面已就绪
+            wv.addJavascriptInterface(new WebLiveBridge(), "TvboxWebLive");
+
             wv.setWebViewClient(new WebViewClient() {
                 @Override
                 public void onPageFinished(WebView view, String u) {
-                    mWebLiveTries = 0;
+                    // 页面加载完后一次注入站点脚本 + 兜底 + 调 __tvboxInPageGo
+                    injectWebLiveScripts(view);
+                    // AUTO_PLAY_JS 兜底轮询（站点脚本会在画面就绪后自动 unmute+play）
                     mHandler.removeCallbacks(mWebLiveInjectRun);
-                    mHandler.post(mWebLiveInjectRun);
+                    mHandler.postDelayed(mWebLiveInjectRun, 800);
                 }
             });
             RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
                     RelativeLayout.LayoutParams.MATCH_PARENT,
                     RelativeLayout.LayoutParams.MATCH_PARENT);
-            // WebView 里的 HTML5 视频走 SurfaceView，永远盖在同层 View 上面，
-            // 所以控制条不能叠在视频上；这里给底部预留 40dp 高度，控制条永远可见
+            // 网页只当画面用，铺满整个容器
             lp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
-            lp.bottomMargin = ConvertUtils.dp2px(40);
             ((ViewGroup) container).addView(wv, lp);
             mWebLiveView = wv;
             mWebLiveTries = 0;
@@ -604,6 +683,43 @@ public class LiveActivity extends BaseActivity {
         } catch (Throwable t) {
             LOG.i("内嵌 WebView 创建失败：" + t);
             mVideoView.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /** 加载站点脚本 + 通用兜底，然后触发 __tvboxInPageGo 切台 */
+    private void injectWebLiveScripts(WebView view) {
+        if (view == null) return;
+        try {
+            String siteAsset = WebLiveScripts.matchAsset(mWebLiveUrl);
+            String siteJs = WebLiveScripts.loadAsset(this, siteAsset);
+            String fallbackJs = WebLiveScripts.loadAsset(this, "js/live/live.webview.js");
+            // 先注站点脚本（设 __tvboxSkipVideoFill=1 让 fallback 跳过重复铺满），再注 fallback
+            if (!TextUtils.isEmpty(siteJs)) view.evaluateJavascript(siteJs, null);
+            if (!TextUtils.isEmpty(fallbackJs)) view.evaluateJavascript(fallbackJs, null);
+            LOG.i("🎬 注入脚本: " + siteAsset);
+            // 触发站点脚本的切台入口
+            final String goUrl = mWebLiveUrl;
+            final String goName = mWebLiveChName != null ? mWebLiveChName.replace("'", "\\'") : "";
+            view.evaluateJavascript(
+                    "(function(){try{if(window.__tvboxInPageGo){window.__tvboxCoverSeq=0;" +
+                    "window.__tvboxInPageGo('" + goUrl.replace("'", "\\'") + "','" + goName + "');" +
+                    "}}catch(e){}})();",
+                    null);
+        } catch (Throwable t) {
+            LOG.i("🎬 脚本注入失败: " + t);
+        }
+    }
+
+    /** NewBox 风格的原生桥：站点脚本调 TvboxWebLive.onReady(seq) 通知画面就绪 */
+    private final class WebLiveBridge {
+        @android.webkit.JavascriptInterface
+        public void onReady(int seq) {
+            LOG.i("🎬 TvboxWebLive.onReady seq=" + seq);
+            // 画面就绪，隐藏加载黑幕（如果有）
+            mHandler.post(() -> {
+                View loading = findViewById(R.id.web_loading);
+                if (loading != null) loading.setVisibility(View.GONE);
+            });
         }
     }
 
@@ -636,8 +752,9 @@ public class LiveActivity extends BaseActivity {
         mWebFullscreen = true;
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
 
-        if (mContainerHeightPx == 0) mContainerHeightPx = container.getHeight();
-        if (mVideoHeightPx == 0 && mVideoView != null) mVideoHeightPx = mVideoView.getHeight();
+        // 保存非全屏高度（用 dp 基准，不缓存像素值，避免横竖屏切换后像素不准）
+        if (mContainerHeightPx == 0) mContainerHeightPx = ConvertUtils.dp2px(240);
+        if (mVideoHeightPx == 0) mVideoHeightPx = ConvertUtils.dp2px(300);
 
         // 隐藏直播页其它区域，只保留视频
         hideView(R.id.ll_epg);
@@ -653,11 +770,19 @@ public class LiveActivity extends BaseActivity {
             vlp.height = ViewGroup.LayoutParams.MATCH_PARENT;
             mVideoView.setLayoutParams(vlp);
         }
+        // WebView 全屏时去掉 bottomMargin（之前没有了，这里保险）
+        if (mWebLiveView != null) {
+            ViewGroup.MarginLayoutParams wlp = (ViewGroup.MarginLayoutParams) mWebLiveView.getLayoutParams();
+            wlp.bottomMargin = 0;
+            mWebLiveView.setLayoutParams(wlp);
+        }
         getWindow().getDecorView().setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         if (mWebFullBtn != null) mWebFullBtn.setText("退出全屏");
+        // 通知站点脚本用新屏幕尺寸重新铺满
+        mHandler.postDelayed(() -> callWebRelayout(), 400);
     }
 
     private void exitWebFullscreen() {
@@ -665,24 +790,42 @@ public class LiveActivity extends BaseActivity {
         mWebFullscreen = false;
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 
-        showView(R.id.ll_epg);
-        showView(R.id.tvLeftChannnelListLayout);
-        showView(R.id.bottom_nav);
-        showView(R.id.tvChannel);
-
-        View container = findViewById(R.id.video_container);
-        if (container != null) {
-            ViewGroup.LayoutParams lp = container.getLayoutParams();
-            lp.height = mContainerHeightPx > 0 ? mContainerHeightPx : ConvertUtils.dp2px(240);
-            container.setLayoutParams(lp);
-        }
-        if (mVideoView != null) {
-            ViewGroup.LayoutParams vlp = mVideoView.getLayoutParams();
-            vlp.height = mVideoHeightPx > 0 ? mVideoHeightPx : ConvertUtils.dp2px(300);
-            mVideoView.setLayoutParams(vlp);
-        }
+        // 先恢复 decorView 可见
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
         if (mWebFullBtn != null) mWebFullBtn.setText("全屏");
+
+        // 延迟到下一帧 + 屏幕方向稳定后再恢复布局，避免竖屏像素值不准导致选台面板被挤
+        mHandler.postDelayed(() -> {
+            View container = findViewById(R.id.video_container);
+            if (container != null) {
+                ViewGroup.LayoutParams lp = container.getLayoutParams();
+                // 始终用 240dp 作为基准（跟 activity_live.xml 里的 android:layout_height="240dp" 一致）
+                lp.height = ConvertUtils.dp2px(240);
+                container.setLayoutParams(lp);
+            }
+            if (mVideoView != null) {
+                ViewGroup.LayoutParams vlp = mVideoView.getLayoutParams();
+                vlp.height = ConvertUtils.dp2px(300);
+                mVideoView.setLayoutParams(vlp);
+            }
+            // WebView 恢复容器高度后自动跟随（MATCH_PARENT），不需要额外处理
+            showView(R.id.ll_epg);
+            showView(R.id.tvLeftChannnelListLayout);
+            showView(R.id.bottom_nav);
+            showView(R.id.tvChannel);
+            // 通知站点脚本用新屏幕尺寸重新铺满
+            callWebRelayout();
+        }, 300);
+    }
+
+    /** 让网页脚本重新铺满（站点脚本有 __tvboxRelayout，没匹配到站点的话 fallback 脚本也有） */
+    private void callWebRelayout() {
+        if (mWebLiveView == null) return;
+        try {
+            mWebLiveView.evaluateJavascript(
+                    "(function(){try{if(window.__tvboxRelayout)window.__tvboxRelayout();}catch(e){}})();",
+                    null);
+        } catch (Throwable ignored) {}
     }
 
     private void hideView(int id) {
