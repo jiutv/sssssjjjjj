@@ -1005,9 +1005,6 @@ public class LiveActivity extends BaseActivity {
         mOrientationBeforeWebFull = getRequestedOrientation();
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
 
-        if (mContainerHeightPx == 0) mContainerHeightPx = container.getHeight();
-        if (mVideoHeightPx == 0 && mVideoView != null) mVideoHeightPx = mVideoView.getHeight();
-
         // 隐藏直播页其它区域，只保留视频
         hideView(R.id.ll_epg);
         hideView(R.id.tvLeftChannnelListLayout);
@@ -1022,11 +1019,19 @@ public class LiveActivity extends BaseActivity {
             vlp.height = ViewGroup.LayoutParams.MATCH_PARENT;
             mVideoView.setLayoutParams(vlp);
         }
+        // 进入全屏：只用「隐藏系统栏」的三个 flag，不带 LAYOUT_*
+        // （LAYOUT_* 让窗口延伸到系统栏后面，全屏时不需要）
         getWindow().getDecorView().setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
-        syncWebLiveViewport();
+
+        // 方向切换是异步的，旋转完成后再存原生播放器高度，否则存的是竖屏值
+        container.post(() -> {
+            if (mContainerHeightPx == 0) mContainerHeightPx = container.getHeight();
+            if (mVideoView != null && mVideoHeightPx == 0) mVideoHeightPx = mVideoView.getHeight();
+            syncWebLiveViewport();
+        });
     }
 
     /**
@@ -1088,17 +1093,16 @@ public class LiveActivity extends BaseActivity {
             vlp.height = mVideoHeightPx > 0 ? mVideoHeightPx : ConvertUtils.dp2px(300);
             mVideoView.setLayoutParams(vlp);
         }
-        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
-        syncWebLiveViewport();
-        // 退出全屏时方向切换、容器高度恢复都有延迟，立即同步时 WebView 还是全屏尺寸，
-        // 等布局稳定后再补一次，避免画面按旧视口尺寸排版、把频道列表又挡住
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                if (mWebLiveView != null) {
-                    mWebLiveView.requestLayout();
-                    syncWebLiveViewport();
-                }
+        // 退出全屏：恢复「沉浸式基础 flag」，绝不能设 SYSTEM_UI_FLAG_VISIBLE！
+        // VISIBLE 会把 LAYOUT_HIDE_NAVIGATION / LAYOUT_FULLSCREEN 一起清掉，
+        // 根布局高度突然少掉状态栏+导航栏那一百多像素，视频/列表全被挤掉一半。
+        applyImmersive();
+        // 方向切换是异步的，等竖屏布局稳定后再同步网页视口
+        mHandler.post(() -> syncWebLiveViewport());
+        mHandler.postDelayed(() -> {
+            if (mWebLiveView != null) {
+                mWebLiveView.requestLayout();
+                syncWebLiveViewport();
             }
         }, 350);
     }
