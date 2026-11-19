@@ -174,6 +174,37 @@ public class LiveActivity extends BaseActivity {
     /** 当前内嵌网页的地址与频道名，供站点适配脚本使用 */
     private String mWebLiveUrl = null;
     private String mWebLiveChannel = null;
+    /**
+     * 页面加载后周期性补注站点脚本。
+     *
+     * <p>这些站点多是 Vue SPA，加载完成后还会重建 DOM，早先注入的 &lt;style&gt; 节点
+     * 会被整体替换掉，表现为过一会儿顶栏、频道列表又露出来。补注只重放脚本，
+     * 不调 __tvboxInPageGo，所以不会把已经切好的频道再切一次。</p>
+     */
+    private int mWebReinjectLeft = 0;
+    private final Runnable mWebLiveReinjectRun = new Runnable() {
+        @Override
+        public void run() {
+            if (mWebLiveView == null || mWebLiveUrl == null) return;
+            try {
+                WebLiveScripts.injectScripts(mWebLiveView, mWebLiveUrl);
+            } catch (Throwable ignored) {
+            }
+            if (--mWebReinjectLeft > 0) mHandler.postDelayed(this, 5000);
+        }
+    };
+
+    /** 重新开始补注窗口：60 秒内每 5 秒补一次 */
+    private void restartWebReinject() {
+        mHandler.removeCallbacks(mWebLiveReinjectRun);
+        mWebReinjectLeft = 12;
+        mHandler.postDelayed(mWebLiveReinjectRun, 5000);
+    }
+
+    private void stopWebReinject() {
+        mHandler.removeCallbacks(mWebLiveReinjectRun);
+        mWebReinjectLeft = 0;
+    }
     private final Runnable mWebLiveInjectRun = new Runnable() {
         @Override
         public void run() {
@@ -790,6 +821,7 @@ public class LiveActivity extends BaseActivity {
                     mWebLiveTries = 0;
                     mHandler.removeCallbacks(mWebLiveInjectRun);
                     mHandler.post(mWebLiveInjectRun);
+                    restartWebReinject();
                     // 注意：这里不能撤黑幕。页面加载完不代表已经在播，
                     // 提前撤掉会把网页本身（导航栏、频道列表）露出来。
                     if (!mWebPlayStarted) {
@@ -834,6 +866,7 @@ public class LiveActivity extends BaseActivity {
         mHandler.removeCallbacks(mWebLiveInjectRun);
         mHandler.removeCallbacks(mWebLoadingTimeoutRun);
         mHandler.postDelayed(mWebLoadingTimeoutRun, 15000);
+        restartWebReinject();
         mWebLiveView.loadUrl(newUrl);
         LOG.i("🎬 同域换地址（复用 WebView）：" + newChannelName + " " + newUrl);
     }
@@ -865,6 +898,8 @@ public class LiveActivity extends BaseActivity {
         mHandler.removeCallbacks(mWebLoadingTimeoutRun);
         mHandler.postDelayed(mWebLiveInjectRun, 200);
         mHandler.postDelayed(mWebLoadingTimeoutRun, 15000);
+        // 同域切台后页面会重排，继续保持补注
+        restartWebReinject();
         // 同域切台 8 秒还没出画：退回整页重载，保证不会卡死在黑幕
         final String want = newChannelName;
         mHandler.postDelayed(() -> {
@@ -900,6 +935,7 @@ public class LiveActivity extends BaseActivity {
         mWebLiveChannel = null;
         mHandler.removeCallbacks(mWebLiveInjectRun);
         mHandler.removeCallbacks(mWebLoadingTimeoutRun);
+        stopWebReinject();
         if (mWebFullscreen) exitWebFullscreen();
         if (mWebLoading != null) mWebLoading.setVisibility(View.GONE);
         // 退出网页播放时还原 App 底部导航

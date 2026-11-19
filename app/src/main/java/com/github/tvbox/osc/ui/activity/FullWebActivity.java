@@ -274,12 +274,18 @@ public class FullWebActivity extends BaseActivity {
         @Override
         public void run() {
             if (mWebView == null || mSniffFound || isFinishing()) return;
-            if (mAutoPlayTries++ >= 15) return;
+            // 站点多为 SPA，DOM 可能几十秒后才稳定，且重建 DOM 会把注入的 <style> 冲掉，
+            // 因此持续补注 60 秒（每 2 秒一次），而不是只试 30 秒就放弃。
+            if (mAutoPlayTries++ >= 30) return;
             try {
                 mWebView.evaluateJavascript(SNIFF_HOOK_JS, null);
                 mWebView.evaluateJavascript(AUTO_PLAY_JS, null);
-                // 站点适配脚本：藏站点 UI + 播放器铺满（幂等，可重复注入）
-                WebLiveScripts.inject(mWebView, mEntryUrl, null);
+                // 首次注入同时触发页内切台；之后只补样式/铺满，不重复切台
+                if (mAutoPlayTries == 1) {
+                    WebLiveScripts.inject(mWebView, mEntryUrl, null);
+                } else {
+                    WebLiveScripts.injectScripts(mWebView, mEntryUrl);
+                }
             } catch (Throwable t) {
                 LOG.i("autoPlay 注入失败: " + t);
             }

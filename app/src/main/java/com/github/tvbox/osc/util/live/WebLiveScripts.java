@@ -100,6 +100,27 @@ public final class WebLiveScripts {
      */
     public static void inject(WebView view, String pageUrl, String channelName) {
         if (view == null || TextUtils.isEmpty(pageUrl)) return;
+        injectScripts(view, pageUrl);
+        try {
+            // 支持频道自动点选的站点脚本需要页面地址与频道名
+            String call = "(function(){try{if(window.__tvboxInPageGo){window.__tvboxInPageGo("
+                    + JSONObject.quote(pageUrl) + "," + JSONObject.quote(channelName == null ? "" : channelName)
+                    + ");}}catch(e){}})()";
+            view.evaluateJavascript(call, null);
+        } catch (Throwable t) {
+            Log.e(TAG, "触发页内切台失败: " + pageUrl, t);
+        }
+    }
+
+    /**
+     * 只重新注入样式/铺满脚本，不触发页内切台。
+     *
+     * <p>SPA 站点会在加载过程中重建 DOM，早先注入的 style 节点可能被整体替换掉，
+     * 导致「顶栏、频道列表又露出来」。这里用于在页面加载后的一段时间内周期性补注，
+     * 因为不调 __tvboxInPageGo，不会把已经切好的频道又切一次。</p>
+     */
+    public static void injectScripts(WebView view, String pageUrl) {
+        if (view == null || TextUtils.isEmpty(pageUrl)) return;
         Context ctx = view.getContext();
         String site = siteAsset(pageUrl);
         try {
@@ -110,11 +131,6 @@ public final class WebLiveScripts {
             // 通用兜底（live.webview.js），选面积最大的播放器铺满
             String generic = read(ctx, GENERIC);
             if (!TextUtils.isEmpty(generic)) view.evaluateJavascript(generic, null);
-            // 支持频道自动点选的站点脚本需要页面地址与频道名
-            String call = "(function(){try{if(window.__tvboxInPageGo){window.__tvboxInPageGo("
-                    + JSONObject.quote(pageUrl) + "," + JSONObject.quote(channelName == null ? "" : channelName)
-                    + ");}}catch(e){}})()";
-            view.evaluateJavascript(call, null);
         } catch (Throwable t) {
             Log.e(TAG, "注入脚本失败: " + pageUrl, t);
         }

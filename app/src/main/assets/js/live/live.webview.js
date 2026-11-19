@@ -21,7 +21,20 @@
     vp.webkitEnterFullscreen = vp.webkitEnterFullScreen = function () {};
   } catch (e2) {}
 
-  if (window.__tvboxSkipVideoFill) return;
+  /*
+   * 站点脚本会设置 __tvboxSkipVideoFill=1 把自己标记为「已接管」。
+   * 但站点一旦改版，脚本里的类名就可能全部失效，而此时通用兜底又因为该标记直接退出，
+   * 结果就是网页原样显示（顶栏、线路栏、频道列表全露）。
+   * 这里给站点脚本 8 秒机会：期间它没把 __tvboxLayoutReady 置 1，就由通用脚本强制接管。
+   */
+  var siteMode = !!window.__tvboxSkipVideoFill;
+  var forceAt = siteMode ? Date.now() + 8000 : 0;
+
+  function canFill() {
+    if (!siteMode) return true;
+    if (window.__tvboxLayoutReady) return false; // 站点脚本已铺满，别和它抢
+    return Date.now() >= forceAt;
+  }
 
   function cssOnce() {
     if (document.getElementById("tvbox-web-css")) return;
@@ -144,7 +157,7 @@
   }
 
   function layout() {
-    if (window.__tvboxSkipVideoFill) return !!window.__tvboxLayoutReady;
+    if (!canFill()) return !!window.__tvboxLayoutReady;
     var v = videoEl();
     if (v && v.videoWidth * v.videoHeight !== 0) {
       paint(v);
@@ -220,14 +233,14 @@
   }
 
   window.__tvboxRelayout = window.__tvboxRelayout || function () {
-    if (window.__tvboxSkipVideoFill) return;
+    if (!canFill()) return;
     var el = videoEl() || iframeEl();
     if (!el) return;
     el.removeAttribute("data-tvbox-fill");
     paint(el);
   };
 
-  if (!window.__tvboxSkipVideoFill && document.body && window.MutationObserver) {
+  if (document.body && window.MutationObserver) {
     try {
       mo = new MutationObserver(function () {
         if (readySent) return;
@@ -241,13 +254,14 @@
   cssOnce();
   var n = 0;
   function tick() {
-    if (readySent) return;
+    if (readySent || window.__tvboxLayoutReady) return;
     try {
       bindVideo();
       tellReady();
       if (readySent) return;
     } catch (e) {}
-    if (++n < 150) setTimeout(tick, 100);
+    // 40 秒窗口：站点改版时可能很久才渲染出播放器，兜底要等得住
+    if (++n < 400) setTimeout(tick, 100);
   }
   tick();
 })();
