@@ -98,3 +98,6 @@ lint/tmp/
 /app/release/
 /.idea/
 *.jks.uploads/
+
+# 用户上传的临时素材，不入库
+.uploads/
