@@ -207,6 +207,36 @@ public class LiveActivity extends BaseActivity {
     private void stopWebReinject() {
         mHandler.removeCallbacks(mWebLiveReinjectRun);
     }
+    /**
+     * 网页画面检测：返回 '1' 表示「在播 + 铺满视口」，
+     * 'half:0.35' 表示在播但只占 35% 视口（会露网页界面），'0' 表示还没画面。
+     */
+    private static final String WEB_COVERAGE_JS =
+            "(function(){try{"
+                    + "var W=window.innerWidth||document.documentElement.clientWidth||0;"
+                    + "var H=window.innerHeight||document.documentElement.clientHeight||0;"
+                    + "if(!W||!H)return '0';"
+                    + "function rc(e){try{return e.getBoundingClientRect();}catch(x){return null;}}"
+                    + "function pl(v){return v&&v.videoWidth>0&&(v.currentTime>0||v.readyState>=2);}"
+                    + "function cv(r){if(!r)return 0;var w=Math.min(r.right,W)-Math.max(r.left,0);"
+                    + "var h=Math.min(r.bottom,H)-Math.max(r.top,0);"
+                    + "if(w<=0||h<=0)return 0;return (w*h)/(W*H);}"
+                    + "function has(d){if(!d)return false;var vs=d.querySelectorAll('video');"
+                    + "for(var i=0;i<vs.length;i++){if(pl(vs[i]))return true;}"
+                    + "var fs=d.querySelectorAll('iframe');"
+                    + "for(var j=0;j<fs.length;j++){try{if(has(fs[j].contentDocument))return true;}catch(e){}}"
+                    + "return false;}"
+                    + "var best=0,i,vs=document.querySelectorAll('video');"
+                    + "for(i=0;i<vs.length;i++){if(pl(vs[i])){var c=cv(rc(vs[i]));if(c>best)best=c;}}"
+                    + "var fs=document.querySelectorAll('iframe');"
+                    + "for(i=0;i<fs.length;i++){var f=fs[i];"
+                    + "if((f.offsetWidth||0)>=120&&(f.offsetHeight||0)>=80){"
+                    + "var ok=false;try{ok=has(f.contentDocument);}catch(e){}"
+                    + "if(ok){var c2=cv(rc(f));if(c2>best)best=c2;}}}"
+                    + "if(best<=0)return '0';"
+                    + "return best>=0.90?'1':'half:'+best.toFixed(2);"
+                    + "}catch(e){return '0';}})()";
+
     private final Runnable mWebLiveInjectRun = new Runnable() {
         @Override
         public void run() {
@@ -220,25 +250,25 @@ public class LiveActivity extends BaseActivity {
                     // 站点适配脚本（NewBox 同款）：藏站点 UI + 播放器铺满 + 必要时点选频道
                     WebLiveScripts.inject(mWebLiveView, mWebLiveUrl, mWebLiveChannel);
                 }
-                // 页面里的 video 真正出画后再撤掉"正在打开网页…"，避免露出网页界面
-                mWebLiveView.evaluateJavascript(
-                        "(function(){try{"
-                                + "function has(d){var vs=d.querySelectorAll('video');"
-                                + "for(var i=0;i<vs.length;i++){var v=vs[i];"
-                                + "if(v.videoWidth>0&&(v.currentTime>0||v.readyState>=2))return true;}"
-                                + "var fs=d.querySelectorAll('iframe');"
-                                + "for(var j=0;j<fs.length;j++){try{"
-                                + "if(fs[j].contentDocument&&has(fs[j].contentDocument))return true;}catch(e){}}"
-                                + "return false;}return has(document);"
-                                + "}catch(e){return false;}})();",
+                // 页面里的 video 真正出画、并且「真的铺满整个网页视口」之后才撤黑幕。
+                // 只判断"在播"不够：站点改版时画面可能只占下半屏、上面还露着网页头部，
+                // 这时撤掉黑幕用户就看到半个网页。
+                mWebLiveView.evaluateJavascript(WEB_COVERAGE_JS,
                         value -> {
-                            if ("true".equals(value)) {
+                            String r = value == null ? "" : value.replace("\"", "");
+                            if ("1".equals(r)) {
                                 // 同页切台时，旧画面往往还在播；只有站点脚本 onReady
-                                // 或 8 秒兜底重载后才算新频道就绪
+                                // 或兜底重载后才算新频道就绪
                                 if (mWebSwitchPending && !mWebBridgeSeen) return;
                                 mWebPlayStarted = true;
                                 mWebSwitchPending = false;
                                 hideWebLoading();
+                            } else if (r.startsWith("half:")) {
+                                // 画面在播但只占一部分 → 让网页脚本立刻强制铺满，黑幕继续盖着
+                                if (mWebSwitchPending && !mWebBridgeSeen) return;
+                                mWebLiveView.evaluateJavascript(
+                                        "(function(){try{if(window.__tvboxForceTakeover)window.__tvboxForceTakeover();}catch(e){}})()",
+                                        null);
                             } else if (!mWebPlayStarted && mWebLiveTries >= 24) {
                                 // 页面已加载完但一直没有画面：多半是站点改版/需要登录，给个明确提示
                                 setWebLoadingText("网页线路未就绪，可切换线路");

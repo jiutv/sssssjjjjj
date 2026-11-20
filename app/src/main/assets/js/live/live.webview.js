@@ -22,14 +22,15 @@
   } catch (e2) {}
 
   /*
-   * 不再被站点脚本的 __tvboxSkipVideoFill 标记直接挡住。
-   * 站点脚本先跑 8 秒；期间它没把播放器真的铺满视口，就由这里强制接管：
-   * 把 video/iframe 从原 DOM 摘出来塞到 body 顶层，并把 body 下所有其他节点隐藏——
-   * 这和 yourtv 的思路完全一致，站点怎么重建 DOM 都没用。
+   * 本 App 的定位就是「网页只当画面用」，所以不再赌站点脚本能不能把 UI 藏干净：
+   * 播放器真正出画后 1.2 秒就强制接管——把 video/iframe 从原 DOM 摘出来塞到 body 顶层，
+   * 并把 body 下所有其他节点隐藏（和 yourtv 同一思路）。站点怎么重建 DOM 都没用。
+   * 站点脚本仍然先跑，能正常铺满的话接管只是兜底，不会有副作用。
    */
-  var SITE_MODE = !!window.__tvboxSkipVideoFill;
-  var FORCE_AT = SITE_MODE ? Date.now() + 8000 : 0;
+  var FORCE_AT = Date.now() + 1200;
   var FORCED = 0;
+  var shadowRoots = null;
+  var lastShadowScan = 0;
 
   function cssOnce() {
     if (document.getElementById("tvbox-web-css")) return;
@@ -55,7 +56,7 @@
       "body>*{display:none!important}" +
       "video,iframe,object,embed{display:block!important;position:fixed!important;" +
       "top:0!important;left:0!important;width:100vw!important;height:100vh!important;" +
-      "object-fit:fill!important;background:transparent!important;z-index:99999!important;" +
+      "object-fit:contain!important;background:transparent!important;z-index:99999!important;" +
       "margin:0!important;padding:0!important;border:none!important}";
     parent.appendChild(s);
   }
@@ -87,15 +88,23 @@
   function videoEl() {
     var v = pickVideo(document);
     if (v) return v;
-    var all = document.querySelectorAll("*");
-    var i;
-    for (i = 0; i < all.length; i++) {
-      try {
-        if (all[i].shadowRoot) {
-          v = pickVideo(all[i].shadowRoot);
-          if (v) return v;
-        }
-      } catch (e) {}
+    // 影子 DOM 扫描很贵（* 选择器），最多 2 秒一次，避免每 100ms 拖慢页面
+    var now = Date.now();
+    if (!shadowRoots || now - lastShadowScan > 2000) {
+      lastShadowScan = now;
+      shadowRoots = [];
+      var all = document.querySelectorAll("*");
+      var i;
+      for (i = 0; i < all.length; i++) {
+        try {
+          if (all[i].shadowRoot) shadowRoots.push(all[i].shadowRoot);
+        } catch (e) {}
+      }
+    }
+    var j;
+    for (j = 0; j < shadowRoots.length; j++) {
+      v = pickVideo(shadowRoots[j]);
+      if (v) return v;
     }
     return null;
   }
@@ -202,6 +211,12 @@
    */
   function forceTakeover() {
     if (FORCED) return;
+    // 还没找到真正出画的播放器就不能接管：forceCss 会把 body 其他节点全隐藏，
+    // 万一把"后面才会出现/需要点击"的播放器也藏了，就再也播不出来了
+    var probe = videoEl() || iframeEl();
+    if (!probe) return;
+    if (probe.tagName && probe.tagName.toLowerCase() === "video"
+        && !(probe.videoWidth * probe.videoHeight)) return;
     FORCED = 1;
     forceCss();
 
@@ -226,7 +241,7 @@
       } catch (e) {}
       v.style.cssText =
         "display:block!important;position:fixed!important;top:0!important;left:0!important;" +
-        "width:100vw!important;height:100vh!important;object-fit:fill!important;" +
+        "width:100vw!important;height:100vh!important;object-fit:contain!important;" +
         "background:transparent!important;z-index:99999!important;margin:0!important;padding:0!important;" +
         "border:none!important";
     }
@@ -256,12 +271,13 @@
   }
 
   function siteActuallyCoveringViewport() {
-    var s = vp();
     if (FORCED) return true;
-    var box = document.querySelector("[data-tvbox-box]");
-    if (box && coversViewport(box, s)) return true;
+    // 只看真正的播放器元素：站点给容器打 data-tvbox-box 也不代表用户看不到网页 UI
+    // （容器可能是透明的，导航栏照样露在外面）
     var v = videoEl();
-    if (v && coversViewport(v, s)) return true;
+    if (v && coversViewport(v, vp())) return true;
+    var f = iframeEl();
+    if (f && coversViewport(f, vp())) return true;
     return false;
   }
 
@@ -281,6 +297,10 @@
     if (readySent) return;
     if (!window.__tvboxLayoutReady) return;
     if (!pictureReady()) return;
+    // 关键：不能只信脚本自己标记的 ready。
+    // 站点改版/尺寸异常时它可能"以为铺满了"，实际网页头部还在、画面只占下半屏，
+    // 这时一旦回调 onReady 撤掉黑幕，用户就看到半个网页。必须实测覆盖视口。
+    if (!FORCED && !siteActuallyCoveringViewport()) return;
     readySent = 1;
     stopWatch();
     try {
@@ -326,18 +346,28 @@
   cssOnce();
   var n = 0;
   function tick() {
-    if (readySent && !FORCED) return;
     try {
       bindVideo();
-      tellReady();
     } catch (e) {}
-
+    if (!readySent) {
+      try { tellReady(); } catch (e) {}
+    }
+    // watchdog 不能被 readySent 提前关掉：站点脚本可能误判 ready，
+    // 这里要持续检查"是不是真的铺满了"，没铺满就强制接管
     if (!FORCED && FORCE_AT > 0 && Date.now() >= FORCE_AT && !siteActuallyCoveringViewport()) {
       forceTakeover();
-      tellReady();
+      try { tellReady(); } catch (e) {}
     }
 
     if (++n < 400) setTimeout(tick, 100);
   }
   tick();
+
+  // 原生层检测到"画面只占半屏"时直接调这个，立刻强制铺满
+  window.__tvboxForceTakeover = function () {
+    try {
+      if (!FORCED) forceTakeover();
+      tellReady();
+    } catch (e) {}
+  };
 })();
