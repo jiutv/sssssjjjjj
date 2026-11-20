@@ -169,8 +169,6 @@ public class LiveActivity extends BaseActivity {
     private boolean mWebFullscreen = false;
     // 进入全屏前的方向，退出时恢复；手机/云手机统一回竖屏
     private int mOrientationBeforeWebFull = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
-    private int mContainerHeightPx = 0;
-    private int mVideoHeightPx = 0;
     /** 当前内嵌网页的地址与频道名，供站点适配脚本使用 */
     private String mWebLiveUrl = null;
     private String mWebLiveChannel = null;
@@ -426,6 +424,11 @@ public class LiveActivity extends BaseActivity {
 
     @Override
     public void onBackPressed() {
+        // 网页播放时全屏状态由原生 VideoView 管理，按返回键只退出全屏
+        if (mWebLiveView != null && mVideoView != null && mVideoView.isFullScreen()) {
+            exitWebFullscreen();
+            return;
+        }
         if (mWebFullscreen) {
             exitWebFullscreen();
             return;
@@ -763,8 +766,14 @@ public class LiveActivity extends BaseActivity {
         mWebBridgeSeen = false;
         mWebSwitchPending = false;
         try {
-            mVideoView.setVisibility(View.GONE);
+            // 网页也是「画面」：直接叠到原生播放器容器最上层。
+            // 这样 mVideoView.startFullScreen()/stopFullScreen() 这套原生全屏机制
+            // （把播放器容器整体挪进 DecorView）对网页同样生效，不用再手写一套。
+            mVideoView.setVisibility(View.VISIBLE);
             mVideoView.pause();
+            ViewGroup.LayoutParams vpl = mVideoView.getLayoutParams();
+            vpl.height = ViewGroup.LayoutParams.MATCH_PARENT;
+            mVideoView.setLayoutParams(vpl);
 
             // 网页播放期间隐藏 App 自己的底部导航（首页/直播/设置），
             // 只保留画面 + 原生播放控制条，和 NewBox 一致
@@ -838,10 +847,11 @@ public class LiveActivity extends BaseActivity {
                     }
                 }
             });
-            RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
-                    RelativeLayout.LayoutParams.MATCH_PARENT,
-                    RelativeLayout.LayoutParams.MATCH_PARENT);
-            ((ViewGroup) container).addView(wv, lp);
+            // 叠加到播放器容器：跟随原生全屏机制一起进出全屏
+            mVideoView.addPlayerOverlay(wv);
+            // 原生控制层（标题/菜单/控制条）挂在同一容器里，这里保证网页画面在最上层，
+            // 控制层只负责手势，不遮住画面
+            wv.bringToFront();
             mWebLiveView = wv;
             // WebView 尺寸一变（进出全屏、桌面窗口缩放）就同步网页视口，
             // 否则网页里 fixed 定位的播放器不会跟着缩，退全屏后画面还按全屏尺寸排
@@ -968,7 +978,15 @@ public class LiveActivity extends BaseActivity {
             }
             mWebLiveView = null;
         }
-        if (mVideoView != null) mVideoView.setVisibility(View.VISIBLE);
+        if (mVideoView != null) {
+            // 网页叠在播放器容器里，退出时必须把原生的全屏状态和高度都还原，
+            // 否则回到原生播放时容器还停在 DecorView / MATCH_PARENT 上
+            if (mVideoView.isFullScreen()) mVideoView.stopFullScreen();
+            ViewGroup.LayoutParams vlp = mVideoView.getLayoutParams();
+            vlp.height = ViewGroup.LayoutParams.MATCH_PARENT;
+            mVideoView.setLayoutParams(vlp);
+            mVideoView.setVisibility(View.VISIBLE);
+        }
     }
 
     /** 网页播放的暂停/继续：直接控制页面里的 video */
@@ -1007,8 +1025,7 @@ public class LiveActivity extends BaseActivity {
     }
 
     private void enterWebFullscreen() {
-        View container = findViewById(R.id.video_container);
-        if (container == null) return;
+        if (mVideoView == null) return;
         mWebFullscreen = true;
         mOrientationBeforeWebFull = getRequestedOrientation();
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
@@ -1019,27 +1036,13 @@ public class LiveActivity extends BaseActivity {
         hideView(R.id.bottom_nav);
         hideView(R.id.tvChannel);
 
-        ViewGroup.LayoutParams lp = container.getLayoutParams();
-        lp.height = ViewGroup.LayoutParams.MATCH_PARENT;
-        container.setLayoutParams(lp);
-        if (mVideoView != null) {
-            ViewGroup.LayoutParams vlp = mVideoView.getLayoutParams();
-            vlp.height = ViewGroup.LayoutParams.MATCH_PARENT;
-            mVideoView.setLayoutParams(vlp);
-        }
-        // 进入全屏：只用「隐藏系统栏」的三个 flag，不带 LAYOUT_*
-        // （LAYOUT_* 让窗口延伸到系统栏后面，全屏时不需要）
-        getWindow().getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+        // 复用 DoPlayer 原生全屏：把播放器容器（含叠加的 WebView）整体挪进 DecorView，
+        // 并隐藏状态栏/导航栏。它只 |= / &= ~ 系统栏 flag，不会清掉 LAYOUT_*，
+        // 所以不会出现「退出全屏后根布局突然少一百多像素、画面只剩一半」的问题。
+        mVideoView.startFullScreen();
 
-        // 方向切换是异步的，旋转完成后再存原生播放器高度，否则存的是竖屏值
-        container.post(() -> {
-            if (mContainerHeightPx == 0) mContainerHeightPx = container.getHeight();
-            if (mVideoView != null && mVideoHeightPx == 0) mVideoHeightPx = mVideoView.getHeight();
-            syncWebLiveViewport();
-        });
+        // 容器尺寸变化后让网页按新视口重排
+        mHandler.post(this::syncWebLiveViewport);
     }
 
     /**
@@ -1057,19 +1060,30 @@ public class LiveActivity extends BaseActivity {
                             + "if(window.__mboxFallback)window.__mboxFallback();}catch(e){}})()", null);
         } catch (Throwable ignored) {
         }
-        final String url = mWebLiveUrl;
-        final String channel = mWebLiveChannel;
-        // 等布局稳定后按新尺寸重新铺一次
+        // 等布局稳定后再通知一次。注意这里不能再 evaluate 整份站点脚本：
+        // 进出全屏会连续触发多次尺寸变化，每次重放 8-10KB JS 会明显拖慢，
+        // 而站点脚本/通用兜底自带 MutationObserver，DOM 变化会自愈。
         mHandler.postDelayed(() -> {
-            if (mWebLiveView != null && url != null) {
-                WebLiveScripts.inject(mWebLiveView, url, channel);
+            if (mWebLiveView == null) return;
+            try {
+                mWebLiveView.evaluateJavascript(
+                        "(function(){try{window.dispatchEvent(new Event('resize'));"
+                                + "if(window.__tvboxRelayout)window.__tvboxRelayout();"
+                                + "if(window.__mboxFallback)window.__mboxFallback();}catch(e){}})()", null);
+            } catch (Throwable ignored) {
             }
         }, 500);
     }
 
     private void exitWebFullscreen() {
-        if (!mWebFullscreen) return;
+        // 原生全屏可能是通过返回键/系统手势退出的，这里两个状态都要认
+        if (!mWebFullscreen && (mVideoView == null || !mVideoView.isFullScreen())) return;
         mWebFullscreen = false;
+
+        // 原生全屏退出：把播放器容器（含 WebView）还回 VideoView，并恢复系统栏
+        if (mVideoView != null && mVideoView.isFullScreen()) {
+            mVideoView.stopFullScreen();
+        }
         restoreOrientationAfterFullscreen();
 
         showView(R.id.ll_epg);
@@ -1078,35 +1092,12 @@ public class LiveActivity extends BaseActivity {
         if (mWebLiveView == null) showView(R.id.bottom_nav);
         showView(R.id.tvChannel);
 
-        View container = findViewById(R.id.video_container);
-        if (container != null) {
-            ViewGroup.LayoutParams lp = container.getLayoutParams();
-            lp.height = ConvertUtils.dp2px(240);
-            container.setLayoutParams(lp);
-            // 网页内容超出容器时不能画到频道列表上去
-            if (container instanceof ViewGroup) {
-                ((ViewGroup) container).setClipChildren(true);
-                ((ViewGroup) container).setClipToPadding(true);
-            }
-        }
-        if (mWebLiveView != null) {
-            ViewGroup.LayoutParams wlp = mWebLiveView.getLayoutParams();
-            wlp.width = ViewGroup.LayoutParams.MATCH_PARENT;
-            wlp.height = ViewGroup.LayoutParams.MATCH_PARENT;
-            mWebLiveView.setLayoutParams(wlp);
-            mWebLiveView.requestLayout();
-        }
-        if (mVideoView != null) {
-            ViewGroup.LayoutParams vlp = mVideoView.getLayoutParams();
-            vlp.height = mVideoHeightPx > 0 ? mVideoHeightPx : ConvertUtils.dp2px(300);
-            mVideoView.setLayoutParams(vlp);
-        }
-        // 退出全屏：恢复「沉浸式基础 flag」，绝不能设 SYSTEM_UI_FLAG_VISIBLE！
-        // VISIBLE 会把 LAYOUT_HIDE_NAVIGATION / LAYOUT_FULLSCREEN 一起清掉，
-        // 根布局高度突然少掉状态栏+导航栏那一百多像素，视频/列表全被挤掉一半。
+        // stopFullScreen 只清 HIDE_*，这里补回沉浸式基础 flag（含 LAYOUT_*），
+        // 保证窗口布局策略前后一致，不会出现根布局高度跳变
         applyImmersive();
+
         // 方向切换是异步的，等竖屏布局稳定后再同步网页视口
-        mHandler.post(() -> syncWebLiveViewport());
+        mHandler.post(this::syncWebLiveViewport);
         mHandler.postDelayed(() -> {
             if (mWebLiveView != null) {
                 mWebLiveView.requestLayout();

@@ -910,6 +910,20 @@ public class VideoView<P extends AbstractPlayer> extends FrameLayout
     }
 
     /**
+     * 把外部 View（如内嵌网页）叠加到播放器容器最上层。
+     *
+     * <p>叠加后它会跟随 {@link #mPlayerContainer} 一起被 {@link #startFullScreen()}
+     * 移动到 DecorView，从而实现「网页播放复用原生全屏机制」。</p>
+     */
+    public void addPlayerOverlay(View overlay) {
+        if (overlay == null || mPlayerContainer == null) return;
+        LayoutParams params = new LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT);
+        mPlayerContainer.addView(overlay, params);
+    }
+
+    /**
      * 设置视频比例
      */
     @Override
