@@ -131,23 +131,30 @@ public class ApiConfig {
         return "".getBytes();
     }
 
-    public void loadConfig(boolean useCache, LoadConfigCallback callback, Activity activity) {
+    /**
+     * 读取当前数据源地址。
+     * 兼容历史版本把 API_URL 写空的情况：从订阅列表恢复第一个可用地址。
+     */
+    private String resolveApiUrl() {
         String apiUrl = Hawk.get(HawkConfig.API_URL, "");
-        if (TextUtils.isEmpty(apiUrl)) {
-            // 兼容历史版本把 API_URL 写空的情况：从订阅列表恢复第一个可用地址
-            List<Subscription> subscriptions = Hawk.get(HawkConfig.SUBSCRIPTIONS, new ArrayList<Subscription>());
-            if (subscriptions != null) {
-                for (Subscription subscription : subscriptions) {
-                    if (subscription != null && !TextUtils.isEmpty(subscription.getUrl())) {
-                        apiUrl = subscription.getUrl();
-                        break;
-                    }
+        if (!TextUtils.isEmpty(apiUrl)) {
+            return apiUrl;
+        }
+        List<Subscription> subscriptions = Hawk.get(HawkConfig.SUBSCRIPTIONS, new ArrayList<Subscription>());
+        if (subscriptions != null) {
+            for (Subscription subscription : subscriptions) {
+                if (subscription != null && !TextUtils.isEmpty(subscription.getUrl())) {
+                    Hawk.put(HawkConfig.API_URL, subscription.getUrl());
+                    return subscription.getUrl();
                 }
             }
-            if (!TextUtils.isEmpty(apiUrl)) {
-                Hawk.put(HawkConfig.API_URL, apiUrl);
-            }
         }
+        return "";
+    }
+
+    public void loadConfig(boolean useCache, LoadConfigCallback callback, Activity activity) {
+        // 注意：apiUrl 会被匿名内部类捕获，必须保证只赋值一次（effectively final）
+        String apiUrl = resolveApiUrl();
         if (TextUtils.isEmpty(apiUrl)) {
             callback.error("-1");
             return;
