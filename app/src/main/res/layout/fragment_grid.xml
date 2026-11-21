@@ -14,7 +14,8 @@
         tools:listitem="@layout/item_grid"
         tools:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
         tools:spanCount="3"
-        android:paddingHorizontal="10dp"/>
+        android:paddingHorizontal="10dp"
+        android:paddingTop="@dimen/home_top_overlay_height"/>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/btn_filter"

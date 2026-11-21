@@ -1,109 +1,122 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    首页沉浸式布局：
+    - 内容全屏铺满，首页 Hero 可以延伸到状态栏下方
+    - 数据源 / 搜索 / 分类 tab 悬浮在内容之上
+    - 其它分类页在 Grid 内部预留顶部内边距，避免内容被顶栏遮挡
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:orientation="vertical"
-    android:background="?attr/skin_page_bg"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="?attr/skin_page_bg"
+    android:orientation="vertical">
 
-    <LinearLayout
-        android:id="@+id/topLayout"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="40dp"
-        android:paddingHorizontal="16dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        android:layout_height="match_parent">
 
         <LinearLayout
-            android:id="@+id/nameContainer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="10dp"
-            android:orientation="horizontal">
-
-            <!-- 品牌 / 站点名称：极简字标 -->
-            <TextView
-                android:id="@+id/tvName"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/app_name"
-                android:textAlignment="gravity"
-                android:textColor="?attr/skin_text_primary"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.02"
-                android:drawablePadding="4dp"
-                android:drawableRight="@drawable/ic_arrow_down"
-                android:drawableTint="?attr/skin_text_secondary"
-                android:singleLine="true"
-                android:ellipsize="none"
-                android:focusable="true"
-                android:focusableInTouchMode="true"
-                />
-
-        </LinearLayout>
-
-        <!-- 占位撑开，让搜索框保持在右侧 -->
-        <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="0.2" />
-
-        <TextView
-            android:id="@+id/search"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="40dp"
-            android:background="@drawable/bg_glass_field"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="14dp"
-            android:drawableLeft="@drawable/ic_search_18"
-            android:drawablePadding="8dp"
-            android:drawableTint="?attr/skin_text_secondary"
-            android:hint="搜索影片、演员"
-            android:textColor="?attr/skin_text_primary"
-            android:textColorHint="?attr/skin_text_secondary"
-            android:textSize="13sp"
-            android:singleLine="true" />
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/contentLayout"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="vertical">
-
-        <com.angcyo.tablayout.DslTabLayout
-            android:id="@+id/tab_layout"
-            android:layout_width="match_parent"
-            android:layout_height="40dp"
-            app:tab_indicator_drawable="@drawable/bg_tab_indicator"
-            app:tab_indicator_enable_flash="true"
-            app:tab_indicator_enable_flash_clip="true"
-            app:tab_indicator_height="4dp"
-            app:tab_indicator_width="14dp"
-            app:tab_select_color="?attr/skin_accent"
-            app:tab_text_min_size="14dp"
-            app:tab_text_max_size="16dp"
-            app:tab_enable_gradient_text_size="false"
-            android:paddingHorizontal="6dp"
-            android:layout_marginTop="6dp"
-            >
-
-        </com.angcyo.tablayout.DslTabLayout>
-
-        <androidx.viewpager.widget.ViewPager
-            android:id="@+id/mViewPager"
+            android:id="@+id/contentLayout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginTop="6dp"
-            />
-    </LinearLayout>
+            android:orientation="vertical">
+
+            <androidx.viewpager.widget.ViewPager
+                android:id="@+id/mViewPager"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </LinearLayout>
+
+        <!-- 悬浮顶栏：数据源 + 搜索 + 分类 tab -->
+        <LinearLayout
+            android:id="@+id/topOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:id="@+id/topLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="40dp"
+                android:paddingHorizontal="16dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <LinearLayout
+                    android:id="@+id/nameContainer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="10dp"
+                    android:orientation="horizontal">
+
+                    <!-- 品牌 / 站点名称：极简字标 -->
+                    <TextView
+                        android:id="@+id/tvName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/app_name"
+                        android:textAlignment="gravity"
+                        android:textColor="?attr/skin_text_primary"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.02"
+                        android:drawablePadding="4dp"
+                        android:drawableRight="@drawable/ic_arrow_down"
+                        android:drawableTint="?attr/skin_text_secondary"
+                        android:singleLine="true"
+                        android:ellipsize="none"
+                        android:focusable="true"
+                        android:focusableInTouchMode="true"
+                        />
+
+                </LinearLayout>
+
+                <!-- 占位撑开，让搜索框保持在右侧 -->
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="0.2" />
+
+                <TextView
+                    android:id="@+id/search"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_glass_field"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="14dp"
+                    android:drawableLeft="@drawable/ic_search_18"
+                    android:drawablePadding="8dp"
+                    android:drawableTint="?attr/skin_text_secondary"
+                    android:hint="搜索影片、演员"
+                    android:textColor="?attr/skin_text_primary"
+                    android:textColorHint="?attr/skin_text_secondary"
+                    android:textSize="13sp"
+                    android:singleLine="true" />
+
+            </LinearLayout>
+
+            <com.angcyo.tablayout.DslTabLayout
+                android:id="@+id/tab_layout"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                app:tab_indicator_drawable="@drawable/bg_tab_indicator"
+                app:tab_indicator_enable_flash="true"
+                app:tab_indicator_enable_flash_clip="true"
+                app:tab_indicator_height="4dp"
+                app:tab_indicator_width="14dp"
+                app:tab_select_color="?attr/skin_accent"
+                app:tab_text_min_size="14dp"
+                app:tab_text_max_size="16dp"
+                app:tab_enable_gradient_text_size="false"
+                android:paddingHorizontal="6dp"
+                android:layout_marginTop="6dp"
+                >
+
+            </com.angcyo.tablayout.DslTabLayout>
+        </LinearLayout>
+    </FrameLayout>
 </LinearLayout>

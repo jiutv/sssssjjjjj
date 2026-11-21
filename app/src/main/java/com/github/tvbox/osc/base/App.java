@@ -80,7 +80,12 @@ public class App extends MultiDexApplication {
         Hawk.init(this).build();
         Hawk.put(HawkConfig.DEBUG_OPEN, false);
 
-        putDefault(HawkConfig.HOME_REC, 0);                  //推荐: 0=豆瓣热播, 1=站点推荐
+        putDefault(HawkConfig.HOME_REC, 1);                  //推荐: 0=豆瓣热播, 1=站点推荐(默认)
+        // 升级迁移：老版本默认是豆瓣热播，这里一次性切到站点推荐，之后用户仍可在设置里改回去
+        if (!Hawk.contains("home_rec_default_site_rec_v1")) {
+            Hawk.put(HawkConfig.HOME_REC, 1);
+            Hawk.put("home_rec_default_site_rec_v1", true);
+        }
         putDefault(HawkConfig.PLAY_TYPE, 2);                 //播放器: 0=系统, 1=IJK, 2=Exo
         putDefault(HawkConfig.IJK_CODEC, "硬解码");           //IJK解码: 软解码, 硬解码
         putDefault(HawkConfig.BACKGROUND_PLAY_TYPE,2);           //后台播放: 0 关闭,1 开启,2 画中画

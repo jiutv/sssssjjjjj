@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     液态玻璃推荐首页
-    Hero 大图 + 横向海报轨 + 继续观看，内容随数据源 / 豆瓣热门自适应
+    Hero 沉浸式竖版大图 + 横向海报轨 + 继续观看，内容随数据源 / 豆瓣热门自适应
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -24,16 +24,11 @@
             android:orientation="vertical"
             android:paddingBottom="24dp">
 
-            <!-- ===== Hero 主推 ===== -->
+            <!-- ===== Hero 主推：全幅竖版海报，延伸到状态栏下方 ===== -->
             <FrameLayout
                 android:id="@+id/heroCard"
                 android:layout_width="match_parent"
-                android:layout_height="@dimen/home_hero_height"
-                android:layout_marginStart="@dimen/home_content_padding"
-                android:layout_marginEnd="@dimen/home_content_padding"
-                android:layout_marginTop="6dp"
-                android:background="@drawable/bg_round_hero"
-                android:clipToOutline="true">
+                android:layout_height="@dimen/home_hero_height">
 
                 <androidx.viewpager.widget.ViewPager
                     android:id="@+id/heroPager"
@@ -46,35 +41,39 @@
                     android:layout_height="match_parent"
                     android:background="@drawable/bg_hero_scrim" />
 
-                <TextView
-                    android:id="@+id/tvHeroTag"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="top|start"
-                    android:layout_margin="14dp"
-                    android:background="@drawable/bg_glass_tag"
-                    android:paddingHorizontal="10dp"
-                    android:paddingVertical="4dp"
-                    android:singleLine="true"
-                    android:text="本周热播"
-                    android:textColor="@color/white"
-                    android:textSize="11sp" />
+                <!-- 顶部渐变：顶部悬浮栏与状态栏图标压在亮色海报上时保持可读 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="140dp"
+                    android:layout_gravity="top"
+                    android:background="@drawable/bg_home_top_scrim"
+                    android:clickable="false"
+                    android:focusable="false" />
 
+                <!-- 标题 / 副标题 / 指示器：参考 AVBox，居中展示在海报底部 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_gravity="bottom"
+                    android:gravity="center_horizontal"
                     android:orientation="vertical"
-                    android:padding="18dp">
+                    android:paddingStart="30dp"
+                    android:paddingEnd="30dp"
+                    android:paddingBottom="30dp">
 
                     <TextView
                         android:id="@+id/tvHeroTitle"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:ellipsize="end"
+                        android:gravity="center"
                         android:maxLines="1"
+                        android:shadowColor="#80000000"
+                        android:shadowDx="0"
+                        android:shadowDy="2"
+                        android:shadowRadius="8"
                         android:textColor="@color/white"
-                        android:textSize="24sp"
+                        android:textSize="26sp"
                         android:textStyle="bold"
                         tools:text="流浪地球 2" />
 
@@ -82,18 +81,23 @@
                         android:id="@+id/tvHeroDesc"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
+                        android:layout_marginTop="6dp"
                         android:ellipsize="end"
+                        android:gravity="center"
                         android:maxLines="1"
+                        android:shadowColor="#80000000"
+                        android:shadowDx="0"
+                        android:shadowDy="1"
+                        android:shadowRadius="6"
                         android:textColor="#D4D4D8"
                         android:textSize="12sp"
-                        tools:text="2024 · 科幻 · 9.2 分" />
+                        tools:text="2024 · 科幻 · 蓝光" />
 
                     <LinearLayout
                         android:id="@+id/heroDots"
                         android:layout_width="wrap_content"
                         android:layout_height="6dp"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="14dp"
                         android:orientation="horizontal" />
 
                 </LinearLayout>

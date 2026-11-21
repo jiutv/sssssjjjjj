@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -61,6 +62,7 @@ public class UserFragment extends BaseLazyFragment {
 
     private View homeScroll;
     private View continueHeader;
+    private View heroCard;
     private ViewPager heroPager;
     private LinearLayout heroDots;
     private TextView tvHeroTitle;
@@ -104,6 +106,7 @@ public class UserFragment extends BaseLazyFragment {
     @Override
     protected void init() {
         homeScroll = findViewById(R.id.homeScroll);
+        heroCard = findViewById(R.id.heroCard);
         heroPager = findViewById(R.id.heroPager);
         heroDots = findViewById(R.id.heroDots);
         tvHeroTitle = findViewById(R.id.tvHeroTitle);
@@ -113,6 +116,8 @@ public class UserFragment extends BaseLazyFragment {
         rvHot = findViewById(R.id.rvHot);
         rvContinue = findViewById(R.id.rvContinue);
         continueHeader = findViewById(R.id.continueHeader);
+
+        applyHeroHeight();
 
         heroHandler = new Handler(Looper.getMainLooper());
         heroAutoRunnable = new Runnable() {
@@ -344,6 +349,18 @@ public class UserFragment extends BaseLazyFragment {
 
     private int dp(int value) {
         return (int) (getResources().getDisplayMetrics().density * value + 0.5f);
+    }
+
+    /** Hero 使用竖版大图：高度取屏幕 58%，并夹在 360dp ~ 560dp（与 AVBox 一致） */
+    private void applyHeroHeight() {
+        if (heroCard == null) return;
+        int target = (int) (getResources().getDisplayMetrics().heightPixels * 0.58f);
+        target = Math.max(dp(360), Math.min(dp(560), target));
+        ViewGroup.LayoutParams lp = heroCard.getLayoutParams();
+        if (lp != null && lp.height != target) {
+            lp.height = target;
+            heroCard.setLayoutParams(lp);
+        }
     }
 
     private void startHeroAutoScroll() {

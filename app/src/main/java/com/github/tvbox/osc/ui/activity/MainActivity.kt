@@ -34,6 +34,9 @@ class MainActivity : BaseVbActivity<ActivityMainBinding>() {
     override fun init() {
         useCacheConfig = intent.extras?.getBoolean(IntentKey.CACHE_CONFIG_CHANGED, false)?:false
 
+        // 首页 Hero 沉浸式：状态栏透明，让海报延伸到状态栏下方（深色主题下图标保持浅色）
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+
         applySkinToNav()
         lastTabletLandscape = isTabletLandscape(resources.configuration)
         setupTabletNav()

@@ -98,7 +98,9 @@
     <dimen name="bottom_nav_margin_bottom">10dp</dimen>
 
     <!-- 液态玻璃首页 -->
-    <dimen name="home_hero_height">320dp</dimen>
+    <dimen name="home_hero_height">440dp</dimen>
+    <!-- 首页悬浮顶栏总高度：状态栏留白 + 搜索栏 + 分类 tab，供 Grid 内容避让 -->
+    <dimen name="home_top_overlay_height">132dp</dimen>
     <dimen name="home_poster_width">112dp</dimen>
     <dimen name="home_poster_height">168dp</dimen>
     <dimen name="home_continue_width">228dp</dimen>
