@@ -1,8 +1,15 @@
 package com.github.tvbox.osc.ui.fragment;
 
+import android.animation.ValueAnimator;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
+import android.graphics.Shader;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.ShapeDrawable;
+import android.graphics.drawable.shapes.RectShape;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -33,6 +40,7 @@ import com.github.tvbox.osc.ui.activity.FastSearchActivity;
 import com.github.tvbox.osc.ui.adapter.HomeContinueAdapter;
 import com.github.tvbox.osc.ui.adapter.HomeHeroAdapter;
 import com.github.tvbox.osc.ui.adapter.HomePosterAdapter;
+import com.github.tvbox.osc.util.DefaultConfig;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.UA;
 import com.google.gson.Gson;
@@ -43,10 +51,14 @@ import com.lzy.okgo.OkGo;
 import com.lzy.okgo.callback.AbsCallback;
 import com.lzy.okgo.model.Response;
 import com.orhanobut.hawk.Hawk;
+import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 液态玻璃推荐首页：Hero 主推 + 横向海报轨 + 继续观看。
@@ -83,6 +95,13 @@ public class UserFragment extends BaseLazyFragment {
 
     private Handler heroHandler;
     private Runnable heroAutoRunnable;
+
+    /** Hero 图片主色缓存：页面底色/底部渐变跟随海报主色（参考 AVBox 的 seed color） */
+    private final Map<String, Integer> heroSeedCache = new HashMap<>();
+    private final Map<String, Target> heroSeedTargets = new HashMap<>();
+    private int heroHeightPx;
+    private int pageTintColor;
+    private ValueAnimator tintAnimator;
 
     public static UserFragment newInstance(List<Movie.Video> recVod) {
         return new UserFragment().setArguments(recVod);
@@ -128,7 +147,8 @@ public class UserFragment extends BaseLazyFragment {
         continueHeader = findViewById(R.id.continueHeader);
 
         applyHeroHeight();
-        applyHeroFade();
+        pageTintColor = themeColor(R.attr.skin_page);
+        applyHeroFade(pageTintColor);
         buildCategoryChips();
 
         heroHandler = new Handler(Looper.getMainLooper());
@@ -160,6 +180,7 @@ public class UserFragment extends BaseLazyFragment {
                 if (heroAdapter == null || heroAdapter.getRealCount() == 0) return;
                 bindHeroInfo(heroAdapter.getItem(position));
                 updateHeroDots(position % heroAdapter.getRealCount());
+                applyHeroTint(heroAdapter.getItem(position));
                 startHeroAutoScroll();
             }
 
@@ -301,6 +322,7 @@ public class UserFragment extends BaseLazyFragment {
         heroPager.setCurrentItem(heroAdapter.getInitialPosition(), false);
         bindHeroInfo(heroVideos.get(0));
         buildHeroDots(heroVideos.size(), 0);
+        applyHeroTint(heroVideos.get(0));
         startHeroAutoScroll();
     }
 
@@ -368,6 +390,7 @@ public class UserFragment extends BaseLazyFragment {
         if (heroCard == null) return;
         int target = (int) (getResources().getDisplayMetrics().heightPixels * 0.53f);
         target = Math.max(dp(340), Math.min(dp(520), target));
+        heroHeightPx = target;
         ViewGroup.LayoutParams lp = heroCard.getLayoutParams();
         if (lp != null && lp.height != target) {
             lp.height = target;
@@ -375,15 +398,129 @@ public class UserFragment extends BaseLazyFragment {
         }
     }
 
-    /** 底部渐变改为渐隐到当前皮肤的页面底色，与下方内容无缝衔接（参考 AVBox） */
-    private void applyHeroFade() {
+    /**
+     * 参考 AVBox HeroSpotlightFadeStops：海报从 45% 高度开始，按曲线逐渐渐隐到底色，
+     * 而不是一刀切的黑色蒙层。
+     */
+    private void applyHeroFade(int color) {
         if (heroFade == null) return;
-        int pageColor = themeColor(R.attr.skin_page);
-        int transparentPage = pageColor & 0x00FFFFFF;
-        GradientDrawable fade = new GradientDrawable(
-                GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{transparentPage, transparentPage, pageColor});
+        int height = heroHeightPx > 0 ? heroHeightPx : dp(440);
+        float[] positions = {0.45f, 0.55f, 0.65f, 0.75f, 0.85f, 0.93f, 1f};
+        float[] alphas = {0f, 0.22f, 0.47f, 0.70f, 0.90f, 0.975f, 1f};
+        int[] colors = new int[positions.length];
+        for (int i = 0; i < positions.length; i++) {
+            colors[i] = (color & 0x00FFFFFF) | (Math.round(alphas[i] * 255) << 24);
+        }
+        ShapeDrawable fade = new ShapeDrawable(new RectShape());
+        fade.getPaint().setShader(new LinearGradient(0, 0, 0, height, colors, positions,
+                Shader.TileMode.CLAMP));
         heroFade.setBackground(fade);
+    }
+
+    /**
+     * AVBox 的做法：从海报里提取主色（seed color），页面底色和海报底部渐变都跟随它，
+     * 这样海报和下方内容才会是同一个色系。这里再与皮肤底色混合，保证固定文字色有足够对比度。
+     */
+    private void applyHeroTint(Movie.Video video) {
+        if (video == null || TextUtils.isEmpty(video.pic)) return;
+        final String pic = DefaultConfig.checkReplaceProxy(video.pic.trim());
+        Integer cached = heroSeedCache.get(pic);
+        if (cached != null) {
+            animateTint(cached);
+            return;
+        }
+        Target target = new Target() {
+            @Override
+            public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
+                heroSeedTargets.remove(pic);
+                int seed = dominantColor(bitmap);
+                heroSeedCache.put(pic, seed);
+                Movie.Video current = heroAdapter == null ? null
+                        : heroAdapter.getItem(heroPager.getCurrentItem());
+                if (current != null && !TextUtils.isEmpty(current.pic)
+                        && pic.equals(DefaultConfig.checkReplaceProxy(current.pic.trim()))) {
+                    animateTint(seed);
+                }
+            }
+
+            @Override
+            public void onBitmapFailed(Exception e, Drawable errorDrawable) {
+                heroSeedTargets.remove(pic);
+            }
+
+            @Override
+            public void onPrepareLoad(Drawable placeHolderDrawable) {
+            }
+        };
+        // Picasso 对 Target 是弱引用，必须自己持有，避免回调被回收
+        heroSeedTargets.put(pic, target);
+        Picasso.get().load(pic).resize(24, 24).centerCrop().into(target);
+    }
+
+    private void animateTint(int seed) {
+        int pageColor = themeColor(R.attr.skin_page);
+        // 与皮肤底色混合，避免亮色海报把浅色皮肤的文字吃掉
+        int target = blendColor(pageColor, seed, 0.26f);
+        if (target == pageTintColor) return;
+        if (tintAnimator != null) tintAnimator.cancel();
+        tintAnimator = ValueAnimator.ofArgb(pageTintColor, target);
+        tintAnimator.setDuration(320);
+        tintAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                pageTintColor = (Integer) animation.getAnimatedValue();
+                if (rootView != null) rootView.setBackgroundColor(pageTintColor);
+                applyHeroFade(pageTintColor);
+            }
+        });
+        tintAnimator.start();
+    }
+
+    /** 取海报主色：按 4bit 色桶统计，偏向有彩度的色块，避免整张图偏灰/偏黑 */
+    private static int dominantColor(Bitmap bitmap) {
+        int w = bitmap.getWidth();
+        int h = bitmap.getHeight();
+        int[] pixels = new int[w * h];
+        bitmap.getPixels(pixels, 0, w, 0, 0, w, h);
+        int bucketCount = 1 << 12;
+        int[] counts = new int[bucketCount];
+        long[] sumR = new long[bucketCount];
+        long[] sumG = new long[bucketCount];
+        long[] sumB = new long[bucketCount];
+        for (int pixel : pixels) {
+            if (((pixel >>> 24) & 0xFF) < 128) continue;
+            int r = (pixel >> 16) & 0xFF;
+            int g = (pixel >> 8) & 0xFF;
+            int b = pixel & 0xFF;
+            int index = ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
+            counts[index]++;
+            sumR[index] += r;
+            sumG[index] += g;
+            sumB[index] += b;
+        }
+        int best = -1;
+        double bestScore = 0;
+        for (int i = 0; i < bucketCount; i++) {
+            if (counts[i] == 0) continue;
+            int r = (int) (sumR[i] / counts[i]);
+            int g = (int) (sumG[i] / counts[i]);
+            int b = (int) (sumB[i] / counts[i]);
+            int chroma = Math.max(r, Math.max(g, b)) - Math.min(r, Math.min(g, b));
+            double score = counts[i] * (32.0 + chroma);
+            if (score > bestScore) {
+                bestScore = score;
+                best = Color.rgb(r, g, b);
+            }
+        }
+        return best == -1 ? Color.GRAY : best;
+    }
+
+    private static int blendColor(int base, int tint, float ratio) {
+        float rest = 1f - ratio;
+        int r = (int) (((base >> 16) & 0xFF) * rest + ((tint >> 16) & 0xFF) * ratio);
+        int g = (int) (((base >> 8) & 0xFF) * rest + ((tint >> 8) & 0xFF) * ratio);
+        int b = (int) ((base & 0xFF) * rest + (tint & 0xFF) * ratio);
+        return Color.rgb(r, g, b);
     }
 
     /** 分类入口放在海报下方（参考 AVBox），点击直接切到对应分类页 */
@@ -405,13 +542,13 @@ public class UserFragment extends BaseLazyFragment {
             final int index = i;
             TextView chip = new TextView(mContext);
             chip.setText(names.get(i));
-            chip.setTextSize(13);
+            chip.setTextSize(12);
             chip.setSingleLine(true);
             chip.setGravity(Gravity.CENTER);
-            chip.setPadding(dp(14), 0, dp(14), 0);
+            chip.setPadding(dp(11), 0, dp(11), 0);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT, dp(34));
-            lp.setMarginEnd(dp(8));
+                    ViewGroup.LayoutParams.WRAP_CONTENT, dp(30));
+            lp.setMarginEnd(dp(5));
             chip.setLayoutParams(lp);
             if (i == 0) {
                 chip.setBackgroundResource(R.drawable.bg_chip_active);
@@ -479,6 +616,14 @@ public class UserFragment extends BaseLazyFragment {
     public void onDestroy() {
         super.onDestroy();
         stopHeroAutoScroll();
+        if (tintAnimator != null) {
+            tintAnimator.cancel();
+            tintAnimator = null;
+        }
+        for (Target target : heroSeedTargets.values()) {
+            Picasso.get().cancelRequest(target);
+        }
+        heroSeedTargets.clear();
     }
 
     /**
