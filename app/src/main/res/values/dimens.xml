@@ -90,4 +90,10 @@
     <dimen name="dp_640">640dp</dimen>
     <dimen name="dp_720">720dp</dimen>
     <dimen name="dp_960">960dp</dimen>
+
+    <!-- 底部导航胶囊 -->
+    <dimen name="bottom_nav_height">60dp</dimen>
+    <dimen name="bottom_nav_radius">30dp</dimen>
+    <dimen name="bottom_nav_margin_horizontal">16dp</dimen>
+    <dimen name="bottom_nav_margin_bottom">10dp</dimen>
 </resources>
