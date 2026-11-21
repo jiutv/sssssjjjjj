@@ -68,6 +68,11 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
                 mSelectedUrl = item.url
             }
         })
+        // 有订阅但没有任何选中项时，默认使用第一个，避免 onPause 把 API_URL 写成空
+        if (TextUtils.isEmpty(mSelectedUrl) && mSubscriptions.isNotEmpty()) {
+            mSubscriptions[0].setChecked(true)
+            mSelectedUrl = mSubscriptions[0].url
+        }
 
         mSubscriptionAdapter.setNewData(mSubscriptions)
         mBinding.ivUseTip.setOnClickListener {
@@ -694,10 +699,27 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
 
     override fun onPause() {
         super.onPause()
-        Hawk.put(HawkConfig.API_URL, mSelectedUrl)
-        Hawk.put<List<Subscription>?>(HawkConfig.SUBSCRIPTIONS, mSubscriptions)
-        Hawk.put(HawkConfig.LIVE_URL, mSelectedLiveUrl)
-        Hawk.put<List<Subscription>?>(HawkConfig.LIVE_SUBSCRIPTIONS, mLiveSubscriptions)
+        // 兜底：列表里有可用订阅但当前没有选中项时（如新增多线路订阅后未手动勾选），
+        // 自动选中第一个可用项，避免把 API_URL 覆盖成空导致重启后没有数据源
+        if (TextUtils.isEmpty(mSelectedUrl)) {
+            mSubscriptions.firstOrNull { !it.isDisabled && !TextUtils.isEmpty(it.url) }?.let {
+                it.setChecked(true)
+                mSelectedUrl = it.url
+            }
+        }
+        // 只在有有效值时落盘，避免把已配置的数据源覆盖成空
+        if (!TextUtils.isEmpty(mSelectedUrl)) {
+            Hawk.put(HawkConfig.API_URL, mSelectedUrl)
+        }
+        if (mSubscriptions.isNotEmpty()) {
+            Hawk.put<List<Subscription>?>(HawkConfig.SUBSCRIPTIONS, mSubscriptions)
+        }
+        if (!TextUtils.isEmpty(mSelectedLiveUrl)) {
+            Hawk.put(HawkConfig.LIVE_URL, mSelectedLiveUrl)
+        }
+        if (mLiveSubscriptions.isNotEmpty()) {
+            Hawk.put<List<Subscription>?>(HawkConfig.LIVE_SUBSCRIPTIONS, mLiveSubscriptions)
+        }
     }
 
     override fun finish() {

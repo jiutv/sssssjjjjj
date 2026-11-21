@@ -35,13 +35,11 @@
                 android:background="@drawable/bg_round_hero"
                 android:clipToOutline="true">
 
-                <ImageView
-                    android:id="@+id/ivHero"
+                <androidx.viewpager.widget.ViewPager
+                    android:id="@+id/heroPager"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:contentDescription="主推影片"
-                    android:scaleType="centerCrop"
-                    tools:src="@drawable/img_loading_placeholder" />
+                    android:overScrollMode="never" />
 
                 <View
                     android:layout_width="match_parent"
@@ -90,6 +88,13 @@
                         android:textColor="#D4D4D8"
                         android:textSize="12sp"
                         tools:text="2024 · 科幻 · 9.2 分" />
+
+                    <LinearLayout
+                        android:id="@+id/heroDots"
+                        android:layout_width="wrap_content"
+                        android:layout_height="6dp"
+                        android:layout_marginTop="10dp"
+                        android:orientation="horizontal" />
 
                 </LinearLayout>
             </FrameLayout>

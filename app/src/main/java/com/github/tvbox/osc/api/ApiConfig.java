@@ -16,6 +16,7 @@ import com.github.tvbox.osc.bean.IJKCode;
 import com.github.tvbox.osc.bean.LiveChannelItem;
 import com.github.tvbox.osc.bean.ParseBean;
 import com.github.tvbox.osc.bean.SourceBean;
+import com.github.tvbox.osc.bean.Subscription;
 import com.github.tvbox.osc.server.ControlManager;
 import com.github.tvbox.osc.util.AES;
 import com.github.tvbox.osc.util.AdBlocker;
@@ -132,7 +133,22 @@ public class ApiConfig {
 
     public void loadConfig(boolean useCache, LoadConfigCallback callback, Activity activity) {
         String apiUrl = Hawk.get(HawkConfig.API_URL, "");
-        if (apiUrl.isEmpty()) {
+        if (TextUtils.isEmpty(apiUrl)) {
+            // 兼容历史版本把 API_URL 写空的情况：从订阅列表恢复第一个可用地址
+            List<Subscription> subscriptions = Hawk.get(HawkConfig.SUBSCRIPTIONS, new ArrayList<Subscription>());
+            if (subscriptions != null) {
+                for (Subscription subscription : subscriptions) {
+                    if (subscription != null && !TextUtils.isEmpty(subscription.getUrl())) {
+                        apiUrl = subscription.getUrl();
+                        break;
+                    }
+                }
+            }
+            if (!TextUtils.isEmpty(apiUrl)) {
+                Hawk.put(HawkConfig.API_URL, apiUrl);
+            }
+        }
+        if (TextUtils.isEmpty(apiUrl)) {
             callback.error("-1");
             return;
         }
@@ -145,6 +161,11 @@ public class ApiConfig {
                 public void run() {
                     try {
                         parseJson(apiUrl, cache);
+                        // 缓存可能来自历史版本（错误页 / 空 sites），解析成功但没有站点时不能算成功，
+                        // 否则首页会显示为空、看起来像"数据源丢失"
+                        if (sourceBeanList.isEmpty()) {
+                            throw new IllegalStateException("缓存配置中没有可用站点");
+                        }
                         postMainSuccess(callback);
                         if (!useCache) {
                             // 冷启动：后台静默更新配置文件，下次启动生效，不影响本次速度
@@ -209,6 +230,19 @@ public class ApiConfig {
         return new String[]{configUrl, TempKey};
     }
 
+    /** 配置内容是否有效：至少包含一个站点，避免错误页 / 空配置写入缓存 */
+    private boolean isValidConfig(String json) {
+        try {
+            JsonObject obj = new Gson().fromJson(json, JsonObject.class);
+            if (obj == null || !obj.has("sites") || !obj.get("sites").isJsonArray()) {
+                return false;
+            }
+            return obj.getAsJsonArray("sites").size() > 0;
+        } catch (Throwable th) {
+            return false;
+        }
+    }
+
     /** 写配置文件缓存 */
     private void saveConfigCache(File cache, String json) {
         try {
@@ -248,7 +282,8 @@ public class ApiConfig {
                     @Override
                     public void onSuccess(Response<String> response) {
                         final String json = response.body();
-                        if (TextUtils.isEmpty(json)) return;
+                        // 只缓存有效配置，避免错误页 / 空配置把可用缓存冲掉
+                        if (TextUtils.isEmpty(json) || !isValidConfig(json)) return;
                         HeavyTaskUtil.getBigTaskExecutorService().execute(new Runnable() {
                             @Override
                             public void run() {
@@ -276,6 +311,9 @@ public class ApiConfig {
                             @Override
                             public void run() {
                                 try {
+                                    if (!isValidConfig(json)) {
+                                        throw new IllegalStateException("配置中没有可用站点");
+                                    }
                                     parseJson(apiUrl, json);
                                     saveConfigCache(cache, json);
                                     postMainSuccess(callback);

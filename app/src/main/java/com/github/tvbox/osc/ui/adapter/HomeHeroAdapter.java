@@ -1,0 +1,109 @@
+package com.github.tvbox.osc.ui.adapter;
+
+import android.text.TextUtils;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+
+import androidx.annotation.NonNull;
+import androidx.viewpager.widget.PagerAdapter;
+
+import com.github.tvbox.osc.R;
+import com.github.tvbox.osc.bean.Movie;
+import com.github.tvbox.osc.util.DefaultConfig;
+import com.squareup.picasso.Picasso;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * 首页 Hero 海报轮播适配器。
+ * 借鉴 AVBox 的做法：用一个足够大的 count 实现左右无限滑动，position 取模映射真实数据。
+ */
+public class HomeHeroAdapter extends PagerAdapter {
+
+    /** 每份真实数据重复的次数，用于构造无限轮播 */
+    private static final int LOOP_MULTIPLIER = 1000;
+
+    private final List<Movie.Video> data = new ArrayList<>();
+    private OnItemClickListener listener;
+
+    public interface OnItemClickListener {
+        void onItemClick(Movie.Video item);
+    }
+
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.listener = listener;
+    }
+
+    public void setData(List<Movie.Video> videos) {
+        data.clear();
+        if (videos != null) {
+            data.addAll(videos);
+        }
+        notifyDataSetChanged();
+    }
+
+    public Movie.Video getItem(int position) {
+        if (data.isEmpty()) return null;
+        return data.get(position % data.size());
+    }
+
+    public int getRealCount() {
+        return data.size();
+    }
+
+    /** 无限轮播的起始位置：落在中间那一份数据上 */
+    public int getInitialPosition() {
+        if (data.size() <= 1) return 0;
+        return data.size() * (LOOP_MULTIPLIER / 2);
+    }
+
+    @Override
+    public int getCount() {
+        if (data.size() <= 1) return data.size();
+        return data.size() * LOOP_MULTIPLIER;
+    }
+
+    @Override
+    public boolean isViewFromObject(@NonNull View view, @NonNull Object object) {
+        return view == object;
+    }
+
+    @NonNull
+    @Override
+    public Object instantiateItem(@NonNull ViewGroup container, int position) {
+        ImageView image = new ImageView(container.getContext());
+        image.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        image.setContentDescription("主推影片");
+
+        final Movie.Video vod = getItem(position);
+        if (vod != null && !TextUtils.isEmpty(vod.pic)) {
+            Picasso.get()
+                    .load(DefaultConfig.checkReplaceProxy(vod.pic.trim()))
+                    .placeholder(R.drawable.img_loading_placeholder)
+                    .error(R.drawable.img_loading_placeholder)
+                    .into(image);
+        } else {
+            image.setImageResource(R.drawable.img_loading_placeholder);
+        }
+        image.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (listener != null && vod != null) {
+                    listener.onItemClick(vod);
+                }
+            }
+        });
+
+        container.addView(image);
+        return image;
+    }
+
+    @Override
+    public void destroyItem(@NonNull ViewGroup container, int position, @NonNull Object object) {
+        container.removeView((View) object);
+    }
+}

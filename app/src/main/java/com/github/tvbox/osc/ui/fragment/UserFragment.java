@@ -1,14 +1,19 @@
 package com.github.tvbox.osc.ui.fragment;
 
 import android.content.res.Configuration;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.view.View;
-import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager.widget.ViewPager;
 
 import com.blankj.utilcode.util.ToastUtils;
 import com.chad.library.adapter.base.BaseQuickAdapter;
@@ -21,8 +26,8 @@ import com.github.tvbox.osc.cache.RoomDataManger;
 import com.github.tvbox.osc.ui.activity.DetailActivity;
 import com.github.tvbox.osc.ui.activity.FastSearchActivity;
 import com.github.tvbox.osc.ui.adapter.HomeContinueAdapter;
+import com.github.tvbox.osc.ui.adapter.HomeHeroAdapter;
 import com.github.tvbox.osc.ui.adapter.HomePosterAdapter;
-import com.github.tvbox.osc.util.DefaultConfig;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.UA;
 import com.google.gson.Gson;
@@ -33,7 +38,6 @@ import com.lzy.okgo.OkGo;
 import com.lzy.okgo.callback.AbsCallback;
 import com.lzy.okgo.model.Response;
 import com.orhanobut.hawk.Hawk;
-import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -45,14 +49,20 @@ import java.util.List;
  */
 public class UserFragment extends BaseLazyFragment {
 
+    /** Hero 轮播最多展示的影片数（与 AVBox 一致） */
+    private static final int HERO_VIDEO_COUNT = 5;
+    /** 自动轮播间隔 */
+    private static final long HERO_AUTO_INTERVAL = 5000L;
+
     private HomePosterAdapter posterAdapter;
     private HomeContinueAdapter continueAdapter;
+    private HomeHeroAdapter heroAdapter;
     private List<Movie.Video> homeSourceRec;
 
     private View homeScroll;
-    private View heroCard;
     private View continueHeader;
-    private ImageView ivHero;
+    private ViewPager heroPager;
+    private LinearLayout heroDots;
     private TextView tvHeroTitle;
     private TextView tvHeroDesc;
     private TextView tvHotCount;
@@ -60,7 +70,10 @@ public class UserFragment extends BaseLazyFragment {
     private RecyclerView rvHot;
     private RecyclerView rvContinue;
 
-    private Movie.Video heroVod;
+    private List<Movie.Video> heroVideos = new ArrayList<>();
+
+    private Handler heroHandler;
+    private Runnable heroAutoRunnable;
 
     public static UserFragment newInstance(List<Movie.Video> recVod) {
         return new UserFragment().setArguments(recVod);
@@ -91,8 +104,8 @@ public class UserFragment extends BaseLazyFragment {
     @Override
     protected void init() {
         homeScroll = findViewById(R.id.homeScroll);
-        heroCard = findViewById(R.id.heroCard);
-        ivHero = findViewById(R.id.ivHero);
+        heroPager = findViewById(R.id.heroPager);
+        heroDots = findViewById(R.id.heroDots);
         tvHeroTitle = findViewById(R.id.tvHeroTitle);
         tvHeroDesc = findViewById(R.id.tvHeroDesc);
         tvHotCount = findViewById(R.id.tvHotCount);
@@ -100,6 +113,48 @@ public class UserFragment extends BaseLazyFragment {
         rvHot = findViewById(R.id.rvHot);
         rvContinue = findViewById(R.id.rvContinue);
         continueHeader = findViewById(R.id.continueHeader);
+
+        heroHandler = new Handler(Looper.getMainLooper());
+        heroAutoRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (heroAdapter == null || heroAdapter.getRealCount() <= 1) return;
+                // 翻页后由 onPageSelected/onPageScrollStateChanged 续约下一次，避免重复调度
+                heroPager.setCurrentItem(heroPager.getCurrentItem() + 1, true);
+            }
+        };
+
+        heroAdapter = new HomeHeroAdapter();
+        heroAdapter.setOnItemClickListener(new HomeHeroAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(Movie.Video item) {
+                openVideo(item);
+            }
+        });
+        heroPager.setAdapter(heroAdapter);
+        heroPager.setOffscreenPageLimit(1);
+        heroPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+            }
+
+            @Override
+            public void onPageSelected(int position) {
+                if (heroAdapter == null || heroAdapter.getRealCount() == 0) return;
+                bindHeroInfo(heroAdapter.getItem(position));
+                updateHeroDots(position % heroAdapter.getRealCount());
+                startHeroAutoScroll();
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+                if (state == ViewPager.SCROLL_STATE_DRAGGING) {
+                    stopHeroAutoScroll();
+                } else if (state == ViewPager.SCROLL_STATE_IDLE) {
+                    startHeroAutoScroll();
+                }
+            }
+        });
 
         posterAdapter = new HomePosterAdapter();
         posterAdapter.setOnItemClickListener(new BaseQuickAdapter.OnItemClickListener() {
@@ -200,26 +255,40 @@ public class UserFragment extends BaseLazyFragment {
     }
 
     /**
-     * 渲染首页：第一条作为 Hero，其余进入横向海报轨。
+     * 渲染首页：取前 5 条做 Hero 轮播，其余进入横向海报轨（与 AVBox 的取数方式一致）。
      */
     private void render(List<Movie.Video> videos) {
         if (videos == null || videos.isEmpty()) {
             showEmpty();
             return;
         }
-        bindHero(videos.get(0));
-        List<Movie.Video> rail = videos.size() > 1
-                ? new ArrayList<>(videos.subList(1, videos.size()))
-                : new ArrayList<>(videos);
+        int heroCount = Math.min(HERO_VIDEO_COUNT, videos.size());
+        heroVideos = new ArrayList<>(videos.subList(0, heroCount));
+        setupHero();
+
+        List<Movie.Video> rail;
+        if (videos.size() > heroCount) {
+            rail = new ArrayList<>(videos.subList(heroCount, videos.size()));
+        } else {
+            rail = new ArrayList<>(videos);
+        }
         posterAdapter.setNewData(rail);
         tvHotCount.setText("共 " + videos.size() + " 部");
         tvHotEmpty.setVisibility(rail.isEmpty() ? View.VISIBLE : View.GONE);
         showSuccess();
     }
 
-    private void bindHero(Movie.Video vod) {
+    private void setupHero() {
+        if (heroVideos.isEmpty()) return;
+        heroAdapter.setData(heroVideos);
+        heroPager.setCurrentItem(heroAdapter.getInitialPosition(), false);
+        bindHeroInfo(heroVideos.get(0));
+        buildHeroDots(heroVideos.size(), 0);
+        startHeroAutoScroll();
+    }
+
+    private void bindHeroInfo(Movie.Video vod) {
         if (vod == null) return;
-        heroVod = vod;
         tvHeroTitle.setText(TextUtils.isEmpty(vod.name) ? "" : vod.name);
 
         StringBuilder desc = new StringBuilder();
@@ -234,22 +303,79 @@ public class UserFragment extends BaseLazyFragment {
         }
         tvHeroDesc.setText(desc.toString());
         tvHeroDesc.setVisibility(desc.length() == 0 ? View.GONE : View.VISIBLE);
+    }
 
-        if (!TextUtils.isEmpty(vod.pic)) {
-            Picasso.get()
-                    .load(DefaultConfig.checkReplaceProxy(vod.pic.trim()))
-                    .placeholder(R.drawable.img_loading_placeholder)
-                    .error(R.drawable.img_loading_placeholder)
-                    .into(ivHero);
-        } else {
-            ivHero.setImageResource(R.drawable.img_loading_placeholder);
+    private void buildHeroDots(int count, int selected) {
+        heroDots.removeAllViews();
+        if (count <= 1) {
+            heroDots.setVisibility(View.GONE);
+            return;
         }
-        heroCard.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                openVideo(heroVod);
-            }
-        });
+        heroDots.setVisibility(View.VISIBLE);
+        for (int i = 0; i < count; i++) {
+            View dot = new View(mContext);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(i == selected ? 18 : 6), dp(6));
+            lp.setMargins(dp(3), 0, dp(3), 0);
+            dot.setLayoutParams(lp);
+            dot.setBackground(dotDrawable(i == selected));
+            heroDots.addView(dot);
+        }
+    }
+
+    private void updateHeroDots(int selected) {
+        int count = heroDots.getChildCount();
+        for (int i = 0; i < count; i++) {
+            View dot = heroDots.getChildAt(i);
+            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) dot.getLayoutParams();
+            lp.width = dp(i == selected ? 18 : 6);
+            lp.setMargins(dp(3), 0, dp(3), 0);
+            dot.setLayoutParams(lp);
+            dot.setBackground(dotDrawable(i == selected));
+        }
+    }
+
+    private GradientDrawable dotDrawable(boolean active) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setShape(GradientDrawable.RECTANGLE);
+        drawable.setCornerRadius(dp(3));
+        drawable.setColor(active ? Color.WHITE : 0x66FFFFFF);
+        return drawable;
+    }
+
+    private int dp(int value) {
+        return (int) (getResources().getDisplayMetrics().density * value + 0.5f);
+    }
+
+    private void startHeroAutoScroll() {
+        if (heroHandler == null || heroAutoRunnable == null) return;
+        heroHandler.removeCallbacks(heroAutoRunnable);
+        if (heroAdapter != null && heroAdapter.getRealCount() > 1) {
+            heroHandler.postDelayed(heroAutoRunnable, HERO_AUTO_INTERVAL);
+        }
+    }
+
+    private void stopHeroAutoScroll() {
+        if (heroHandler != null) {
+            heroHandler.removeCallbacks(heroAutoRunnable);
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        startHeroAutoScroll();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        stopHeroAutoScroll();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        stopHeroAutoScroll();
     }
 
     /**
