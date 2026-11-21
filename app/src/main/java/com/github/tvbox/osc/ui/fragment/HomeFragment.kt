@@ -5,12 +5,14 @@ import android.content.res.Configuration
 import android.os.Bundle
 import android.os.Handler
 import android.view.Gravity
+import android.view.View
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentStatePagerAdapter
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DiffUtil
+import androidx.viewpager.widget.ViewPager
 import com.angcyo.tablayout.delegate.ViewPager1Delegate.Companion.install
 import com.blankj.utilcode.util.ConvertUtils
 import com.blankj.utilcode.util.ScreenUtils
@@ -296,7 +298,36 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
                 }
             //tab和vp绑定
             install(mBinding.mViewPager, mBinding.tabLayout, true)
+            // 沉浸式首页：主页页签由 Hero 下方的「全部分类」chips 承担，顶部 tab 只在其它分类页显示
+            mBinding.mViewPager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
+                override fun onPageSelected(position: Int) {
+                    updateCategoryBar(position)
+                }
+            })
+            updateCategoryBar(mBinding.mViewPager.currentItem)
         }
+    }
+
+    /** 首页分类名称，供沉浸式首页的分类 chips 使用 */
+    fun getCategoryNames(): List<String> = mSortDataList.map { it.name }
+
+    /** 首页分类切换，供沉浸式首页的分类 chips 使用 */
+    fun selectCategory(index: Int) {
+        if (index in 0 until fragments.size) {
+            mBinding.mViewPager.setCurrentItem(index, true)
+        }
+    }
+
+    private fun updateCategoryBar(position: Int) {
+        // 平板横屏是普通流式布局，隐藏 tab 会导致内容跳动，保持原样
+        if (isTabletLandscape()) return
+        val homeIsUserFragment = fragments.firstOrNull() is UserFragment
+        mBinding.tabLayout.visibility = if (position == 0 && homeIsUserFragment) View.GONE else View.VISIBLE
+    }
+
+    private fun isTabletLandscape(): Boolean {
+        val config = resources.configuration
+        return config.smallestScreenWidthDp >= 600 && config.orientation == Configuration.ORIENTATION_LANDSCAPE
     }
 
     /**

@@ -36,7 +36,9 @@
                     android:layout_height="match_parent"
                     android:overScrollMode="never" />
 
+                <!-- 底部渐变：代码里按当前皮肤页面底色生成，让海报无缝渐隐到内容区 -->
                 <View
+                    android:id="@+id/heroFade"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:background="@drawable/bg_hero_scrim" />
@@ -59,7 +61,7 @@
                     android:orientation="vertical"
                     android:paddingStart="30dp"
                     android:paddingEnd="30dp"
-                    android:paddingBottom="30dp">
+                    android:paddingBottom="26dp">
 
                     <TextView
                         android:id="@+id/tvHeroTitle"
@@ -102,6 +104,42 @@
 
                 </LinearLayout>
             </FrameLayout>
+
+            <!-- ===== 全部分类：参考 AVBox，分类入口放在海报下方 ===== -->
+            <LinearLayout
+                android:id="@+id/categorySection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/home_section_gap"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="@dimen/home_content_padding"
+                    android:text="全部分类"
+                    android:textColor="?attr/skin_text_primary"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:clipToPadding="false"
+                    android:overScrollMode="never"
+                    android:paddingHorizontal="@dimen/home_content_padding"
+                    android:scrollbars="none">
+
+                    <LinearLayout
+                        android:id="@+id/chipContainer"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal" />
+                </HorizontalScrollView>
+
+            </LinearLayout>
 
             <!-- ===== 热门推荐 ===== -->
             <LinearLayout

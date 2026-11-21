@@ -7,11 +7,15 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.ViewPager;
@@ -64,7 +68,10 @@ public class UserFragment extends BaseLazyFragment {
     private View continueHeader;
     private View heroCard;
     private ViewPager heroPager;
+    private View heroFade;
+    private View categorySection;
     private LinearLayout heroDots;
+    private LinearLayout chipContainer;
     private TextView tvHeroTitle;
     private TextView tvHeroDesc;
     private TextView tvHotCount;
@@ -108,7 +115,10 @@ public class UserFragment extends BaseLazyFragment {
         homeScroll = findViewById(R.id.homeScroll);
         heroCard = findViewById(R.id.heroCard);
         heroPager = findViewById(R.id.heroPager);
+        heroFade = findViewById(R.id.heroFade);
         heroDots = findViewById(R.id.heroDots);
+        categorySection = findViewById(R.id.categorySection);
+        chipContainer = findViewById(R.id.chipContainer);
         tvHeroTitle = findViewById(R.id.tvHeroTitle);
         tvHeroDesc = findViewById(R.id.tvHeroDesc);
         tvHotCount = findViewById(R.id.tvHotCount);
@@ -118,6 +128,8 @@ public class UserFragment extends BaseLazyFragment {
         continueHeader = findViewById(R.id.continueHeader);
 
         applyHeroHeight();
+        applyHeroFade();
+        buildCategoryChips();
 
         heroHandler = new Handler(Looper.getMainLooper());
         heroAutoRunnable = new Runnable() {
@@ -351,16 +363,90 @@ public class UserFragment extends BaseLazyFragment {
         return (int) (getResources().getDisplayMetrics().density * value + 0.5f);
     }
 
-    /** Hero 使用竖版大图：高度取屏幕 58%，并夹在 360dp ~ 560dp（与 AVBox 一致） */
+    /** Hero 使用竖版大图：高度取屏幕 53%，并夹在 340dp ~ 520dp */
     private void applyHeroHeight() {
         if (heroCard == null) return;
-        int target = (int) (getResources().getDisplayMetrics().heightPixels * 0.58f);
-        target = Math.max(dp(360), Math.min(dp(560), target));
+        int target = (int) (getResources().getDisplayMetrics().heightPixels * 0.53f);
+        target = Math.max(dp(340), Math.min(dp(520), target));
         ViewGroup.LayoutParams lp = heroCard.getLayoutParams();
         if (lp != null && lp.height != target) {
             lp.height = target;
             heroCard.setLayoutParams(lp);
         }
+    }
+
+    /** 底部渐变改为渐隐到当前皮肤的页面底色，与下方内容无缝衔接（参考 AVBox） */
+    private void applyHeroFade() {
+        if (heroFade == null) return;
+        int pageColor = themeColor(R.attr.skin_page);
+        int transparentPage = pageColor & 0x00FFFFFF;
+        GradientDrawable fade = new GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{transparentPage, transparentPage, pageColor});
+        heroFade.setBackground(fade);
+    }
+
+    /** 分类入口放在海报下方（参考 AVBox），点击直接切到对应分类页 */
+    private void buildCategoryChips() {
+        if (chipContainer == null || categorySection == null) return;
+        chipContainer.removeAllViews();
+        Fragment parent = getParentFragment();
+        if (isTabletLandscape() || !(parent instanceof HomeFragment)) {
+            categorySection.setVisibility(View.GONE);
+            return;
+        }
+        List<String> names = ((HomeFragment) parent).getCategoryNames();
+        if (names == null || names.size() <= 1) {
+            categorySection.setVisibility(View.GONE);
+            return;
+        }
+        categorySection.setVisibility(View.VISIBLE);
+        for (int i = 0; i < names.size(); i++) {
+            final int index = i;
+            TextView chip = new TextView(mContext);
+            chip.setText(names.get(i));
+            chip.setTextSize(13);
+            chip.setSingleLine(true);
+            chip.setGravity(Gravity.CENTER);
+            chip.setPadding(dp(14), 0, dp(14), 0);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, dp(34));
+            lp.setMarginEnd(dp(8));
+            chip.setLayoutParams(lp);
+            if (i == 0) {
+                chip.setBackgroundResource(R.drawable.bg_chip_active);
+                chip.setTextColor(themeColor(R.attr.skin_on_accent));
+            } else {
+                chip.setBackgroundResource(R.drawable.bg_chip);
+                chip.setTextColor(themeColor(R.attr.skin_text_primary));
+            }
+            chip.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Fragment p = getParentFragment();
+                    if (p instanceof HomeFragment) {
+                        ((HomeFragment) p).selectCategory(index);
+                    }
+                }
+            });
+            chipContainer.addView(chip);
+        }
+    }
+
+    private boolean isTabletLandscape() {
+        Configuration config = getResources().getConfiguration();
+        return config.smallestScreenWidthDp >= 600 && config.orientation == Configuration.ORIENTATION_LANDSCAPE;
+    }
+
+    private int themeColor(int attr) {
+        TypedValue tv = new TypedValue();
+        if (mContext.getTheme().resolveAttribute(attr, tv, true)) {
+            if (tv.resourceId != 0) {
+                return ContextCompat.getColor(mContext, tv.resourceId);
+            }
+            return tv.data;
+        }
+        return Color.BLACK;
     }
 
     private void startHeroAutoScroll() {

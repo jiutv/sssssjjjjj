@@ -3,6 +3,7 @@ package com.github.tvbox.osc.ui.adapter;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
@@ -73,23 +74,42 @@ public class HomeHeroAdapter extends PagerAdapter {
     @NonNull
     @Override
     public Object instantiateItem(@NonNull ViewGroup container, int position) {
-        ImageView image = new ImageView(container.getContext());
-        image.setLayoutParams(new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        image.setContentDescription("主推影片");
-
         final Movie.Video vod = getItem(position);
+
+        // 底图用 CENTER_CROP 模糊铺底 + 前景 FIT_CENTER 完整展示：
+        // 横版宣传图不再被强行放大裁切，竖版海报两侧也有同色延伸，避免糊和留白突兀。
+        FrameLayout frame = new FrameLayout(container.getContext());
+        frame.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        ImageView backdrop = new ImageView(container.getContext());
+        backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        backdrop.setAlpha(0.45f);
+        frame.addView(backdrop, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+
+        ImageView image = new ImageView(container.getContext());
+        image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        image.setContentDescription("主推影片");
+        frame.addView(image, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+
         if (vod != null && !TextUtils.isEmpty(vod.pic)) {
+            String pic = DefaultConfig.checkReplaceProxy(vod.pic.trim());
             Picasso.get()
-                    .load(DefaultConfig.checkReplaceProxy(vod.pic.trim()))
+                    .load(pic)
+                    .placeholder(R.drawable.img_loading_placeholder)
+                    .error(R.drawable.img_loading_placeholder)
+                    .into(backdrop);
+            Picasso.get()
+                    .load(pic)
                     .placeholder(R.drawable.img_loading_placeholder)
                     .error(R.drawable.img_loading_placeholder)
                     .into(image);
         } else {
             image.setImageResource(R.drawable.img_loading_placeholder);
         }
-        image.setOnClickListener(new View.OnClickListener() {
+        frame.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (listener != null && vod != null) {
@@ -98,8 +118,8 @@ public class HomeHeroAdapter extends PagerAdapter {
             }
         });
 
-        container.addView(image);
-        return image;
+        container.addView(frame);
+        return frame;
     }
 
     @Override
