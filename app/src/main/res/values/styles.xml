@@ -133,6 +133,27 @@
         <item name="colorPrimary">@color/skin_retro_accent</item>
     </style>
 
+    <!-- ===================================================================
+         主题方案 6：液态玻璃（Liquid Glass）
+         近黑底 + 半透明玻璃卡片 + 细白描边，白色为选中主色
+         =================================================================== -->
+    <style name="SkinLiquidGlass" parent="AppTheme">
+        <item name="android:windowBackground">@color/skin_liquid_page</item>
+        <item name="skin_page">@color/skin_liquid_page</item>
+        <item name="skin_page_bg">@drawable/bg_skin_page_liquid</item>
+        <item name="skin_card">@color/skin_liquid_card</item>
+        <item name="skin_card_bg">@drawable/bg_skin_card_liquid</item>
+        <item name="skin_card_border">@color/skin_liquid_border</item>
+        <item name="skin_text_primary">@color/skin_liquid_text</item>
+        <item name="skin_text_secondary">@color/skin_liquid_text_2</item>
+        <item name="skin_accent">@color/skin_liquid_accent</item>
+        <item name="skin_accent_soft">@color/skin_liquid_accent_soft</item>
+        <item name="skin_on_accent">@color/skin_liquid_on_accent</item>
+        <item name="skin_glow">@color/skin_liquid_glow</item>
+        <item name="colorAccent">@color/skin_liquid_accent</item>
+        <item name="colorPrimary">@color/skin_liquid_accent</item>
+    </style>
+
     <style name="SplashTheme" parent="AppTheme">
         <item name="android:windowBackground">@drawable/bg_splash</item>
         <item name="android:windowFullscreen">true</item>

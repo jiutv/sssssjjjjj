@@ -11,8 +11,8 @@
         android:id="@+id/topLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="44dp"
-        android:paddingHorizontal="10dp"
+        android:layout_marginTop="40dp"
+        android:paddingHorizontal="16dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -23,10 +23,10 @@
             android:id="@+id/nameContainer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="6dp"
+            android:layout_marginEnd="10dp"
             android:orientation="horizontal">
 
-            <!-- 站点名称不再限制最大宽度，文字完整显示不截断 -->
+            <!-- 品牌 / 站点名称：极简字标 -->
             <TextView
                 android:id="@+id/tvName"
                 android:layout_width="wrap_content"
@@ -34,34 +34,42 @@
                 android:text="@string/app_name"
                 android:textAlignment="gravity"
                 android:textColor="?attr/skin_text_primary"
-                android:textSize="16dp"
-                android:drawablePadding="6dp"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.02"
+                android:drawablePadding="4dp"
+                android:drawableRight="@drawable/ic_arrow_down"
+                android:drawableTint="?attr/skin_text_secondary"
                 android:singleLine="true"
                 android:ellipsize="none"
-                android:drawableRight="@drawable/ic_arrow_down"
                 android:focusable="true"
                 android:focusableInTouchMode="true"
                 />
 
         </LinearLayout>
 
-        <!-- 占位撑开，让搜索框只占剩余空间的一小部分 -->
+        <!-- 占位撑开，让搜索框保持在右侧 -->
         <View
             android:layout_width="0dp"
             android:layout_height="1dp"
-            android:layout_weight="1.2" />
+            android:layout_weight="0.2" />
 
         <TextView
             android:id="@+id/search"
             android:layout_width="0dp"
             android:layout_weight="1"
-            android:layout_height="36dp"
-            android:background="@drawable/bg_skin_field"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_glass_field"
             android:gravity="center_vertical"
-            android:paddingHorizontal="12sp"
-            android:hint="搜索"
+            android:paddingHorizontal="14dp"
+            android:drawableLeft="@drawable/ic_search_18"
+            android:drawablePadding="8dp"
             android:drawableTint="?attr/skin_text_secondary"
-            android:drawableRight="@drawable/ic_search_18"/>
+            android:hint="搜索影片、演员"
+            android:textColor="?attr/skin_text_primary"
+            android:textColorHint="?attr/skin_text_secondary"
+            android:textSize="13sp"
+            android:singleLine="true" />
 
     </LinearLayout>
 
@@ -76,15 +84,16 @@
             android:id="@+id/tab_layout"
             android:layout_width="match_parent"
             android:layout_height="40dp"
-            app:tab_indicator_drawable="@drawable/indicator_flash"
+            app:tab_indicator_drawable="@drawable/bg_tab_indicator"
             app:tab_indicator_enable_flash="true"
             app:tab_indicator_enable_flash_clip="true"
-            app:tab_indicator_height="5dp"
-            app:tab_indicator_width="16dp"
+            app:tab_indicator_height="4dp"
+            app:tab_indicator_width="14dp"
             app:tab_select_color="?attr/skin_accent"
             app:tab_text_min_size="14dp"
             app:tab_text_max_size="16dp"
             app:tab_enable_gradient_text_size="false"
+            android:paddingHorizontal="6dp"
             android:layout_marginTop="6dp"
             >
 
@@ -94,7 +103,7 @@
             android:id="@+id/mViewPager"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="6dp"
             />
     </LinearLayout>
 </LinearLayout>

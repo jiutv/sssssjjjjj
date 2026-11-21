@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 液态玻璃「继续观看」卡片：横版封面 + 玻璃播放按钮 + 标题/进度 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="@dimen/home_continue_width"
+    android:layout_height="wrap_content"
+    android:layout_marginEnd="12dp"
+    android:background="?attr/skin_card_bg"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/home_continue_thumb_height"
+        android:background="@drawable/bg_round_poster"
+        android:clipToOutline="true">
+
+        <ImageView
+            android:id="@+id/ivThumb"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="封面"
+            android:scaleType="centerCrop"
+            tools:src="@drawable/img_loading_placeholder" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_hero_scrim" />
+
+        <ImageView
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_glass_play"
+            android:contentDescription="继续播放"
+            android:padding="9dp"
+            android:src="@drawable/ic_ctl_play"
+            android:tint="@color/white" />
+
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/tvName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:textColor="?attr/skin_text_primary"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        tools:text="鬼灭之刃" />
+
+    <TextView
+        android:id="@+id/tvNote"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:textColor="?attr/skin_text_secondary"
+        android:textSize="11sp"
+        tools:text="上次看到 第 8 集" />
+
+</LinearLayout>

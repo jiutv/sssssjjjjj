@@ -1,10 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 底部导航胶囊背景：跟随皮肤 token -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <solid android:color="?attr/skin_card" />
-    <corners android:radius="@dimen/bottom_nav_radius" />
-    <stroke
-        android:width="1dp"
-        android:color="?attr/skin_card_border" />
-</shape>
+<!-- 底部导航胶囊：半透明玻璃底 + 顶部高光 + 细描边，跟随皮肤 token -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/skin_card" />
+            <corners android:radius="@dimen/bottom_nav_radius" />
+            <stroke
+                android:width="1dp"
+                android:color="?attr/skin_card_border" />
+        </shape>
+    </item>
+    <!-- 顶部白色高光：模拟玻璃受光面 -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:endColor="#00FFFFFF"
+                android:startColor="#1FFFFFFF"
+                android:type="linear" />
+            <corners android:radius="@dimen/bottom_nav_radius" />
+        </shape>
+    </item>
+</layer-list>

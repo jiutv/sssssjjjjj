@@ -143,4 +143,22 @@
     <color name="skin_retro_on_accent">#1A0E06</color>
     <color name="skin_retro_glow">#66FF8A4C</color>
 
+    <!-- ===================================================================
+         主题方案 6：液态玻璃（Liquid Glass）
+         近黑底 #0A0A0C + 纯白主文字 + 次级灰 #A1A1AA
+         半透明玻璃卡片、细白描边、大圆角，参考 01-liquid-glass
+         =================================================================== -->
+    <color name="skin_liquid_page_top">#0E0E12</color>
+    <color name="skin_liquid_page">#0A0A0C</color>
+    <color name="skin_liquid_card">#1CFFFFFF</color>
+    <color name="skin_liquid_card_strong">#26FFFFFF</color>
+    <color name="skin_liquid_border">#26FFFFFF</color>
+    <color name="skin_liquid_border_strong">#3DFFFFFF</color>
+    <color name="skin_liquid_text">#FFFFFF</color>
+    <color name="skin_liquid_text_2">#A1A1AA</color>
+    <color name="skin_liquid_accent">#FFFFFF</color>
+    <color name="skin_liquid_accent_soft">#1FFFFFFF</color>
+    <color name="skin_liquid_on_accent">#0A0A0C</color>
+    <color name="skin_liquid_glow">#33FFFFFF</color>
+
 </resources>

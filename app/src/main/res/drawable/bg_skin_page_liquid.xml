@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 液态玻璃主题页面背景：近黑微渐变，模拟玻璃背后的深色空间 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:endColor="@color/skin_liquid_page"
+        android:startColor="@color/skin_liquid_page_top"
+        android:type="linear" />
+</shape>

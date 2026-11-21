@@ -97,7 +97,7 @@ public class Utils {
     }
 
     public static boolean isDarkTheme(){
-        // 5 套主题方案均为深色系，选中任意皮肤时按深色处理（状态栏用浅色图标）
+        // 皮肤方案均为深色系，选中任意皮肤时按深色处理（状态栏用浅色图标）
         if (getSkinTag() > 0) {
             return true;
         }
@@ -106,7 +106,7 @@ public class Utils {
     }
 
     public static void initTheme(){
-        // 5 套主题方案全部为深色，直接锁定深色模式，避免系统浅色时控件配色错乱
+        // 皮肤方案全部为深色，直接锁定深色模式，避免系统浅色时控件配色错乱
         if (getSkinTag() > 0) {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
             return;
@@ -127,9 +127,10 @@ public class Utils {
     /**
      * 当前主题方案：0 默认（跟随系统明暗），
      * 1 深色磨砂满天星 / 2 黑金凤雅 / 3 青黑科技 / 4 蓝紫沉浸 / 5 暖橙怀旧
+     * 6 液态玻璃（默认）
      */
     public static int getSkinTag() {
-        return Hawk.get(HawkConfig.SKIN_TAG, 0);
+        return Hawk.get(HawkConfig.SKIN_TAG, 6);
     }
 
     /**
@@ -147,6 +148,8 @@ public class Utils {
                 return R.style.SkinAurora;
             case 5:
                 return R.style.SkinRetro;
+            case 6:
+                return R.style.SkinLiquidGlass;
             default:
                 return 0;
         }

@@ -19,7 +19,9 @@
         <!-- 封面区域 -->
         <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="140dp">
+            android:layout_height="@dimen/home_poster_height"
+            android:background="@drawable/bg_round_poster"
+            android:clipToOutline="true">
 
             <ImageView
                 android:id="@+id/ivThumb"
