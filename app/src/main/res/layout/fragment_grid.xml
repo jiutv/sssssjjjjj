@@ -15,7 +15,9 @@
         tools:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
         tools:spanCount="3"
         android:paddingHorizontal="10dp"
-        android:paddingTop="@dimen/home_top_overlay_height"/>
+        android:paddingTop="@dimen/home_top_overlay_height"
+        android:paddingBottom="@dimen/bottom_nav_overlay_padding"
+        android:clipToPadding="false" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/btn_filter"
@@ -23,7 +25,9 @@
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
         android:layout_alignParentBottom="true"
-        android:layout_margin="20dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="96dp"
         android:backgroundTint="@color/colorPrimary"
         app:borderWidth="0dp"
         android:src="@drawable/ic_filter_list"

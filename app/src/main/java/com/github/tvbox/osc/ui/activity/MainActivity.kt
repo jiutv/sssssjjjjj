@@ -207,6 +207,13 @@ class MainActivity : BaseVbActivity<ActivityMainBinding>() {
         )
         mBinding.bottomNav.itemIconTintList = colors
         mBinding.bottomNav.itemTextColor = colors
+        // 悬浮胶囊：背景是 layer-list，默认轮廓是矩形，这里改用圆角轮廓让阴影也跟着胶囊走
+        val radius = resources.getDimension(R.dimen.bottom_nav_radius)
+        mBinding.bottomNav.outlineProvider = object : android.view.ViewOutlineProvider() {
+            override fun getOutline(view: android.view.View, outline: android.graphics.Outline) {
+                outline.setRoundRect(0, 0, view.width, view.height, radius)
+            }
+        }
     }
 
     private fun attrColor(attr: Int): Int {

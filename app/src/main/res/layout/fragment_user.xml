@@ -22,7 +22,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingBottom="24dp">
+            android:paddingBottom="@dimen/bottom_nav_overlay_padding">
 
             <!-- ===== Hero 主推：全幅竖版海报，延伸到状态栏下方 ===== -->
             <FrameLayout

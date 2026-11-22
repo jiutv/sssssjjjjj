@@ -2,4 +2,6 @@
 <!-- 平板横屏使用 layout-sw600dp-land/fragment_home.xml（顶栏不悬浮），Grid 无需顶部避让 -->
 <resources>
     <dimen name="home_top_overlay_height">0dp</dimen>
+    <!-- 平板横屏使用左侧侧边导航，底部不需要为悬浮胶囊预留空间 -->
+    <dimen name="bottom_nav_overlay_padding">24dp</dimen>
 </resources>
