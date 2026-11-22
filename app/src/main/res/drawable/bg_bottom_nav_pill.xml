@@ -1,32 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 底部导航玻璃胶囊：高透明度 + 细描边 + 顶部高光，内容从胶囊后方透出 -->
+<!--
+    底部导航玻璃胶囊（参考 AVBox 的磨砂玻璃）
+    注意：之前用 <item android:alpha="0.38"> 包住纯色 shape，实测运行时不生效（整块仍是不透明深色），
+    所以这里把透明度直接写进颜色里。
+-->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- 半透明底色：透明度越高越透，当前 38% 不透明 -->
-    <item android:alpha="0.38">
+    <!-- 玻璃底色：顶部亮、底部更淡的半透明白，内容从胶囊后方透出 -->
+    <item>
         <shape android:shape="rectangle">
-            <solid android:color="?attr/skin_page" />
+            <gradient
+                android:angle="270"
+                android:centerColor="#21FFFFFF"
+                android:endColor="#12FFFFFF"
+                android:startColor="#3DFFFFFF"
+                android:type="linear" />
             <corners android:radius="@dimen/bottom_nav_radius" />
         </shape>
     </item>
-    <!-- 细描边单独一层，保持边框清晰 -->
+    <!-- 玻璃描边：细白边，勾出胶囊轮廓 -->
     <item>
         <shape android:shape="rectangle">
             <solid android:color="@android:color/transparent" />
             <corners android:radius="@dimen/bottom_nav_radius" />
             <stroke
                 android:width="1dp"
-                android:color="?attr/skin_card_border" />
-        </shape>
-    </item>
-    <!-- 顶部白色高光：模拟玻璃受光面 -->
-    <item>
-        <shape android:shape="rectangle">
-            <gradient
-                android:angle="270"
-                android:endColor="#00FFFFFF"
-                android:startColor="#26FFFFFF"
-                android:type="linear" />
-            <corners android:radius="@dimen/bottom_nav_radius" />
+                android:color="#40FFFFFF" />
         </shape>
     </item>
 </layer-list>
