@@ -542,13 +542,13 @@ public class UserFragment extends BaseLazyFragment {
             final int index = i;
             TextView chip = new TextView(mContext);
             chip.setText(names.get(i));
-            chip.setTextSize(12);
+            chip.setTextSize(11);
             chip.setSingleLine(true);
             chip.setGravity(Gravity.CENTER);
-            chip.setPadding(dp(11), 0, dp(11), 0);
+            chip.setPadding(dp(8), 0, dp(8), 0);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT, dp(30));
-            lp.setMarginEnd(dp(5));
+                    ViewGroup.LayoutParams.WRAP_CONTENT, dp(28));
+            lp.setMarginEnd(dp(4));
             chip.setLayoutParams(lp);
             if (i == 0) {
                 chip.setBackgroundResource(R.drawable.bg_chip_active);

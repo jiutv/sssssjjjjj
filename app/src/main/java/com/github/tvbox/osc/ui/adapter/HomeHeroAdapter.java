@@ -76,17 +76,11 @@ public class HomeHeroAdapter extends PagerAdapter {
     public Object instantiateItem(@NonNull ViewGroup container, int position) {
         final Movie.Video vod = getItem(position);
 
-        // 底图用 CENTER_CROP 模糊铺底 + 前景 FIT_CENTER 完整展示：
-        // 横版宣传图不再被强行放大裁切，竖版海报两侧也有同色延伸，避免糊和留白突兀。
+        // 竖版海报 FIT_CENTER 完整展示，两侧留白直接透出页面底色：
+        // 底色由海报主色联动（参考 AVBox 的 seed color），所以两侧与下方内容同色，不再出现色带。
         FrameLayout frame = new FrameLayout(container.getContext());
         frame.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-
-        ImageView backdrop = new ImageView(container.getContext());
-        backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        backdrop.setAlpha(0.45f);
-        frame.addView(backdrop, new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
 
         ImageView image = new ImageView(container.getContext());
         image.setScaleType(ImageView.ScaleType.FIT_CENTER);
@@ -96,11 +90,6 @@ public class HomeHeroAdapter extends PagerAdapter {
 
         if (vod != null && !TextUtils.isEmpty(vod.pic)) {
             String pic = DefaultConfig.checkReplaceProxy(vod.pic.trim());
-            Picasso.get()
-                    .load(pic)
-                    .placeholder(R.drawable.img_loading_placeholder)
-                    .error(R.drawable.img_loading_placeholder)
-                    .into(backdrop);
             Picasso.get()
                     .load(pic)
                     .placeholder(R.drawable.img_loading_placeholder)
