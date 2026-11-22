@@ -76,14 +76,13 @@ public class HomeHeroAdapter extends PagerAdapter {
     public Object instantiateItem(@NonNull ViewGroup container, int position) {
         final Movie.Video vod = getItem(position);
 
-        // 竖版海报 FIT_CENTER 完整展示，两侧留白直接透出页面底色：
-        // 底色由海报主色联动（参考 AVBox 的 seed color），所以两侧与下方内容同色，不再出现色带。
+        // 参考 AVBox：整张封面全幅铺满 Hero 区（CENTER_CROP），不留边框和色带
         FrameLayout frame = new FrameLayout(container.getContext());
         frame.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         ImageView image = new ImageView(container.getContext());
-        image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
         image.setContentDescription("主推影片");
         frame.addView(image, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));

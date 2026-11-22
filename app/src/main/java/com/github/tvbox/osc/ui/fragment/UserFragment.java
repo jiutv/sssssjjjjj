@@ -11,8 +11,6 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.RectShape;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -66,10 +64,8 @@ import java.util.Map;
  */
 public class UserFragment extends BaseLazyFragment {
 
-    /** Hero 轮播最多展示的影片数（与 AVBox 一致） */
-    private static final int HERO_VIDEO_COUNT = 5;
-    /** 自动轮播间隔 */
-    private static final long HERO_AUTO_INTERVAL = 5000L;
+    /** Hero 轮播最多展示的影片数 */
+    private static final int HERO_VIDEO_COUNT = 10;
 
     private HomePosterAdapter posterAdapter;
     private HomeContinueAdapter continueAdapter;
@@ -92,9 +88,6 @@ public class UserFragment extends BaseLazyFragment {
     private RecyclerView rvContinue;
 
     private List<Movie.Video> heroVideos = new ArrayList<>();
-
-    private Handler heroHandler;
-    private Runnable heroAutoRunnable;
 
     /** Hero 图片主色缓存：页面底色/底部渐变跟随海报主色（参考 AVBox 的 seed color） */
     private final Map<String, Integer> heroSeedCache = new HashMap<>();
@@ -151,16 +144,6 @@ public class UserFragment extends BaseLazyFragment {
         applyHeroFade(pageTintColor);
         buildCategoryChips();
 
-        heroHandler = new Handler(Looper.getMainLooper());
-        heroAutoRunnable = new Runnable() {
-            @Override
-            public void run() {
-                if (heroAdapter == null || heroAdapter.getRealCount() <= 1) return;
-                // 翻页后由 onPageSelected/onPageScrollStateChanged 续约下一次，避免重复调度
-                heroPager.setCurrentItem(heroPager.getCurrentItem() + 1, true);
-            }
-        };
-
         heroAdapter = new HomeHeroAdapter();
         heroAdapter.setOnItemClickListener(new HomeHeroAdapter.OnItemClickListener() {
             @Override
@@ -181,16 +164,10 @@ public class UserFragment extends BaseLazyFragment {
                 bindHeroInfo(heroAdapter.getItem(position));
                 updateHeroDots(position % heroAdapter.getRealCount());
                 applyHeroTint(heroAdapter.getItem(position));
-                startHeroAutoScroll();
             }
 
             @Override
             public void onPageScrollStateChanged(int state) {
-                if (state == ViewPager.SCROLL_STATE_DRAGGING) {
-                    stopHeroAutoScroll();
-                } else if (state == ViewPager.SCROLL_STATE_IDLE) {
-                    startHeroAutoScroll();
-                }
             }
         });
 
@@ -293,7 +270,7 @@ public class UserFragment extends BaseLazyFragment {
     }
 
     /**
-     * 渲染首页：取前 5 条做 Hero 轮播，其余进入横向海报轨（与 AVBox 的取数方式一致）。
+     * 渲染首页：前 10 条做 Hero 轮播（手动滑动），其余进入横向海报轨。
      */
     private void render(List<Movie.Video> videos) {
         if (videos == null || videos.isEmpty()) {
@@ -323,7 +300,6 @@ public class UserFragment extends BaseLazyFragment {
         bindHeroInfo(heroVideos.get(0));
         buildHeroDots(heroVideos.size(), 0);
         applyHeroTint(heroVideos.get(0));
-        startHeroAutoScroll();
     }
 
     private void bindHeroInfo(Movie.Video vod) {
@@ -586,36 +562,9 @@ public class UserFragment extends BaseLazyFragment {
         return Color.BLACK;
     }
 
-    private void startHeroAutoScroll() {
-        if (heroHandler == null || heroAutoRunnable == null) return;
-        heroHandler.removeCallbacks(heroAutoRunnable);
-        if (heroAdapter != null && heroAdapter.getRealCount() > 1) {
-            heroHandler.postDelayed(heroAutoRunnable, HERO_AUTO_INTERVAL);
-        }
-    }
-
-    private void stopHeroAutoScroll() {
-        if (heroHandler != null) {
-            heroHandler.removeCallbacks(heroAutoRunnable);
-        }
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        startHeroAutoScroll();
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        stopHeroAutoScroll();
-    }
-
     @Override
     public void onDestroy() {
         super.onDestroy();
-        stopHeroAutoScroll();
         if (tintAnimator != null) {
             tintAnimator.cancel();
             tintAnimator = null;

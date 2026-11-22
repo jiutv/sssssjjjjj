@@ -1,10 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 底部导航玻璃胶囊：半透明页面色（露出后方内容）+ 顶部高光 + 细描边，跟随皮肤 token -->
+<!-- 底部导航玻璃胶囊：高透明度 + 细描边 + 顶部高光，内容从胶囊后方透出 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- 半透明底色：使用皮肤页面色，让下方海报/列表透出，形成磨砂玻璃感 -->
-    <item android:alpha="0.82">
+    <!-- 半透明底色：透明度越高越透，当前 38% 不透明 -->
+    <item android:alpha="0.38">
         <shape android:shape="rectangle">
             <solid android:color="?attr/skin_page" />
+            <corners android:radius="@dimen/bottom_nav_radius" />
+        </shape>
+    </item>
+    <!-- 细描边单独一层，保持边框清晰 -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
             <corners android:radius="@dimen/bottom_nav_radius" />
             <stroke
                 android:width="1dp"
@@ -17,7 +24,7 @@
             <gradient
                 android:angle="270"
                 android:endColor="#00FFFFFF"
-                android:startColor="#1FFFFFFF"
+                android:startColor="#26FFFFFF"
                 android:type="linear" />
             <corners android:radius="@dimen/bottom_nav_radius" />
         </shape>

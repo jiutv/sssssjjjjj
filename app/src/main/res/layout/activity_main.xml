@@ -31,7 +31,7 @@
             android:elevation="8dp"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            app:labelVisibilityMode="selected"
+            app:labelVisibilityMode="labeled"
             app:itemIconTint="@drawable/bottom_navigation_item_selector"
             app:itemTextColor="@drawable/bottom_navigation_item_selector"
             app:menu="@menu/main_bottom_navigation" />
