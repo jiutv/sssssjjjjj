@@ -137,6 +137,8 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
                 }
             }
             mSubscriptionAdapter.notifyDataSetChanged()
+            // 切换点播源后立即重新解析该源的直播源
+            tryLoadLiveFromVodSource()
         }
 
         mSubscriptionAdapter.onItemLongClickListener =
@@ -235,6 +237,8 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
     // ========== 从当前点播订阅源自动提取直播源 ==========
     private fun tryLoadLiveFromVodSource() {
         if (TextUtils.isEmpty(mSelectedUrl)) return
+        // 切换/新增订阅时可能有上一次未完成的请求，先取消避免旧源结果覆盖新源
+        OkGo.getInstance().cancelTag("load_live_from_vod")
         val apiUrl = mSelectedUrl
         val configUrl: String = when {
             apiUrl.startsWith("clan") -> apiUrl
@@ -692,6 +696,8 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
             }
             mSelectedUrl = url
             mSubscriptions.add(Subscription(name, url).setChecked(true))
+            // 新输入并切换到该订阅后，立即解析它的直播源，无需退出重进
+            tryLoadLiveFromVodSource()
         } else {
             mSubscriptions.add(Subscription(name, url).setChecked(false))
         }
