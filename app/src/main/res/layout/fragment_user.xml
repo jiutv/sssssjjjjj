@@ -175,6 +175,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
                 android:overScrollMode="never"
                 android:paddingHorizontal="@dimen/home_content_padding"
                 android:scrollbars="none"
@@ -190,40 +191,6 @@
                 android:textColor="?attr/skin_text_secondary"
                 android:textSize="12sp"
                 android:visibility="gone" />
-
-            <!-- ===== 继续观看 ===== -->
-            <LinearLayout
-                android:id="@+id/continueHeader"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/home_section_gap"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="@dimen/home_content_padding"
-                android:visibility="gone">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="继续观看"
-                    android:textColor="?attr/skin_text_primary"
-                    android:textSize="17sp"
-                    android:textStyle="bold" />
-
-            </LinearLayout>
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvContinue"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:clipToPadding="false"
-                android:overScrollMode="never"
-                android:paddingHorizontal="@dimen/home_content_padding"
-                android:scrollbars="none"
-                android:visibility="gone"
-                tools:listitem="@layout/item_home_continue" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

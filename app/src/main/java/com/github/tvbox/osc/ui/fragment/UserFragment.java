@@ -21,7 +21,7 @@ import android.widget.TextView;
 
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.ViewPager;
 
@@ -31,11 +31,8 @@ import com.github.tvbox.osc.R;
 import com.github.tvbox.osc.api.ApiConfig;
 import com.github.tvbox.osc.base.BaseLazyFragment;
 import com.github.tvbox.osc.bean.Movie;
-import com.github.tvbox.osc.bean.VodInfo;
-import com.github.tvbox.osc.cache.RoomDataManger;
 import com.github.tvbox.osc.ui.activity.DetailActivity;
 import com.github.tvbox.osc.ui.activity.FastSearchActivity;
-import com.github.tvbox.osc.ui.adapter.HomeContinueAdapter;
 import com.github.tvbox.osc.ui.adapter.HomeHeroAdapter;
 import com.github.tvbox.osc.ui.adapter.HomePosterAdapter;
 import com.github.tvbox.osc.util.DefaultConfig;
@@ -59,7 +56,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 液态玻璃推荐首页：Hero 主推 + 横向海报轨 + 继续观看。
+ * 液态玻璃推荐首页：Hero 主推 + 热门推荐竖版网格。
  * 数据来源保持不变：站点推荐 / 豆瓣热门。
  */
 public class UserFragment extends BaseLazyFragment {
@@ -68,12 +65,10 @@ public class UserFragment extends BaseLazyFragment {
     private static final int HERO_VIDEO_COUNT = 10;
 
     private HomePosterAdapter posterAdapter;
-    private HomeContinueAdapter continueAdapter;
     private HomeHeroAdapter heroAdapter;
     private List<Movie.Video> homeSourceRec;
 
     private View homeScroll;
-    private View continueHeader;
     private View heroCard;
     private ViewPager heroPager;
     private View heroFade;
@@ -85,7 +80,6 @@ public class UserFragment extends BaseLazyFragment {
     private TextView tvHotCount;
     private TextView tvHotEmpty;
     private RecyclerView rvHot;
-    private RecyclerView rvContinue;
 
     private List<Movie.Video> heroVideos = new ArrayList<>();
 
@@ -136,8 +130,6 @@ public class UserFragment extends BaseLazyFragment {
         tvHotCount = findViewById(R.id.tvHotCount);
         tvHotEmpty = findViewById(R.id.tvHotEmpty);
         rvHot = findViewById(R.id.rvHot);
-        rvContinue = findViewById(R.id.rvContinue);
-        continueHeader = findViewById(R.id.continueHeader);
 
         applyHeroHeight();
         pageTintColor = themeColor(R.attr.skin_page);
@@ -190,22 +182,20 @@ public class UserFragment extends BaseLazyFragment {
                 return true;
             }
         });
-        rvHot.setLayoutManager(new LinearLayoutManager(mContext, RecyclerView.HORIZONTAL, false));
+        rvHot.setLayoutManager(new GridLayoutManager(mContext, getHotSpanCount()));
         rvHot.setAdapter(posterAdapter);
-
-        continueAdapter = new HomeContinueAdapter();
-        continueAdapter.setOnItemClickListener(new BaseQuickAdapter.OnItemClickListener() {
-            @Override
-            public void onItemClick(BaseQuickAdapter adapter, View view, int position) {
-                openVod((VodInfo) adapter.getItem(position));
-            }
-        });
-        rvContinue.setLayoutManager(new LinearLayoutManager(mContext, RecyclerView.HORIZONTAL, false));
-        rvContinue.setAdapter(continueAdapter);
 
         setLoadSir2(homeScroll);
         initHomeHotVod();
-        loadContinueWatching();
+    }
+
+    /** 热门推荐竖版网格列数：手机 3 列，平板横屏按宽度铺更多列 */
+    private int getHotSpanCount() {
+        if (isTabletLandscape()) {
+            int width = getResources().getConfiguration().screenWidthDp;
+            return Math.max(3, width / 120);
+        }
+        return 3;
     }
 
     private void initHomeHotVod() {
@@ -575,45 +565,6 @@ public class UserFragment extends BaseLazyFragment {
         heroSeedTargets.clear();
     }
 
-    /**
-     * 读取本地历史记录，渲染「继续观看」。
-     */
-    private void loadContinueWatching() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                final List<VodInfo> result = new ArrayList<>();
-                try {
-                    List<VodInfo> records = RoomDataManger.getAllVodRecord(10);
-                    if (records != null) {
-                        for (VodInfo vod : records) {
-                            if (!TextUtils.isEmpty(vod.playNote)) {
-                                vod.note = vod.playNote;
-                            }
-                            result.add(vod);
-                        }
-                    }
-                } catch (Throwable ignored) {
-                }
-                if (mActivity == null) return;
-                mActivity.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (!isAdded() || continueAdapter == null) return;
-                        if (result.isEmpty()) {
-                            continueHeader.setVisibility(View.GONE);
-                            rvContinue.setVisibility(View.GONE);
-                        } else {
-                            continueHeader.setVisibility(View.VISIBLE);
-                            rvContinue.setVisibility(View.VISIBLE);
-                            continueAdapter.setNewData(result);
-                        }
-                    }
-                });
-            }
-        }).start();
-    }
-
     private void openVideo(Movie.Video vod) {
         if (vod == null) return;
         if (ApiConfig.get().getSourceBeanList().isEmpty()) {
@@ -629,14 +580,6 @@ public class UserFragment extends BaseLazyFragment {
             bundle.putString("title", vod.name);
             jumpActivity(FastSearchActivity.class, bundle);
         }
-    }
-
-    private void openVod(VodInfo vod) {
-        if (vod == null || TextUtils.isEmpty(vod.id)) return;
-        Bundle bundle = new Bundle();
-        bundle.putString("id", vod.id);
-        bundle.putString("sourceKey", vod.sourceKey);
-        jumpActivity(DetailActivity.class, bundle);
     }
 
     private ArrayList<Movie.Video> loadHots(String json) {

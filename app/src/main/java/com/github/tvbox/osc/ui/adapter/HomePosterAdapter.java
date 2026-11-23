@@ -15,7 +15,7 @@ import com.squareup.picasso.Picasso;
 import java.util.ArrayList;
 
 /**
- * 液态玻璃首页横向海报轨适配器（2:3 海报卡片）。
+ * 液态玻璃首页热门推荐适配器（竖版网格，2:3 海报卡片）。
  */
 public class HomePosterAdapter extends BaseQuickAdapter<Movie.Video, BaseViewHolder> {
 
