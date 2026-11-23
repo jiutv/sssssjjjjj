@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 奶油（浅色暖调）页面背景：奶油白渐变 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:endColor="@color/skin_cream_page"
+        android:startColor="@color/skin_cream_page_top"
+        android:type="linear" />
+</shape>

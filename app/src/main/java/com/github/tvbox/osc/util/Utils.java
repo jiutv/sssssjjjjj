@@ -96,19 +96,26 @@ public class Utils {
         return videoList;
     }
 
+    /** 浅色皮肤：雾蓝(7) / 奶油(9)，其余皮肤均为深色 */
+    public static boolean isLightSkin(int tag) {
+        return tag == 7 || tag == 9;
+    }
+
     public static boolean isDarkTheme(){
-        // 皮肤方案均为深色系，选中任意皮肤时按深色处理（状态栏用浅色图标）
-        if (getSkinTag() > 0) {
-            return true;
+        // 皮肤方案：深色皮肤按深色处理，浅色皮肤（雾蓝/奶油）按浅色处理
+        int tag = getSkinTag();
+        if (tag > 0) {
+            return !isLightSkin(tag);
         }
         int currentNightMode = App.getInstance().getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
         return currentNightMode == Configuration.UI_MODE_NIGHT_YES || AppCompatDelegate.getDefaultNightMode()==AppCompatDelegate.MODE_NIGHT_YES;
     }
 
     public static void initTheme(){
-        // 皮肤方案全部为深色，直接锁定深色模式，避免系统浅色时控件配色错乱
-        if (getSkinTag() > 0) {
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+        // 皮肤方案：深色皮肤锁定深色模式，浅色皮肤锁定浅色模式，避免系统配色干扰
+        int tag = getSkinTag();
+        if (tag > 0) {
+            AppCompatDelegate.setDefaultNightMode(isLightSkin(tag) ? AppCompatDelegate.MODE_NIGHT_NO : AppCompatDelegate.MODE_NIGHT_YES);
             return;
         }
         switch (Hawk.get(HawkConfig.THEME_TAG,0)) {
@@ -127,6 +134,7 @@ public class Utils {
     /**
      * 当前主题方案：0 默认（跟随系统明暗），
      * 1 黑金凤雅 / 2 青黑科技 / 3 蓝紫沉浸 / 4 暖橙怀旧 / 5 液态玻璃（默认）/ 6 樱花粉
+     * 7 雾蓝（浅色）/ 8 森林绿 / 9 奶油（浅色暖调）
      */
     public static int getSkinTag() {
         return Hawk.get(HawkConfig.SKIN_TAG, 5);
@@ -172,6 +180,12 @@ public class Utils {
                 return R.style.SkinLiquidGlass;
             case 6:
                 return R.style.SkinPink;
+            case 7:
+                return R.style.SkinMist;
+            case 8:
+                return R.style.SkinForest;
+            case 9:
+                return R.style.SkinCream;
             default:
                 return 0;
         }

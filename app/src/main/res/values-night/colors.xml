@@ -7,6 +7,14 @@
     <color name="text_foreground">#FFFFFF</color>
     <color name="text_sub_foreground">#AFAFAF</color>
 
-    <color name="skin_default_border">#26FFFFFF</color>
-    <color name="skin_default_accent_soft">#332B12</color>
+    <!-- ===== UI 皮肤：默认深色 ===== -->
+    <color name="skin_default_page">#0F1115</color>
+    <color name="skin_default_card">#191C22</color>
+    <color name="skin_default_border">#262A33</color>
+    <color name="skin_default_text">#F5F6F8</color>
+    <color name="skin_default_text_2">#9AA1AC</color>
+    <color name="skin_default_accent">#6E9BFF</color>
+    <color name="skin_default_accent_soft">#266E9BFF</color>
+    <color name="skin_default_on_accent">#0B1020</color>
+    <color name="skin_default_glow">#556E9BFF</color>
 </resources>

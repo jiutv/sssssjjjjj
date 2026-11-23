@@ -94,7 +94,7 @@
                             android:layout_height="22dp"
                             android:layout_gravity="center"
                             android:src="@drawable/ic_database_48"
-                            app:tint="?attr/skin_on_accent" />
+                            app:tint="?attr/skin_accent" />
                     </FrameLayout>
 
                     <TextView
@@ -141,7 +141,7 @@
                             android:layout_height="22dp"
                             android:layout_gravity="center"
                             android:src="@drawable/ic_local_video_48"
-                            app:tint="?attr/skin_on_accent" />
+                            app:tint="?attr/skin_accent" />
                     </FrameLayout>
 
                     <TextView
@@ -188,7 +188,7 @@
                             android:layout_height="22dp"
                             android:layout_gravity="center"
                             android:src="@drawable/ic_copyright_48"
-                            app:tint="?attr/skin_on_accent" />
+                            app:tint="?attr/skin_accent" />
                     </FrameLayout>
 
                     <TextView
@@ -239,7 +239,7 @@
                             android:layout_height="22dp"
                             android:layout_gravity="center"
                             android:src="@drawable/ic_about_48"
-                            app:tint="?attr/skin_on_accent" />
+                            app:tint="?attr/skin_accent" />
                     </FrameLayout>
 
                     <TextView
@@ -286,7 +286,7 @@
                             android:layout_height="22dp"
                             android:layout_gravity="center"
                             android:src="@drawable/ic_settings"
-                            app:tint="?attr/skin_on_accent" />
+                            app:tint="?attr/skin_accent" />
                     </FrameLayout>
 
                     <TextView

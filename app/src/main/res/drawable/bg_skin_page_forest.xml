@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 森林绿页面背景：深墨绿渐变 + 顶部淡绿柔光 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:endColor="@color/skin_forest_page"
+                android:startColor="@color/skin_forest_page_top"
+                android:type="linear" />
+        </shape>
+    </item>
+
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:centerX="0.5"
+                android:centerY="0.0"
+                android:gradientRadius="520dp"
+                android:startColor="#263DDC97"
+                android:endColor="#003DDC97" />
+        </shape>
+    </item>
+
+</layer-list>

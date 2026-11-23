@@ -350,7 +350,8 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
         val oldTheme = currentThemeIndexOf()
         val themes = arrayOf(
             "跟随系统", "浅色", "深色",
-            "黑金凤雅", "青黑科技", "蓝紫沉浸", "暖橙怀旧", "液态玻璃", "樱花粉"
+            "黑金凤雅", "青黑科技", "蓝紫沉浸", "暖橙怀旧", "液态玻璃", "樱花粉",
+            "雾蓝", "森林绿", "奶油"
         )
         mBinding.tvTheme.text = themes[oldTheme]
         mBinding.llTheme.setOnClickListener(View.OnClickListener { view: View? ->
@@ -368,8 +369,8 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
                             Hawk.put(HawkConfig.THEME_TAG, v)
                             Hawk.put(HawkConfig.SKIN_TAG, 0)
                         }
-                        // 3~8 对应 6 套皮肤方案
-                        in 3..8 -> {
+                        // 3~11 对应 9 套皮肤方案
+                        in 3..11 -> {
                             Hawk.put(HawkConfig.SKIN_TAG, v - 2)
                         }
                     }
@@ -439,6 +440,7 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
     /**
      * 主题颜色当前选中项的索引：
      * 0跟随系统 1浅色 2深色 3黑金凤雅 4青黑科技 5蓝紫沉浸 6暖橙怀旧 7液态玻璃 8樱花粉
+     * 9雾蓝 10森林绿 11奶油
      */
     private fun currentThemeIndexOf(): Int {
         return when (Utils.getSkinTag()) {
@@ -448,6 +450,9 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
             4 -> 6
             5 -> 7
             6 -> 8
+            7 -> 9
+            8 -> 10
+            9 -> 11
             else -> Hawk.get<Int>(HawkConfig.THEME_TAG, 0)
         }
     }

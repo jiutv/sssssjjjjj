@@ -69,9 +69,16 @@
     <color name="color_59353744">#59353744</color>
     <color name="color_80FF0057">#66FF0057</color>
 
-    <!-- ===== UI 皮肤：默认（跟随 APP 原有明暗逻辑） ===== -->
-    <color name="skin_default_border">#1A000000</color>
-    <color name="skin_default_accent_soft">#FFF4DC</color>
+    <!-- ===== UI 皮肤：默认（浅色，values-night 提供深色版本） ===== -->
+    <color name="skin_default_page">#F6F7F9</color>
+    <color name="skin_default_card">#FFFFFF</color>
+    <color name="skin_default_border">#E6E9EF</color>
+    <color name="skin_default_text">#14171C</color>
+    <color name="skin_default_text_2">#6B7280</color>
+    <color name="skin_default_accent">#3B6EF6</color>
+    <color name="skin_default_accent_soft">#1F3B6EF6</color>
+    <color name="skin_default_on_accent">#FFFFFF</color>
+    <color name="skin_default_glow">#333B6EF6</color>
 
     <!-- ===================================================================
          主题方案 1：黑金凤雅（Gold）
@@ -160,5 +167,50 @@
     <color name="skin_pink_accent_soft">#33FF7AA8</color>
     <color name="skin_pink_on_accent">#1A0810</color>
     <color name="skin_pink_glow">#66FF7AA8</color>
+
+    <!-- ===================================================================
+         主题方案 7：雾蓝（Mist）—— 浅色系
+         #F6F9FF 雾蓝白底 + #3A6DF0 蓝，白卡片、浅蓝描边
+         =================================================================== -->
+    <color name="skin_mist_page_top">#F7FAFF</color>
+    <color name="skin_mist_page">#EDF2FA</color>
+    <color name="skin_mist_card">#FFFFFF</color>
+    <color name="skin_mist_border">#DDE5F2</color>
+    <color name="skin_mist_text">#16203A</color>
+    <color name="skin_mist_text_2">#5D6C88</color>
+    <color name="skin_mist_accent">#3A6DF0</color>
+    <color name="skin_mist_accent_soft">#1A3A6DF0</color>
+    <color name="skin_mist_on_accent">#FFFFFF</color>
+    <color name="skin_mist_glow">#333A6DF0</color>
+
+    <!-- ===================================================================
+         主题方案 8：森林绿（Forest）
+         深墨绿底 #07120E + #3DDC97 荧光绿，暗卡片、绿描边
+         =================================================================== -->
+    <color name="skin_forest_page_top">#0B1A14</color>
+    <color name="skin_forest_page">#07120E</color>
+    <color name="skin_forest_card">#10201A</color>
+    <color name="skin_forest_border">#2E5544</color>
+    <color name="skin_forest_text">#EAF6F0</color>
+    <color name="skin_forest_text_2">#8FB3A3</color>
+    <color name="skin_forest_accent">#3DDC97</color>
+    <color name="skin_forest_accent_soft">#263DDC97</color>
+    <color name="skin_forest_on_accent">#04120C</color>
+    <color name="skin_forest_glow">#663DDC97</color>
+
+    <!-- ===================================================================
+         主题方案 9：奶油（Cream）—— 浅色暖调
+         #FBF7F0 奶油白底 + #C9855A 焦糖，白卡片、米色描边
+         =================================================================== -->
+    <color name="skin_cream_page_top">#FFFBF5</color>
+    <color name="skin_cream_page">#FAF6EF</color>
+    <color name="skin_cream_card">#FFFFFF</color>
+    <color name="skin_cream_border">#EDE3D3</color>
+    <color name="skin_cream_text">#2A241C</color>
+    <color name="skin_cream_text_2">#7C7264</color>
+    <color name="skin_cream_accent">#C9855A</color>
+    <color name="skin_cream_accent_soft">#26C9855A</color>
+    <color name="skin_cream_on_accent">#FFFFFF</color>
+    <color name="skin_cream_glow">#33C9855A</color>
 
 </resources>
