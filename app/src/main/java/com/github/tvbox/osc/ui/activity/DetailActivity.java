@@ -1141,6 +1141,61 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
     }
 
     /**
+     * 自绘悬浮窗播放器（TYPE_APPLICATION_OVERLAY）
+     */
+    public void enterFloatWindow() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !android.provider.Settings.canDrawOverlays(this)) {
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("悬浮窗权限")
+                    .setMessage("需要「显示在其他应用上层」权限才能使用悬浮窗播放，是否去设置开启？")
+                    .setPositiveButton("去设置", (d, w) -> {
+                        Intent i = new Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                android.net.Uri.parse("package:" + getPackageName()));
+                        startActivity(i);
+                    })
+                    .setNegativeButton("取消", null)
+                    .show();
+            return;
+        }
+        String url = playFragment.getFinalUrl();
+        if (TextUtils.isEmpty(url)) {
+            ToastUtils.showShort("暂无可播放地址");
+            return;
+        }
+        // 原播放器当前进度（让悬浮窗从断点续播）
+        long progress = 0;
+        AbstractPlayer mp = playFragment.getPlayer().getMediaPlayer();
+        if (mp != null) progress = mp.getCurrentPosition();
+        // 暂停 Activity 里的播放器（避免两个播放器同时播）
+        playFragment.getPlayer().pause();
+
+        // 序列化 headers：用 PlayFragment 内部 playUrl 的 headers，暂时拿不到的话传 null
+        // 最简单的做法：直接传 null（大多数视频流不需要 headers）
+        String headersJson = "";
+        try {
+            java.lang.reflect.Field f = PlayFragment.class.getDeclaredField("mCurrentHeaders");
+            f.setAccessible(true);
+            Object h = f.get(playFragment);
+            if (h instanceof Map) headersJson = new com.google.gson.Gson().toJson(h);
+        } catch (Exception ignored) {}
+
+        Intent intent = new Intent(this, com.github.tvbox.osc.service.FloatPlayerService.class);
+        intent.setAction(com.github.tvbox.osc.service.FloatPlayerService.ACTION_START);
+        intent.putExtra(com.github.tvbox.osc.service.FloatPlayerService.EXTRA_URL, url);
+        intent.putExtra(com.github.tvbox.osc.service.FloatPlayerService.EXTRA_HEADERS, headersJson);
+        intent.putExtra(com.github.tvbox.osc.service.FloatPlayerService.EXTRA_POSITION, progress);
+        intent.putExtra(com.github.tvbox.osc.service.FloatPlayerService.EXTRA_TITLE, vodInfo == null ? "悬浮播放" : vodInfo.name);
+        // Activity 在前台，startService 在 Android 8+ 也能正常启动
+        startService(intent);
+
+        // Activity 退回后台（让悬浮窗露出来）
+        Intent home = new Intent(Intent.ACTION_MAIN);
+        home.addCategory(Intent.CATEGORY_HOME);
+        home.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(home);
+    }
+
+    /**
      * 画中画模式
      */
     public void enterPip() {

@@ -399,6 +399,11 @@ public class PlayFragment extends BaseLazyFragment {
             }
 
             @Override
+            public void floatWindow() {
+                ((DetailActivity) mActivity).enterFloatWindow();
+            }
+
+            @Override
             public void showParseRoot(boolean show, ParseAdapter adapter) {
                 DetailActivity activity = (DetailActivity)mActivity;
                 activity.showParseRoot(show,adapter);

@@ -371,6 +371,14 @@ public class VodController extends BaseController {
                 hideBottom();
             }
         });
+        View floatWin = findViewById(R.id.float_win);
+        floatWin.setVisibility(VISIBLE);
+        floatWin.setOnClickListener(view -> {
+            if (isInPlaybackState()) {
+                listener.floatWindow();
+                hideBottom();
+            }
+        });
         mPlayerScaleBtn.setOnClickListener(view -> {
             myHandle.removeCallbacks(myRunnable);
             myHandle.postDelayed(myRunnable, dismissTimeOperationBar);
@@ -791,6 +799,9 @@ public class VodController extends BaseController {
         void showSetting();
 
         void pip();
+
+        /** 自绘悬浮窗播放器（TYPE_APPLICATION_OVERLAY）*/
+        void floatWindow();
 
         void showParseRoot(boolean show,ParseAdapter adapter);
     }
