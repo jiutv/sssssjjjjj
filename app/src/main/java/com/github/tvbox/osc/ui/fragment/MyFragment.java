@@ -89,8 +89,8 @@ public class MyFragment extends BaseVbFragment<FragmentMyBinding> {
                         ? RoomDataManger.getAllVodRecord(Integer.MAX_VALUE).size() : 0;
             } catch (Throwable ignored) {}
             try {
-                sources = ApiConfig.get().getSources() != null
-                        ? ApiConfig.get().getSources().size() : 0;
+                sources = ApiConfig.get().getSourceBeanList() != null
+                        ? ApiConfig.get().getSourceBeanList().size() : 0;
             } catch (Throwable ignored) {}
             if (mActivity != null) {
                 mActivity.runOnUiThread(() -> {
