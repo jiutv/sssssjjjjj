@@ -375,6 +375,8 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
                         }
                     }
                     mBinding.tvTheme.text = themes[v]
+                    // 选中即生效：关闭弹窗，由 dismiss 回调立即应用新主题
+                    dialog.dismiss()
                 }
 
                 override fun getDisplay(value: Int?): String {
