@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 我的：品牌标题 + 统计卡 + 分组玻璃卡片入口 -->
+<!-- 我的：品牌标题 + 分组玻璃卡片入口 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -67,106 +67,10 @@
             android:paddingHorizontal="20dp"
             android:paddingBottom="20dp">
 
-            <!-- ===== 统计卡 ===== -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_glass_card"
-                android:gravity="center"
-                android:orientation="horizontal"
-                android:paddingVertical="18dp">
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/tvStatCollect"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="?attr/skin_text_primary"
-                        android:textSize="22sp"
-                        android:textStyle="bold"
-                        tools:text="0" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="收藏"
-                        android:textColor="?attr/skin_text_secondary"
-                        android:textSize="12sp" />
-                </LinearLayout>
-
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="28dp"
-                    android:background="?attr/skin_card_border" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/tvStatHistory"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="?attr/skin_text_primary"
-                        android:textSize="22sp"
-                        android:textStyle="bold"
-                        tools:text="0" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="历史"
-                        android:textColor="?attr/skin_text_secondary"
-                        android:textSize="12sp" />
-                </LinearLayout>
-
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="28dp"
-                    android:background="?attr/skin_card_border" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/tvStatSources"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="?attr/skin_text_primary"
-                        android:textSize="22sp"
-                        android:textStyle="bold"
-                        tools:text="0" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="订阅源"
-                        android:textColor="?attr/skin_text_secondary"
-                        android:textSize="12sp" />
-                </LinearLayout>
-            </LinearLayout>
-
             <!-- ===== 内容入口 ===== -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
                 android:background="@drawable/bg_glass_card"
                 android:orientation="vertical"
                 android:paddingVertical="6dp">

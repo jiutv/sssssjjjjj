@@ -8,10 +8,8 @@ import com.blankj.utilcode.util.AppUtils;
 import com.blankj.utilcode.util.ClipboardUtils;
 import com.blankj.utilcode.util.ToastUtils;
 import com.github.tvbox.osc.R;
-import com.github.tvbox.osc.api.ApiConfig;
 import com.github.tvbox.osc.base.BaseLazyFragment;
 import com.github.tvbox.osc.base.BaseVbFragment;
-import com.github.tvbox.osc.cache.RoomDataManger;
 import com.github.tvbox.osc.databinding.FragmentMyBinding;
 
 import com.github.tvbox.osc.ui.activity.DetailActivity;
@@ -72,35 +70,6 @@ public class MyFragment extends BaseVbFragment<FragmentMyBinding> {
                     .asCustom(new AboutDialog(mActivity))
                     .show();
         });
-
-        loadStats();
-    }
-
-    /** 后台读取收藏 / 历史 / 订阅源数量，回填统计卡 */
-    private void loadStats() {
-        new Thread(() -> {
-            final int[] result = new int[3]; // [collect, history, sources]
-            try {
-                List<?> v = RoomDataManger.getAllVodCollect();
-                result[0] = v != null ? v.size() : 0;
-            } catch (Throwable ignored) {}
-            try {
-                List<?> v = RoomDataManger.getAllVodRecord(Integer.MAX_VALUE);
-                result[1] = v != null ? v.size() : 0;
-            } catch (Throwable ignored) {}
-            try {
-                List<?> v = ApiConfig.get().getSourceBeanList();
-                result[2] = v != null ? v.size() : 0;
-            } catch (Throwable ignored) {}
-            if (mActivity != null) {
-                mActivity.runOnUiThread(() -> {
-                    if (!isAdded()) return;
-                    mBinding.tvStatCollect.setText(String.valueOf(result[0]));
-                    mBinding.tvStatHistory.setText(String.valueOf(result[1]));
-                    mBinding.tvStatSources.setText(String.valueOf(result[2]));
-                });
-            }
-        }).start();
     }
 
     private void showPermissionTipPopup(){
