@@ -58,6 +58,7 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
      */
     val tabIndex: Int
         get() = mBinding.tabLayout.currentItemIndex
+            .coerceIn(0, (fragments.size - 1).coerceAtLeast(0))
 
     /**
      * 提供给主页返回操作
@@ -298,6 +299,11 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
                 }
             //tab和vp绑定
             install(mBinding.mViewPager, mBinding.tabLayout, true)
+            // Activity 重建后 DslTabLayout 可能没有选中项（currentItemIndex = -1），
+            // 会导致返回键按索引取片段时越界，这里按当前页兜底同步一次
+            if (mBinding.tabLayout.currentItemIndex != mBinding.mViewPager.currentItem) {
+                mBinding.tabLayout.setCurrentItem(mBinding.mViewPager.currentItem, false, false)
+            }
             // 沉浸式首页：主页页签由 Hero 下方的「全部分类」chips 承担，顶部 tab 只在其它分类页显示
             mBinding.mViewPager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
                 override fun onPageSelected(position: Int) {
