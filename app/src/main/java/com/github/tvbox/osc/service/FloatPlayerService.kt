@@ -72,7 +72,7 @@ class FloatPlayerService : Service() {
     override fun onCreate() {
         super.onCreate()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-        floatRoot = LayoutInflater.from(this).inflate(R.layout.float_player, null, false)
+        floatRoot = LayoutInflater.from(this).inflate(R.layout.float_player, null, false) as FrameLayout
         floatSurface = floatRoot.findViewById(R.id.float_surface)
     }
 
@@ -163,10 +163,8 @@ class FloatPlayerService : Service() {
                             runCatching { windowManager.updateViewLayout(floatRoot, lp) }
                         }
                     } else if (event.pointerCount == 2) {
-                        // 捏合缩放
-                        val p0 = MotionEvent.obtain(event, 0, event.getPointerId(0))
-                        val p1 = MotionEvent.obtain(event, 0, event.getPointerId(1))
-                        val span = distance(p0.rawX, p0.rawY, p1.rawX, p1.rawY)
+                        // 捏合缩放：直接用当前事件的两指 raw 坐标算距离
+                        val span = distance(event.getRawX(0), event.getRawY(0), event.getRawX(1), event.getRawY(1))
                         if (lastSpan > 0) {
                             val scale = span / lastSpan
                             val newW = (windowStartW * scale).toInt().coerceIn(180, 720)
@@ -184,8 +182,6 @@ class FloatPlayerService : Service() {
                             windowStartH = currentHeight
                         }
                         lastSpan = span
-                        p0.recycle()
-                        p1.recycle()
                     }
                 }
                 MotionEvent.ACTION_POINTER_DOWN -> {
@@ -209,9 +205,7 @@ class FloatPlayerService : Service() {
             when (event.actionMasked) {
                 MotionEvent.ACTION_MOVE -> {
                     if (event.pointerCount == 2) {
-                        val p0 = MotionEvent.obtain(event, 0, event.getPointerId(0))
-                        val p1 = MotionEvent.obtain(event, 0, event.getPointerId(1))
-                        val span = distance(p0.rawX, p0.rawY, p1.rawX, p1.rawY)
+                        val span = distance(event.getRawX(0), event.getRawY(0), event.getRawX(1), event.getRawY(1))
                         if (lastSpan > 0) {
                             val scale = span / lastSpan
                             val newW = (windowStartW * scale).toInt().coerceIn(180, 720)
@@ -225,8 +219,6 @@ class FloatPlayerService : Service() {
                             currentWidth = newW
                             currentHeight = newH
                         }
-                        p0.recycle()
-                        p1.recycle()
                     }
                 }
                 MotionEvent.ACTION_POINTER_DOWN -> {
