@@ -11,11 +11,11 @@ import com.github.tvbox.osc.R;
 import com.github.tvbox.osc.base.BaseLazyFragment;
 import com.github.tvbox.osc.base.BaseVbFragment;
 import com.github.tvbox.osc.databinding.FragmentMyBinding;
+import com.github.tvbox.osc.databinding.ViewSettingsContentBinding;
 
 import com.github.tvbox.osc.ui.activity.DetailActivity;
 import com.github.tvbox.osc.ui.activity.LocalPlayActivity;
 import com.github.tvbox.osc.ui.activity.MovieFoldersActivity;
-import com.github.tvbox.osc.ui.activity.SettingActivity;
 import com.github.tvbox.osc.ui.activity.SubscriptionActivity;
 import com.github.tvbox.osc.ui.dialog.AboutDialog;
 import com.github.tvbox.osc.util.FastClickCheckUtil;
@@ -40,6 +40,7 @@ public class MyFragment extends BaseVbFragment<FragmentMyBinding> {
     @Override
     protected void init() {
         mBinding.tvVersion.setText("v"+ AppUtils.getAppVersionName());
+        mBinding.tvAboutVersion.setText("v"+ AppUtils.getAppVersionName());
 
         mBinding.addrPlay.setOnClickListener(v ->{
             new XPopup.Builder(getContext())
@@ -53,7 +54,8 @@ public class MyFragment extends BaseVbFragment<FragmentMyBinding> {
                         }
                     }, null, R.layout.dialog_input).show();
         });
-        mBinding.tvSetting.setOnClickListener(v -> jumpActivity(SettingActivity.class));
+        // 原设置页的全部设置项直接内嵌在我的页
+        new SettingsPanel(mActivity, ViewSettingsContentBinding.bind(mBinding.getRoot().findViewById(R.id.settingsContent))).init();
 
         mBinding.tvLocal.setOnClickListener(v -> {
             if (!XXPermissions.isGranted(mContext, Permission.MANAGE_EXTERNAL_STORAGE)) {
