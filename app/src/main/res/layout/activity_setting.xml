@@ -1,58 +1,70 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 设置：分区标题 + 玻璃卡片分组 + 行内分隔线 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="?attr/skin_page_bg">
+    android:background="?attr/skin_page_bg"
+    android:orientation="vertical">
 
     <com.hjq.bar.TitleBar
         android:id="@+id/title_bar"
         android:layout_width="match_parent"
         android:layout_height="45dp"
+        app:lineVisible="false"
         app:title="设置"
-        app:titleStyle="bold"
         app:titleColor="?attr/skin_text_primary"
-        app:lineVisible="false"/>
+        app:titleStyle="bold" />
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:scrollbars="none"
-        >
+        android:clipToPadding="false"
+        android:scrollbars="none">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:layout_marginHorizontal="20dp"
-            android:paddingVertical="10dp">
+            android:paddingHorizontal="20dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="24dp">
+
+            <!-- ===== 外观与首页 ===== -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="8dp"
+                android:letterSpacing="0.05"
+                android:text="外观与首页"
+                android:textColor="?attr/skin_text_secondary"
+                android:textSize="12sp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="@drawable/bg_glass_card"
                 android:orientation="vertical"
-                android:paddingVertical="20dp"
-                android:background="?attr/skin_card_bg">
+                android:paddingVertical="6dp">
 
                 <LinearLayout
                     android:id="@+id/llTheme"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_60"
-                    android:layout_weight="1"
+                    android:layout_height="56dp"
+                    android:background="?android:selectableItemBackground"
                     android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="40dp"
-                    android:foreground="?android:selectableItemBackground">
+                    android:paddingHorizontal="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="主题颜色"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp" />
+                        android:textSize="15sp" />
 
                     <Space
                         android:layout_width="0dp"
@@ -62,35 +74,43 @@
                     <TextView
                         android:id="@+id/tvTheme"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="6dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="?attr/skin_text_secondary"
+                        android:textSize="13sp" />
 
                     <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_gravity="center"
-                        android:alpha="0.75"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:alpha="0.35"
                         android:src="@drawable/icon_pre"
                         app:tint="?attr/skin_text_primary" />
                 </LinearLayout>
 
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/skin_card_border" />
+
                 <LinearLayout
                     android:id="@+id/llHomeRec"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_60"
-                    android:layout_weight="1"
+                    android:layout_height="56dp"
+                    android:background="?android:selectableItemBackground"
                     android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="40dp"
-                    android:foreground="?android:selectableItemBackground"
-                    >
+                    android:paddingHorizontal="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="主页内容"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp"/>
+                        android:textSize="15sp" />
 
                     <Space
                         android:layout_width="0dp"
@@ -101,28 +121,29 @@
                         android:id="@+id/tvHomeRec"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-
-                        />
+                        android:layout_marginEnd="6dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="?attr/skin_text_secondary"
+                        android:textSize="13sp" />
 
                     <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_gravity="center"
-                        android:alpha="0.75"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:alpha="0.35"
                         android:src="@drawable/icon_pre"
-                        app:tint="?attr/skin_text_primary"/>
+                        app:tint="?attr/skin_text_primary" />
                 </LinearLayout>
-
 
                 <LinearLayout
                     android:id="@+id/showFastSearch"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_60"
-                    android:layout_marginBottom="@dimen/dp_10"
+                    android:layout_height="56dp"
+                    android:background="?android:selectableItemBackground"
                     android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="20dp"
+                    android:paddingHorizontal="16dp"
                     android:visibility="gone">
 
                     <TextView
@@ -130,8 +151,7 @@
                         android:layout_height="wrap_content"
                         android:text="聚合模式"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp"
-                        />
+                        android:textSize="15sp" />
 
                     <Space
                         android:layout_width="0dp"
@@ -142,36 +162,40 @@
                         android:id="@+id/showFastSearchText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-
-                        />
+                        android:layout_marginEnd="6dp"
+                        android:textColor="?attr/skin_text_secondary"
+                        android:textSize="13sp" />
 
                     <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_gravity="center"
-                        android:alpha="0.75"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:alpha="0.35"
                         android:src="@drawable/icon_pre"
-                        app:tint="?attr/skin_text_primary"/>
+                        app:tint="?attr/skin_text_primary" />
                 </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/skin_card_border" />
 
                 <LinearLayout
                     android:id="@+id/llPrivateBrowsing"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_60"
-                    android:layout_weight="1"
+                    android:layout_height="56dp"
+                    android:background="?android:selectableItemBackground"
                     android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="40dp"
-                    android:foreground="?android:selectableItemBackground">
+                    android:paddingHorizontal="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="无痕浏览"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp"
-                        />
+                        android:textSize="15sp" />
 
                     <Space
                         android:layout_width="0dp"
@@ -182,35 +206,45 @@
                         android:id="@+id/switchPrivateBrowsing"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:clickable="false"/>
+                        android:clickable="false" />
                 </LinearLayout>
             </LinearLayout>
+
+            <!-- ===== 播放 ===== -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="8dp"
+                android:letterSpacing="0.05"
+                android:text="播放"
+                android:textColor="?attr/skin_text_secondary"
+                android:textSize="12sp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="@drawable/bg_glass_card"
                 android:orientation="vertical"
-                android:paddingVertical="20dp"
-                android:layout_marginTop="14dp"
-                android:background="?attr/skin_card_bg">
+                android:paddingVertical="6dp">
+
                 <LinearLayout
                     android:id="@+id/llPlay"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_60"
-                    android:layout_weight="1"
+                    android:layout_height="56dp"
+                    android:background="?android:selectableItemBackground"
                     android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="40dp"
-                    android:foreground="?android:selectableItemBackground">
+                    android:paddingHorizontal="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="播放器"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp"
-                        />
+                        android:textSize="15sp" />
 
                     <Space
                         android:layout_width="0dp"
@@ -221,33 +255,42 @@
                         android:id="@+id/tvPlay"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        />
+                        android:layout_marginEnd="6dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="?attr/skin_text_secondary"
+                        android:textSize="13sp" />
 
                     <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_gravity="center"
-                        android:alpha="0.75"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:alpha="0.35"
                         android:src="@drawable/icon_pre"
-                        app:tint="?attr/skin_text_primary"/>
+                        app:tint="?attr/skin_text_primary" />
                 </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/skin_card_border" />
 
                 <LinearLayout
                     android:id="@+id/llVideoPurify"
                     android:layout_width="match_parent"
-                    android:layout_height="60dp"
+                    android:layout_height="56dp"
+                    android:background="?android:selectableItemBackground"
                     android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="40dp"
-                    android:foreground="?android:selectableItemBackground">
+                    android:paddingHorizontal="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="广告过滤"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp"/>
+                        android:textSize="15sp" />
 
                     <Space
                         android:layout_width="0dp"
@@ -258,27 +301,31 @@
                         android:id="@+id/switchVideoPurify"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:clickable="false"/>
+                        android:clickable="false" />
                 </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/skin_card_border" />
 
                 <LinearLayout
                     android:id="@+id/llPressSpeed"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_60"
-                    android:layout_weight="1"
+                    android:layout_height="56dp"
+                    android:background="?android:selectableItemBackground"
                     android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="40dp"
-                    android:foreground="?android:selectableItemBackground">
+                    android:paddingHorizontal="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="长按倍速"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp"
-                        />
+                        android:textSize="15sp" />
 
                     <Space
                         android:layout_width="0dp"
@@ -289,36 +336,40 @@
                         android:id="@+id/tvSpeed"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-
-                        />
+                        android:layout_marginEnd="6dp"
+                        android:textColor="?attr/skin_text_secondary"
+                        android:textSize="13sp" />
 
                     <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_gravity="center"
-                        android:alpha="0.75"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:alpha="0.35"
                         android:src="@drawable/icon_pre"
-                        app:tint="?attr/skin_text_primary"/>
+                        app:tint="?attr/skin_text_primary" />
                 </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/skin_card_border" />
 
                 <LinearLayout
                     android:id="@+id/llDanmuSetting"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_60"
-                    android:layout_weight="1"
+                    android:layout_height="56dp"
+                    android:background="?android:selectableItemBackground"
                     android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="40dp"
-                    android:foreground="?android:selectableItemBackground">
+                    android:paddingHorizontal="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="弹幕设置"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp"
-                        />
+                        android:textSize="15sp" />
 
                     <Space
                         android:layout_width="0dp"
@@ -328,35 +379,41 @@
                     <TextView
                         android:id="@+id/tvDanmuState"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="6dp"
+                        android:textColor="?attr/skin_text_secondary"
+                        android:textSize="13sp" />
 
                     <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_gravity="center"
-                        android:alpha="0.75"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:alpha="0.35"
                         android:src="@drawable/icon_pre"
-                        app:tint="?attr/skin_text_primary"/>
+                        app:tint="?attr/skin_text_primary" />
                 </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/skin_card_border" />
 
                 <LinearLayout
                     android:id="@+id/llBackgroundPlay"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_60"
-                    android:layout_weight="1"
+                    android:layout_height="56dp"
+                    android:background="?android:selectableItemBackground"
                     android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="40dp"
-                    android:foreground="?android:selectableItemBackground">
+                    android:paddingHorizontal="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="后台播放"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp"
-                        />
+                        android:textSize="15sp" />
 
                     <Space
                         android:layout_width="0dp"
@@ -367,34 +424,40 @@
                         android:id="@+id/tvBackgroundPlayType"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        />
+                        android:layout_marginEnd="6dp"
+                        android:textColor="?attr/skin_text_secondary"
+                        android:textSize="13sp" />
 
                     <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_gravity="center"
-                        android:alpha="0.75"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:alpha="0.35"
                         android:src="@drawable/icon_pre"
-                        app:tint="?attr/skin_text_primary"/>
+                        app:tint="?attr/skin_text_primary" />
                 </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/skin_card_border" />
 
                 <LinearLayout
                     android:id="@+id/llMediaCodec"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_60"
+                    android:layout_height="56dp"
+                    android:background="?android:selectableItemBackground"
                     android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="40dp"
-                    android:foreground="?android:selectableItemBackground">
+                    android:paddingHorizontal="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="IJK解码方式"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp"
-                        />
+                        android:textSize="15sp" />
 
                     <Space
                         android:layout_width="0dp"
@@ -405,34 +468,41 @@
                         android:id="@+id/tvMediaCodec"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        />
+                        android:layout_marginEnd="6dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="?attr/skin_text_secondary"
+                        android:textSize="13sp" />
 
                     <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_gravity="center"
-                        android:alpha="0.75"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:alpha="0.35"
                         android:src="@drawable/icon_pre"
-                        app:tint="?attr/skin_text_primary"/>
+                        app:tint="?attr/skin_text_primary" />
                 </LinearLayout>
 
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/skin_card_border" />
 
                 <LinearLayout
                     android:id="@+id/llRender"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_60"
+                    android:layout_height="56dp"
+                    android:background="?android:selectableItemBackground"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="40dp"
-                    android:foreground="?android:selectableItemBackground">
+                    android:paddingHorizontal="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="渲染方式"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp"
-                        />
+                        android:textSize="15sp" />
 
                     <Space
                         android:layout_width="0dp"
@@ -443,34 +513,41 @@
                         android:id="@+id/tvRenderType"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-
-                        />
+                        android:layout_marginEnd="6dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="?attr/skin_text_secondary"
+                        android:textSize="13sp" />
 
                     <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_gravity="center"
-                        android:alpha="0.75"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:alpha="0.35"
                         android:src="@drawable/icon_pre"
-                        app:tint="?attr/skin_text_primary"/>
+                        app:tint="?attr/skin_text_primary" />
                 </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/skin_card_border" />
 
                 <LinearLayout
                     android:id="@+id/llScale"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_60"
+                    android:layout_height="56dp"
+                    android:background="?android:selectableItemBackground"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="40dp"
-                    android:foreground="?android:selectableItemBackground">
+                    android:paddingHorizontal="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="画面缩放"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp"
-                        />
+                        android:textSize="15sp" />
 
                     <Space
                         android:layout_width="0dp"
@@ -481,34 +558,42 @@
                         android:id="@+id/tvScaleType"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-
-                        />
+                        android:layout_marginEnd="6dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="?attr/skin_text_secondary"
+                        android:textSize="13sp" />
 
                     <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_gravity="center"
-                        android:alpha="0.75"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:alpha="0.35"
                         android:src="@drawable/icon_pre"
-                        app:tint="?attr/skin_text_primary"/>
+                        app:tint="?attr/skin_text_primary" />
                 </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/skin_card_border" />
 
                 <LinearLayout
                     android:id="@+id/llIjkCachePlay"
                     android:layout_width="match_parent"
-                    android:layout_height="60dp"
+                    android:layout_height="56dp"
+                    android:background="?android:selectableItemBackground"
                     android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="40dp"
-                    android:foreground="?android:selectableItemBackground">
+                    android:paddingHorizontal="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="IJK缓存"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp"/>
+                        android:textSize="15sp" />
 
                     <Space
                         android:layout_width="0dp"
@@ -519,35 +604,45 @@
                         android:id="@+id/switchIjkCachePlay"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:clickable="false"/>
+                        android:clickable="false" />
                 </LinearLayout>
-
             </LinearLayout>
+
+            <!-- ===== 数据与缓存 ===== -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="8dp"
+                android:letterSpacing="0.05"
+                android:text="数据与缓存"
+                android:textColor="?attr/skin_text_secondary"
+                android:textSize="12sp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="@drawable/bg_glass_card"
                 android:orientation="vertical"
-                android:paddingVertical="20dp"
-                android:layout_marginTop="14dp"
-                android:background="?attr/skin_card_bg">
+                android:paddingVertical="6dp">
 
                 <LinearLayout
                     android:id="@+id/llBackup"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_60"
+                    android:layout_height="56dp"
+                    android:background="?android:selectableItemBackground"
                     android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="40dp"
-                    android:foreground="?android:selectableItemBackground">
+                    android:paddingHorizontal="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="数据备份还原"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp"/>
+                        android:textSize="15sp" />
 
                     <Space
                         android:layout_width="0dp"
@@ -555,31 +650,35 @@
                         android:layout_weight="1" />
 
                     <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_gravity="center"
-                        android:alpha="0.75"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:alpha="0.35"
                         android:src="@drawable/icon_pre"
-                        app:tint="?attr/skin_text_primary"/>
+                        app:tint="?attr/skin_text_primary" />
                 </LinearLayout>
 
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/skin_card_border" />
 
                 <LinearLayout
                     android:id="@+id/llDns"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_60"
+                    android:layout_height="56dp"
+                    android:background="?android:selectableItemBackground"
                     android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="40dp"
-                    android:foreground="?android:selectableItemBackground">
+                    android:paddingHorizontal="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="安全DNS"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp"/>
+                        android:textSize="15sp" />
 
                     <Space
                         android:layout_width="0dp"
@@ -590,34 +689,42 @@
                         android:id="@+id/tvDns"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        />
+                        android:layout_marginEnd="6dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="?attr/skin_text_secondary"
+                        android:textSize="13sp" />
 
                     <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_gravity="center"
-                        android:alpha="0.75"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:alpha="0.35"
                         android:src="@drawable/icon_pre"
-                        app:tint="?attr/skin_text_primary"/>
+                        app:tint="?attr/skin_text_primary" />
                 </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/skin_card_border" />
 
                 <LinearLayout
                     android:id="@+id/llClearCache"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_60"
+                    android:layout_height="56dp"
+                    android:background="?android:selectableItemBackground"
                     android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="40dp"
-                    android:foreground="?android:selectableItemBackground">
+                    android:paddingHorizontal="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="清空缓存"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp"
-                        />
+                        android:textSize="15sp" />
 
                     <Space
                         android:layout_width="0dp"
@@ -625,14 +732,12 @@
                         android:layout_weight="1" />
 
                     <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_gravity="center"
-                        android:alpha="0.75"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:alpha="0.35"
                         android:src="@drawable/icon_pre"
-                        app:tint="?attr/skin_text_primary"/>
+                        app:tint="?attr/skin_text_primary" />
                 </LinearLayout>
-
             </LinearLayout>
 
         </LinearLayout>
