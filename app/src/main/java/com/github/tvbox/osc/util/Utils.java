@@ -126,11 +126,33 @@ public class Utils {
 
     /**
      * 当前主题方案：0 默认（跟随系统明暗），
-     * 1 深色磨砂满天星 / 2 黑金凤雅 / 3 青黑科技 / 4 蓝紫沉浸 / 5 暖橙怀旧
-     * 6 液态玻璃（默认）
+     * 1 黑金凤雅 / 2 青黑科技 / 3 蓝紫沉浸 / 4 暖橙怀旧 / 5 液态玻璃（默认）/ 6 樱花粉
      */
     public static int getSkinTag() {
-        return Hawk.get(HawkConfig.SKIN_TAG, 6);
+        return Hawk.get(HawkConfig.SKIN_TAG, 5);
+    }
+
+    /**
+     * 旧版皮肤编号迁移：去掉「深色磨砂满天星」后重新编号，仅执行一次。
+     * 旧 1(满天星)→5(液态玻璃) / 2→1 / 3→2 / 4→3 / 5→4 / 6→5
+     */
+    public static void migrateSkinTag() {
+        if (Hawk.get("skin_tag_renumber_v1", false)) return;
+        if (Hawk.contains(HawkConfig.SKIN_TAG)) {
+            int old = Hawk.get(HawkConfig.SKIN_TAG, 0);
+            int mapped;
+            switch (old) {
+                case 1: mapped = 5; break;
+                case 2: mapped = 1; break;
+                case 3: mapped = 2; break;
+                case 4: mapped = 3; break;
+                case 5: mapped = 4; break;
+                case 6: mapped = 5; break;
+                default: mapped = old;
+            }
+            Hawk.put(HawkConfig.SKIN_TAG, mapped);
+        }
+        Hawk.put("skin_tag_renumber_v1", true);
     }
 
     /**
@@ -139,17 +161,17 @@ public class Utils {
     public static int getSkinThemeRes() {
         switch (getSkinTag()) {
             case 1:
-                return R.style.SkinStarry;
-            case 2:
                 return R.style.SkinGold;
-            case 3:
+            case 2:
                 return R.style.SkinTech;
-            case 4:
+            case 3:
                 return R.style.SkinAurora;
-            case 5:
+            case 4:
                 return R.style.SkinRetro;
-            case 6:
+            case 5:
                 return R.style.SkinLiquidGlass;
+            case 6:
+                return R.style.SkinPink;
             default:
                 return 0;
         }

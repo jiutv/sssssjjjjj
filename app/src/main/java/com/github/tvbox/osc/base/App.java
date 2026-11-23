@@ -72,6 +72,7 @@ public class App extends MultiDexApplication {
         QuickJSLoader.init();
         FileUtils.cleanPlayerCache();
         initCrashConfig();
+        Utils.migrateSkinTag();
         Utils.initTheme();
     }
 

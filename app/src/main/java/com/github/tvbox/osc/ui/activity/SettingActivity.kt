@@ -350,7 +350,7 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
         val oldTheme = currentThemeIndexOf()
         val themes = arrayOf(
             "跟随系统", "浅色", "深色",
-            "深色磨砂满天星", "黑金凤雅", "青黑科技", "蓝紫沉浸", "暖橙怀旧", "液态玻璃"
+            "黑金凤雅", "青黑科技", "蓝紫沉浸", "暖橙怀旧", "液态玻璃", "樱花粉"
         )
         mBinding.tvTheme.text = themes[oldTheme]
         mBinding.llTheme.setOnClickListener(View.OnClickListener { view: View? ->
@@ -438,7 +438,7 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
 
     /**
      * 主题颜色当前选中项的索引：
-     * 0跟随系统 1浅色 2深色 3深色磨砂满天星 4黑金凤雅 5青黑科技 6蓝紫沉浸 7暖橙怀旧 8液态玻璃
+     * 0跟随系统 1浅色 2深色 3黑金凤雅 4青黑科技 5蓝紫沉浸 6暖橙怀旧 7液态玻璃 8樱花粉
      */
     private fun currentThemeIndexOf(): Int {
         return when (Utils.getSkinTag()) {

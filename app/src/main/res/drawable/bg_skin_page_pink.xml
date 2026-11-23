@@ -1,19 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 方案1 深色磨砂满天星：深黑渐变 + 顶部柔光 -->
-<!-- 去掉 <bitmap tileMode> 以兼容部分机型（三星 Android 13 等）InflateException -->
+<!-- 樱花粉主题页面背景：深玫瑰黑微渐变 + 顶部粉色柔光 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item>
         <shape android:shape="rectangle">
             <gradient
                 android:angle="270"
-                android:startColor="#0B0E16"
-                android:centerColor="#080A10"
-                android:endColor="#050609" />
+                android:endColor="@color/skin_pink_page"
+                android:startColor="@color/skin_pink_page_top"
+                android:type="linear" />
         </shape>
     </item>
 
-    <!-- 顶部柔光 -->
     <item>
         <shape android:shape="rectangle">
             <gradient
@@ -21,8 +19,8 @@
                 android:centerX="0.5"
                 android:centerY="0.0"
                 android:gradientRadius="520dp"
-                android:startColor="#1FFFFFFF"
-                android:endColor="#00FFFFFF" />
+                android:startColor="#2EFF7AA8"
+                android:endColor="#00FF7AA8" />
         </shape>
     </item>
 

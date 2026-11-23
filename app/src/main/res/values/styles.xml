@@ -24,29 +24,7 @@
     </style>
 
     <!-- ===================================================================
-         主题方案 1：深色磨砂满天星
-         主色 #06070B 深黑 / #FFFFFF 白
-         毛玻璃半透明卡片，大圆角，选中项白色柔光
-         =================================================================== -->
-    <style name="SkinStarry" parent="AppTheme">
-        <item name="android:windowBackground">@color/skin_starry_page</item>
-        <item name="skin_page">@color/skin_starry_page</item>
-        <item name="skin_page_bg">@drawable/bg_skin_page_starry</item>
-        <item name="skin_card">@color/skin_starry_card</item>
-        <item name="skin_card_bg">@drawable/bg_skin_card_starry</item>
-        <item name="skin_card_border">@color/skin_starry_border</item>
-        <item name="skin_text_primary">@color/skin_starry_text</item>
-        <item name="skin_text_secondary">@color/skin_starry_text_2</item>
-        <item name="skin_accent">@color/skin_starry_accent</item>
-        <item name="skin_accent_soft">@color/skin_starry_accent_soft</item>
-        <item name="skin_on_accent">@color/skin_starry_on_accent</item>
-        <item name="skin_glow">@color/skin_starry_glow</item>
-        <item name="colorAccent">@color/skin_starry_accent</item>
-        <item name="colorPrimary">@color/skin_starry_accent</item>
-    </style>
-
-    <!-- ===================================================================
-         主题方案 2：黑金凤雅
+         主题方案 1：黑金凤雅
          主色 #080604 深黑 / #D9B36A 香槟金
          金色描边与按钮，实色卡片，10dp 克制圆角
          =================================================================== -->
@@ -68,7 +46,7 @@
     </style>
 
     <!-- ===================================================================
-         主题方案 3：青黑科技
+         主题方案 2：青黑科技
          主色 #04100E 深黑 / #2BE3C8 孔雀绿
          青色渐变点缀，14dp 圆角，选中青色柔光
          =================================================================== -->
@@ -90,7 +68,7 @@
     </style>
 
     <!-- ===================================================================
-         主题方案 4：蓝紫沉浸
+         主题方案 3：蓝紫沉浸
          主色 #0A0A1C 深靛蓝 / #8C7BFF 蓝紫
          渐变背景 + 毛玻璃卡片，18dp 圆角，霓虹描边与光晕
          =================================================================== -->
@@ -112,7 +90,7 @@
     </style>
 
     <!-- ===================================================================
-         主题方案 5：暖橙怀旧
+         主题方案 4：暖橙怀旧
          主色 #14100B 深棕黑 / #FF8A4C 暖橙
          胶片颗粒 + 复古 12dp 圆角，橙红按钮与暖橙高亮
          =================================================================== -->
@@ -134,7 +112,7 @@
     </style>
 
     <!-- ===================================================================
-         主题方案 6：液态玻璃（Liquid Glass）
+         主题方案 5：液态玻璃（Liquid Glass）
          近黑底 + 半透明玻璃卡片 + 细白描边，白色为选中主色
          =================================================================== -->
     <style name="SkinLiquidGlass" parent="AppTheme">
@@ -152,6 +130,27 @@
         <item name="skin_glow">@color/skin_liquid_glow</item>
         <item name="colorAccent">@color/skin_liquid_accent</item>
         <item name="colorPrimary">@color/skin_liquid_accent</item>
+    </style>
+
+    <!-- ===================================================================
+         主题方案 6：樱花粉（Sakura）
+         深玫瑰黑底 + #FF7AA8 樱花粉，半透明玻璃卡片 + 粉色描边光晕
+         =================================================================== -->
+    <style name="SkinPink" parent="AppTheme">
+        <item name="android:windowBackground">@color/skin_pink_page</item>
+        <item name="skin_page">@color/skin_pink_page</item>
+        <item name="skin_page_bg">@drawable/bg_skin_page_pink</item>
+        <item name="skin_card">@color/skin_pink_card</item>
+        <item name="skin_card_bg">@drawable/bg_skin_card_liquid</item>
+        <item name="skin_card_border">@color/skin_pink_border</item>
+        <item name="skin_text_primary">@color/skin_pink_text</item>
+        <item name="skin_text_secondary">@color/skin_pink_text_2</item>
+        <item name="skin_accent">@color/skin_pink_accent</item>
+        <item name="skin_accent_soft">@color/skin_pink_accent_soft</item>
+        <item name="skin_on_accent">@color/skin_pink_on_accent</item>
+        <item name="skin_glow">@color/skin_pink_glow</item>
+        <item name="colorAccent">@color/skin_pink_accent</item>
+        <item name="colorPrimary">@color/skin_pink_accent</item>
     </style>
 
     <style name="SplashTheme" parent="AppTheme">

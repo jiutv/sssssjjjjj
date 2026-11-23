@@ -74,21 +74,7 @@
     <color name="skin_default_accent_soft">#FFF4DC</color>
 
     <!-- ===================================================================
-         主题方案 1：深色磨砂满天星（Starry）
-         深黑底 + 星光噪点 + 毛玻璃卡片，大圆角、白色柔光高亮
-         =================================================================== -->
-    <color name="skin_starry_page">#06070B</color>
-    <color name="skin_starry_card">#1AFFFFFF</color>
-    <color name="skin_starry_border">#33FFFFFF</color>
-    <color name="skin_starry_text">#F5F6FA</color>
-    <color name="skin_starry_text_2">#A9AEBC</color>
-    <color name="skin_starry_accent">#FFFFFF</color>
-    <color name="skin_starry_accent_soft">#2BFFFFFF</color>
-    <color name="skin_starry_on_accent">#0A0B0F</color>
-    <color name="skin_starry_glow">#66FFFFFF</color>
-
-    <!-- ===================================================================
-         主题方案 2：黑金凤雅（Gold）
+         主题方案 1：黑金凤雅（Gold）
          深黑底 + 香槟金，金色描边与按钮，实色卡片、克制高级
          =================================================================== -->
     <color name="skin_gold_page">#080604</color>
@@ -102,7 +88,7 @@
     <color name="skin_gold_glow">#66D9B36A</color>
 
     <!-- ===================================================================
-         主题方案 3：青黑科技（Tech）
+         主题方案 2：青黑科技（Tech）
          深黑底 + 暗青孔雀绿，青色渐变点缀，青色柔光选中
          =================================================================== -->
     <color name="skin_tech_page">#04100E</color>
@@ -116,7 +102,7 @@
     <color name="skin_tech_glow">#662BE3C8</color>
 
     <!-- ===================================================================
-         主题方案 4：蓝紫沉浸（Aurora）
+         主题方案 3：蓝紫沉浸（Aurora）
          深靛蓝 + 暗紫渐变，毛玻璃卡片，蓝紫霓虹描边与光晕
          =================================================================== -->
     <color name="skin_aurora_page">#0A0A1C</color>
@@ -130,7 +116,7 @@
     <color name="skin_aurora_glow">#668C7BFF</color>
 
     <!-- ===================================================================
-         主题方案 5：暖橙怀旧（Retro）
+         主题方案 4：暖橙怀旧（Retro）
          深棕黑底 + 暖橙，轻微胶片颗粒，复古圆角卡片
          =================================================================== -->
     <color name="skin_retro_page">#14100B</color>
@@ -144,21 +130,35 @@
     <color name="skin_retro_glow">#66FF8A4C</color>
 
     <!-- ===================================================================
-         主题方案 6：液态玻璃（Liquid Glass）
+         主题方案 5：液态玻璃（Liquid Glass）
          近黑底 #0A0A0C + 纯白主文字 + 次级灰 #A1A1AA
          半透明玻璃卡片、细白描边、大圆角，参考 01-liquid-glass
          =================================================================== -->
     <color name="skin_liquid_page_top">#0E0E12</color>
     <color name="skin_liquid_page">#0A0A0C</color>
     <color name="skin_liquid_card">#1CFFFFFF</color>
-    <color name="skin_liquid_card_strong">#26FFFFFF</color>
     <color name="skin_liquid_border">#26FFFFFF</color>
-    <color name="skin_liquid_border_strong">#3DFFFFFF</color>
     <color name="skin_liquid_text">#FFFFFF</color>
     <color name="skin_liquid_text_2">#A1A1AA</color>
     <color name="skin_liquid_accent">#FFFFFF</color>
     <color name="skin_liquid_accent_soft">#1FFFFFFF</color>
     <color name="skin_liquid_on_accent">#0A0A0C</color>
     <color name="skin_liquid_glow">#33FFFFFF</color>
+
+    <!-- ===================================================================
+         主题方案 6：樱花粉（Sakura）
+         深玫瑰黑底 #120A10 + #FF7AA8 樱花粉
+         半透明玻璃卡片、粉色细描边与光晕
+         =================================================================== -->
+    <color name="skin_pink_page_top">#1C0D15</color>
+    <color name="skin_pink_page">#120A10</color>
+    <color name="skin_pink_card">#1FFFFFFF</color>
+    <color name="skin_pink_border">#40FF8FB8</color>
+    <color name="skin_pink_text">#FFF3F7</color>
+    <color name="skin_pink_text_2">#C0A0AD</color>
+    <color name="skin_pink_accent">#FF7AA8</color>
+    <color name="skin_pink_accent_soft">#33FF7AA8</color>
+    <color name="skin_pink_on_accent">#1A0810</color>
+    <color name="skin_pink_glow">#66FF7AA8</color>
 
 </resources>
