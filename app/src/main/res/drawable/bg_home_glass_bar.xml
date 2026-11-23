@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    首页顶部站点/搜索用的玻璃胶囊（参考 AVBox，与底部导航同一套浅色磨砂玻璃）。
+    layer-list 的分层 alpha 不生效，透明度直接写进颜色。
+    只用于竖屏悬浮在 Hero 图上的顶部栏，深色文字的对比度由这里保证。
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:centerColor="#4DFFFFFF"
+                android:endColor="#3DFFFFFF"
+                android:startColor="#66FFFFFF"
+                android:type="linear" />
+            <corners android:radius="19dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+            <corners android:radius="19dp" />
+            <stroke
+                android:width="1dp"
+                android:color="#4DFFFFFF" />
+        </shape>
+    </item>
+</layer-list>
