@@ -1161,7 +1161,14 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             int vWidth = playFragment.getPlayer().getVideoSize()[0];
             int vHeight = playFragment.getPlayer().getVideoSize()[1];
             Rational ratio;
-            if (vWidth != 0) {
+            int pipRatioSetting = Hawk.get(HawkConfig.PIP_RATIO, 0);
+            if (pipRatioSetting == 1) {
+                ratio = new Rational(16, 9);
+            } else if (pipRatioSetting == 2) {
+                ratio = new Rational(4, 3);
+            } else if (pipRatioSetting == 3) {
+                ratio = new Rational(1, 1);
+            } else if (vWidth != 0) {
                 if ((((double) vWidth) / ((double) vHeight)) > 2.39) {
                     vHeight = (int) (((double) vWidth) / 2.35);
                 }

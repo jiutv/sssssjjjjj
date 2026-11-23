@@ -90,6 +90,27 @@ class SettingsPanel(
             dialog.show()
         }
 
+        // 画中画比例：0跟随视频 1 16:9 2 4:3 3 1:1（比例越方，PiP 窗口宽度越小）
+        val pipRatioPos = Hawk.get(HawkConfig.PIP_RATIO, 0)
+        val pipRatios = arrayOf("跟随视频", "16:9", "4:3", "1:1")
+        binding.tvPipRatio.text = pipRatios[pipRatioPos]
+        binding.llPipRatio.setOnClickListener { view: View? ->
+            FastClickCheckUtil.check(view)
+            val dialog = SelectDialog<String>(activity)
+            dialog.setTip("请选择")
+            dialog.setAdapter(object : SelectDialogInterface<String?> {
+                override fun click(value: String?, pos: Int) {
+                    binding.tvPipRatio.text = value
+                    Hawk.put(HawkConfig.PIP_RATIO, pos)
+                }
+
+                override fun getDisplay(name: String?): String {
+                    return name ?: ""
+                }
+            }, SelectDialogAdapter.stringDiff, pipRatios.toList(), pipRatioPos)
+            dialog.show()
+        }
+
         binding.tvSpeed.text = Hawk.get(HawkConfig.VIDEO_SPEED, 2.0f).toString()
         binding.llPressSpeed.setOnClickListener {
             val types = ArrayList<String>()

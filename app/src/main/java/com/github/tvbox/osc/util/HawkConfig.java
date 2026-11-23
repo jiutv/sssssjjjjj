@@ -58,6 +58,10 @@ public class HawkConfig {
      */
     public static final String BACKGROUND_PLAY_TYPE = "background_play_type";
     /**
+     * 画中画默认比例 0 跟随视频,1 16:9,2 4:3,3 1:1
+     */
+    public static final String PIP_RATIO = "pip_ratio";
+    /**
      * 广告过滤
      */
     public static final String VIDEO_PURIFY = "video_purify";
