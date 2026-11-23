@@ -55,6 +55,7 @@ public class DanmuSettingDialog extends BaseDialog {
         alphaView = findViewById(R.id.alpha);
         lineView = findViewById(R.id.line);
         randomColorView = findViewById(R.id.randomColor);
+        findViewById(R.id.iv_close).setOnClickListener(v -> dismiss());
 
         findViewById(R.id.sizeSub).setOnClickListener(v -> changeSize(-0.1f));
         findViewById(R.id.sizeAdd).setOnClickListener(v -> changeSize(0.1f));

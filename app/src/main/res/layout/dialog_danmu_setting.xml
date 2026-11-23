@@ -1,33 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
-    <com.lihang.ShadowLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="10dp"
-        app:hl_cornerRadius="10dp"
-        app:hl_layoutBackground="#6632364E">
+        android:background="@drawable/bg_dialog"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:id="@+id/title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="20dp"
+                android:singleLine="true"
+                android:text="弹幕设置"
+                android:textColor="?attr/skin_text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/iv_close"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_gravity="right|top"
+                android:contentDescription="关闭"
+                android:padding="10dp"
+                android:src="@drawable/ic_close_24"
+                app:tint="?attr/skin_text_primary" />
+        </FrameLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="24dp"
-            android:paddingVertical="16dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginBottom="10dp"
-                android:text="弹幕设置"
-                android:textColor="@color/white"
-                android:textSize="17sp"
-                android:textStyle="bold" />
+            android:paddingHorizontal="20dp"
+            android:paddingBottom="20dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -40,7 +54,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="弹幕开关"
-                    android:textColor="@color/white"
+                    android:textColor="?attr/skin_text_primary"
                     android:textSize="15sp" />
 
                 <TextView
@@ -60,7 +74,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="弹幕速度"
-                    android:textColor="@color/white"
+                    android:textColor="?attr/skin_text_primary"
                     android:textSize="15sp" />
 
                 <com.google.android.material.button.MaterialButton
@@ -90,7 +104,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="字体大小"
-                    android:textColor="@color/white"
+                    android:textColor="?attr/skin_text_primary"
                     android:textSize="15sp" />
 
                 <com.google.android.material.button.MaterialButton
@@ -120,7 +134,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="透明度"
-                    android:textColor="@color/white"
+                    android:textColor="?attr/skin_text_primary"
                     android:textSize="15sp" />
 
                 <com.google.android.material.button.MaterialButton
@@ -150,7 +164,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="最大行数"
-                    android:textColor="@color/white"
+                    android:textColor="?attr/skin_text_primary"
                     android:textSize="15sp" />
 
                 <com.google.android.material.button.MaterialButton
@@ -180,7 +194,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="随机颜色"
-                    android:textColor="@color/white"
+                    android:textColor="?attr/skin_text_primary"
                     android:textSize="15sp" />
 
                 <TextView
@@ -205,8 +219,7 @@
                 android:layout_height="40dp"
                 android:layout_marginTop="8dp"
                 android:text="恢复默认"
-                android:textColor="@color/white"
                 android:textSize="15sp" />
         </LinearLayout>
-    </com.lihang.ShadowLayout>
+    </LinearLayout>
 </FrameLayout>
