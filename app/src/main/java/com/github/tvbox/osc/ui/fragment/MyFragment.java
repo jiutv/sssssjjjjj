@@ -79,25 +79,25 @@ public class MyFragment extends BaseVbFragment<FragmentMyBinding> {
     /** 后台读取收藏 / 历史 / 订阅源数量，回填统计卡 */
     private void loadStats() {
         new Thread(() -> {
-            int collect = 0, history = 0, sources = 0;
+            final int[] result = new int[3]; // [collect, history, sources]
             try {
-                collect = RoomDataManger.getAllVodCollect() != null
-                        ? RoomDataManger.getAllVodCollect().size() : 0;
+                List<?> v = RoomDataManger.getAllVodCollect();
+                result[0] = v != null ? v.size() : 0;
             } catch (Throwable ignored) {}
             try {
-                history = RoomDataManger.getAllVodRecord(Integer.MAX_VALUE) != null
-                        ? RoomDataManger.getAllVodRecord(Integer.MAX_VALUE).size() : 0;
+                List<?> v = RoomDataManger.getAllVodRecord(Integer.MAX_VALUE);
+                result[1] = v != null ? v.size() : 0;
             } catch (Throwable ignored) {}
             try {
-                sources = ApiConfig.get().getSourceBeanList() != null
-                        ? ApiConfig.get().getSourceBeanList().size() : 0;
+                List<?> v = ApiConfig.get().getSourceBeanList();
+                result[2] = v != null ? v.size() : 0;
             } catch (Throwable ignored) {}
             if (mActivity != null) {
                 mActivity.runOnUiThread(() -> {
                     if (!isAdded()) return;
-                    mBinding.tvStatCollect.setText(String.valueOf(collect));
-                    mBinding.tvStatHistory.setText(String.valueOf(history));
-                    mBinding.tvStatSources.setText(String.valueOf(sources));
+                    mBinding.tvStatCollect.setText(String.valueOf(result[0]));
+                    mBinding.tvStatHistory.setText(String.valueOf(result[1]));
+                    mBinding.tvStatSources.setText(String.valueOf(result[2]));
                 });
             }
         }).start();
