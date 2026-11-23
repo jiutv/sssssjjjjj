@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 我的：品牌标题 + 分组玻璃卡片入口 + 版本胶囊 -->
+<!-- 我的：品牌标题 + 统计卡 + 分组玻璃卡片入口 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -56,7 +56,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginTop="18dp"
+        android:layout_marginTop="16dp"
         android:clipToPadding="false"
         android:scrollbars="none">
 
@@ -67,10 +67,106 @@
             android:paddingHorizontal="20dp"
             android:paddingBottom="20dp">
 
+            <!-- ===== 统计卡 ===== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_glass_card"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:paddingVertical="18dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvStatCollect"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="?attr/skin_text_primary"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        tools:text="0" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="收藏"
+                        android:textColor="?attr/skin_text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="28dp"
+                    android:background="?attr/skin_card_border" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvStatHistory"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="?attr/skin_text_primary"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        tools:text="0" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="历史"
+                        android:textColor="?attr/skin_text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="28dp"
+                    android:background="?attr/skin_card_border" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvStatSources"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="?attr/skin_text_primary"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        tools:text="0" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="订阅源"
+                        android:textColor="?attr/skin_text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </LinearLayout>
+
             <!-- ===== 内容入口 ===== -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
                 android:background="@drawable/bg_glass_card"
                 android:orientation="vertical"
                 android:paddingVertical="6dp">
@@ -84,10 +180,18 @@
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_database_48" />
+                    <FrameLayout
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_icon_tile">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_database_48"
+                            app:tint="?attr/skin_on_accent" />
+                    </FrameLayout>
 
                     <TextView
                         android:layout_width="0dp"
@@ -106,13 +210,12 @@
                         android:alpha="0.35"
                         android:src="@drawable/icon_pre"
                         app:tint="?attr/skin_text_primary" />
-
                 </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:layout_marginStart="54dp"
+                    android:layout_marginStart="66dp"
                     android:background="?attr/skin_card_border" />
 
                 <LinearLayout
@@ -124,10 +227,18 @@
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_local_video_48" />
+                    <FrameLayout
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_icon_tile">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_local_video_48"
+                            app:tint="?attr/skin_on_accent" />
+                    </FrameLayout>
 
                     <TextView
                         android:layout_width="0dp"
@@ -146,13 +257,12 @@
                         android:alpha="0.35"
                         android:src="@drawable/icon_pre"
                         app:tint="?attr/skin_text_primary" />
-
                 </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:layout_marginStart="54dp"
+                    android:layout_marginStart="66dp"
                     android:background="?attr/skin_card_border" />
 
                 <LinearLayout
@@ -164,10 +274,18 @@
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_copyright_48" />
+                    <FrameLayout
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_icon_tile">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_copyright_48"
+                            app:tint="?attr/skin_on_accent" />
+                    </FrameLayout>
 
                     <TextView
                         android:layout_width="0dp"
@@ -186,7 +304,6 @@
                         android:alpha="0.35"
                         android:src="@drawable/icon_pre"
                         app:tint="?attr/skin_text_primary" />
-
                 </LinearLayout>
             </LinearLayout>
 
@@ -208,10 +325,18 @@
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_about_48" />
+                    <FrameLayout
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_icon_tile">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_about_48"
+                            app:tint="?attr/skin_on_accent" />
+                    </FrameLayout>
 
                     <TextView
                         android:layout_width="0dp"
@@ -230,13 +355,12 @@
                         android:alpha="0.35"
                         android:src="@drawable/icon_pre"
                         app:tint="?attr/skin_text_primary" />
-
                 </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:layout_marginStart="54dp"
+                    android:layout_marginStart="66dp"
                     android:background="?attr/skin_card_border" />
 
                 <LinearLayout
@@ -248,10 +372,18 @@
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_settings" />
+                    <FrameLayout
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_icon_tile">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_settings"
+                            app:tint="?attr/skin_on_accent" />
+                    </FrameLayout>
 
                     <TextView
                         android:layout_width="0dp"
@@ -270,7 +402,6 @@
                         android:alpha="0.35"
                         android:src="@drawable/icon_pre"
                         app:tint="?attr/skin_text_primary" />
-
                 </LinearLayout>
             </LinearLayout>
 

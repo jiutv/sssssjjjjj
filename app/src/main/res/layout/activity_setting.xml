@@ -206,7 +206,9 @@
                         android:id="@+id/switchPrivateBrowsing"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:clickable="false" />
+                        android:clickable="false"
+                        app:thumbTint="?attr/skin_accent"
+                        app:trackColor="?attr/skin_accent_soft" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -301,7 +303,9 @@
                         android:id="@+id/switchVideoPurify"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:clickable="false" />
+                        android:clickable="false"
+                        app:thumbTint="?attr/skin_accent"
+                        app:trackColor="?attr/skin_accent_soft" />
                 </LinearLayout>
 
                 <View
@@ -604,7 +608,9 @@
                         android:id="@+id/switchIjkCachePlay"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:clickable="false" />
+                        android:clickable="false"
+                        app:thumbTint="?attr/skin_accent"
+                        app:trackColor="?attr/skin_accent_soft" />
                 </LinearLayout>
             </LinearLayout>
 
