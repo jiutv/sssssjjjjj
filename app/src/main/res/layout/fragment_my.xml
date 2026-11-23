@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 我的：品牌标题 + 分组玻璃卡片入口 -->
+<!-- 我的：品牌标题 + 顶部快捷胶囊 + 通用入口卡片 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -67,155 +67,121 @@
             android:paddingHorizontal="20dp"
             android:paddingBottom="20dp">
 
-            <!-- ===== 内容入口 ===== -->
+            <!-- ===== 快捷入口 ===== -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="8dp"
+                android:letterSpacing="0.05"
+                android:text="快捷入口"
+                android:textColor="?attr/skin_text_secondary"
+                android:textSize="12sp" />
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_glass_card"
-                android:orientation="vertical"
-                android:paddingVertical="6dp">
+                android:orientation="horizontal">
 
                 <LinearLayout
                     android:id="@+id/llSubscription"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:background="?android:selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="16dp">
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_quick_pill"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="horizontal">
 
-                    <FrameLayout
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:background="@drawable/bg_icon_tile">
-
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_database_48"
-                            app:tint="?attr/skin_accent" />
-                    </FrameLayout>
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_database_48"
+                        app:tint="?attr/skin_accent" />
 
                     <TextView
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
                         android:focusable="false"
                         android:focusableInTouchMode="false"
                         android:text="订阅管理"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="15sp" />
-
-                    <ImageView
-                        android:layout_width="18dp"
-                        android:layout_height="18dp"
-                        android:alpha="0.35"
-                        android:src="@drawable/icon_pre"
-                        app:tint="?attr/skin_text_primary" />
+                        android:textSize="13sp" />
                 </LinearLayout>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginStart="66dp"
-                    android:background="?attr/skin_card_border" />
 
                 <LinearLayout
                     android:id="@+id/tvLocal"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:background="?android:selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="16dp">
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_quick_pill"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="horizontal">
 
-                    <FrameLayout
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:background="@drawable/bg_icon_tile">
-
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_local_video_48"
-                            app:tint="?attr/skin_accent" />
-                    </FrameLayout>
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_local_video_48"
+                        app:tint="?attr/skin_accent" />
 
                     <TextView
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
                         android:focusable="false"
                         android:focusableInTouchMode="false"
                         android:text="本地视频"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="15sp" />
-
-                    <ImageView
-                        android:layout_width="18dp"
-                        android:layout_height="18dp"
-                        android:alpha="0.35"
-                        android:src="@drawable/icon_pre"
-                        app:tint="?attr/skin_text_primary" />
+                        android:textSize="13sp" />
                 </LinearLayout>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginStart="66dp"
-                    android:background="?attr/skin_card_border" />
 
                 <LinearLayout
                     android:id="@+id/addrPlay"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:background="?android:selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="16dp">
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_quick_pill"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="horizontal">
 
-                    <FrameLayout
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:background="@drawable/bg_icon_tile">
-
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_copyright_48"
-                            app:tint="?attr/skin_accent" />
-                    </FrameLayout>
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_copyright_48"
+                        app:tint="?attr/skin_accent" />
 
                     <TextView
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
                         android:focusable="false"
                         android:focusableInTouchMode="false"
                         android:text="播放链接"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="15sp" />
-
-                    <ImageView
-                        android:layout_width="18dp"
-                        android:layout_height="18dp"
-                        android:alpha="0.35"
-                        android:src="@drawable/icon_pre"
-                        app:tint="?attr/skin_text_primary" />
+                        android:textSize="13sp" />
                 </LinearLayout>
             </LinearLayout>
 
             <!-- ===== 通用入口 ===== -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginTop="18dp"
+                android:layout_marginBottom="8dp"
+                android:letterSpacing="0.05"
+                android:text="更多"
+                android:textColor="?attr/skin_text_secondary"
+                android:textSize="12sp" />
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
                 android:background="@drawable/bg_glass_card"
                 android:orientation="vertical"
                 android:paddingVertical="6dp">
@@ -225,33 +191,22 @@
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:background="?android:selectableItemBackground"
+                    android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <FrameLayout
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:background="@drawable/bg_icon_tile">
-
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_about_48"
-                            app:tint="?attr/skin_accent" />
-                    </FrameLayout>
-
                     <TextView
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:layout_weight="1"
-                        android:focusable="false"
-                        android:focusableInTouchMode="false"
                         android:text="关于"
                         android:textColor="?attr/skin_text_primary"
                         android:textSize="15sp" />
+
+                    <Space
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1" />
 
                     <ImageView
                         android:layout_width="18dp"
@@ -264,7 +219,7 @@
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:layout_marginStart="66dp"
+                    android:layout_marginStart="16dp"
                     android:background="?attr/skin_card_border" />
 
                 <LinearLayout
@@ -272,33 +227,22 @@
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:background="?android:selectableItemBackground"
+                    android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <FrameLayout
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:background="@drawable/bg_icon_tile">
-
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_settings"
-                            app:tint="?attr/skin_accent" />
-                    </FrameLayout>
-
                     <TextView
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:layout_weight="1"
-                        android:focusable="false"
-                        android:focusableInTouchMode="false"
                         android:text="设置"
                         android:textColor="?attr/skin_text_primary"
                         android:textSize="15sp" />
+
+                    <Space
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1" />
 
                     <ImageView
                         android:layout_width="18dp"
