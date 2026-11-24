@@ -67,29 +67,6 @@ class SettingsPanel(
             Hawk.put(HawkConfig.PRIVATE_BROWSING, newConfig)
         }
 
-        val defaultBgPlayTypePos = Hawk.get(HawkConfig.BACKGROUND_PLAY_TYPE, 0)
-        val bgPlayTypes = ArrayList<String>()
-        bgPlayTypes.add("关闭")
-        bgPlayTypes.add("开启")
-        bgPlayTypes.add("画中画")
-        binding.tvBackgroundPlayType.text = bgPlayTypes[defaultBgPlayTypePos]
-        binding.llBackgroundPlay.setOnClickListener { view: View? ->
-            FastClickCheckUtil.check(view)
-            val dialog = SelectDialog<String>(activity)
-            dialog.setTip("请选择")
-            dialog.setAdapter(object : SelectDialogInterface<String?> {
-                override fun click(value: String?, pos: Int) {
-                    binding.tvBackgroundPlayType.text = value
-                    Hawk.put(HawkConfig.BACKGROUND_PLAY_TYPE, pos)
-                }
-
-                override fun getDisplay(name: String?): String {
-                    return name ?: ""
-                }
-            }, SelectDialogAdapter.stringDiff, bgPlayTypes, defaultBgPlayTypePos)
-            dialog.show()
-        }
-
         binding.tvSpeed.text = Hawk.get(HawkConfig.VIDEO_SPEED, 2.0f).toString()
         binding.llPressSpeed.setOnClickListener {
             val types = ArrayList<String>()

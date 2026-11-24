@@ -194,7 +194,7 @@ public class VodController extends BaseController {
     protected void initView() {
         super.initView();
         View pip = findViewById(R.id.pip);
-        pip.setVisibility((Utils.supportsPiPMode() && Hawk.get(HawkConfig.BACKGROUND_PLAY_TYPE, 0) == 2)?VISIBLE:GONE);
+        pip.setVisibility(Utils.supportsPiPMode() ? VISIBLE : GONE);
         mMyBatteryView = findViewById(R.id.battery);
         mTopRightDeviceInfo = findViewById(R.id.container_top_right_device_info);
         mLlSpeed = findViewById(R.id.ll_speed);

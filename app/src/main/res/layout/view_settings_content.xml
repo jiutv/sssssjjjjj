@@ -379,49 +379,7 @@
                     android:layout_marginStart="16dp"
                     android:background="?attr/skin_card_border" />
 
-                <LinearLayout
-                    android:id="@+id/llBackgroundPlay"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:background="?android:selectableItemBackground"
-                    android:focusable="true"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="后台播放"
-                        android:textColor="?attr/skin_text_primary"
-                        android:textSize="15sp" />
-
-                    <Space
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1" />
-
-                    <TextView
-                        android:id="@+id/tvBackgroundPlayType"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="6dp"
-                        android:textColor="?attr/skin_text_secondary"
-                        android:textSize="13sp" />
-
-                    <ImageView
-                        android:layout_width="18dp"
-                        android:layout_height="18dp"
-                        android:alpha="0.35"
-                        android:src="@drawable/icon_pre"
-                        app:tint="?attr/skin_text_primary" />
-                </LinearLayout>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginStart="16dp"
-                    android:background="?attr/skin_card_border" />
 
                 <LinearLayout
                     android:id="@+id/llMediaCodec"
