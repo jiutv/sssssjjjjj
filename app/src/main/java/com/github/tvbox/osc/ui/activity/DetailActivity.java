@@ -208,8 +208,10 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         initDetailBackground();
 
         mBinding.mGridView.setHasFixedSize(true);
+        mBinding.mGridView.setNestedScrollingEnabled(false);
+        mBinding.mGridViewFlag.setNestedScrollingEnabled(false);
+        mBinding.rvParse.setNestedScrollingEnabled(false);
         seriesAdapter = new SeriesAdapter(true);
-        // 需求4：初始化选集布局（默认"智能"，按屏幕宽度自适应列数）
         applySeriesLayout();
         mBinding.mGridView.setAdapter(seriesAdapter);
         mBinding.mGridViewFlag.setHasFixedSize(true);
@@ -474,11 +476,11 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             // 需求4：保留正序/倒序切换，并同步按钮文案
             mBinding.tvSort.setText(vodInfo.reverseSort ? "倒序" : "正序");
             seriesAdapter.notifyDataSetChanged();
+            rebuildSeriesJumpBar();
         }
     }
 
     public void showCastDialog() {
-
         VodInfo.VodSeries vodSeries = vodInfo.seriesMap.get(vodInfo.playFlag).get(vodInfo.playIndex);
         new XPopup.Builder(this)
                 .maxWidth(ConvertUtils.dp2px(360))
@@ -628,7 +630,65 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                 vodInfo.seriesMap.get(vodInfo.playFlag).get(vodInfo.playIndex).selected = true;
         }
         seriesAdapter.setNewData(vodInfo.seriesMap.get(vodInfo.playFlag));
+        rebuildSeriesJumpBar();
+    }
 
+    /** 集数分段跳转：每 30 集一段，点击 smoothScrollToPosition 到该段首个 item */
+    private void rebuildSeriesJumpBar() {
+        if (vodInfo == null || vodInfo.seriesMap == null) return;
+        java.util.List<VodInfo.VodSeries> list = vodInfo.seriesMap.get(vodInfo.playFlag);
+        if (list == null) list = new java.util.ArrayList<>();
+        int total = list.size();
+        LinearLayout ll = mBinding.llSeriesJump;
+        ll.removeAllViews();
+        // 分段：每 30 集一段，最后一段不足 30 也独立一段；集数 ≤ 30 就不显示分段条（意义不大）
+        if (total <= 30) {
+            mBinding.hsvSeriesJump.setVisibility(View.GONE);
+            return;
+        }
+        mBinding.hsvSeriesJump.setVisibility(View.VISIBLE);
+        int step = 30;
+        boolean reverse = !isReverse;
+        // reverse=true 表示正序显示，reverse=false 表示倒序显示
+        int spanCount = ((GridLayoutManager) mBinding.mGridView.getLayoutManager()).getSpanCount();
+        for (int start = 0; start < total; start += step) {
+            int end = Math.min(start + step, total);
+            int startIndex = reverse ? start : (total - end);
+            String label;
+            try {
+                String s = list.get(reverse ? start : (total - end)).name.trim();
+                String e = list.get(reverse ? (end - 1) : (total - start - 1)).name.trim();
+                String sNum = s.replaceAll("\\D+", "");
+                String eNum = e.replaceAll("\\D+", "");
+                if (!sNum.isEmpty() && !eNum.isEmpty()) {
+                    label = sNum + "-" + eNum;
+                } else {
+                    label = (start + 1) + "-" + end;
+                }
+            } catch (Throwable th) {
+                label = (start + 1) + "-" + end;
+            }
+            TextView tv = new TextView(this);
+            tv.setText(label);
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+            tv.setTextColor(getResources().getColor(R.color.skin_text_secondary));
+            int padX = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics());
+            int padY = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 5, getResources().getDisplayMetrics());
+            tv.setPadding(padX, padY, padX, padY);
+            android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+            bg.setCornerRadius(padY * 1.2f);
+            bg.setStroke(1, 0x33888888);
+            tv.setBackground(bg);
+            int margin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 6, getResources().getDisplayMetrics());
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.setMargins(margin / 2, 0, margin / 2, 0);
+            tv.setLayoutParams(lp);
+            final int finalStartIndex = startIndex;
+            tv.setOnClickListener(v -> {
+                mBinding.mGridView.smoothScrollToPosition(finalStartIndex);
+            });
+            ll.addView(tv);
+        }
     }
 
     private void initViewModel() {

@@ -422,6 +422,24 @@
                     android:clipToPadding="false"
                     tools:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
                     tools:listitem="@layout/item_series"/>
+
+                <!-- 集数分段跳转：0-30 / 30-60 / 60-90 ... 每段 30 集，快速定位 -->
+                <HorizontalScrollView
+                    android:id="@+id/hsvSeriesJump"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="14dp"
+                    android:layout_marginTop="-6dp"
+                    android:layout_marginBottom="8dp"
+                    android:scrollbars="none">
+
+                    <LinearLayout
+                        android:id="@+id/llSeriesJump"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal" />
+                </HorizontalScrollView>
             </LinearLayout>
         </ScrollView>
 
