@@ -53,94 +53,126 @@
             android:paddingHorizontal="20dp"
             android:paddingBottom="20dp">
 
-            <!-- 三个快捷入口胶囊 -->
+            <!-- 快捷入口分组（与下方设置卡片同款样式） -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="8dp"
+                android:letterSpacing="0.05"
+                android:text="快捷入口"
+                android:textColor="?attr/skin_text_secondary"
+                android:textSize="12sp" />
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:background="@drawable/bg_glass_card"
+                android:orientation="vertical"
+                android:paddingVertical="6dp">
 
                 <LinearLayout
                     android:id="@+id/llSubscription"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_quick_pill"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="?android:selectableItemBackground"
                     android:focusable="true"
-                    android:gravity="center"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_database_48"
-                        app:tint="?attr/skin_accent" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
-                        android:focusable="false"
-                        android:focusableInTouchMode="false"
                         android:text="订阅管理"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="13sp" />
+                        android:textSize="15sp" />
+
+                    <Space
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1" />
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:alpha="0.35"
+                        android:src="@drawable/icon_pre"
+                        app:tint="?attr/skin_text_primary" />
                 </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/skin_card_border" />
 
                 <LinearLayout
                     android:id="@+id/tvLocal"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_quick_pill"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="?android:selectableItemBackground"
                     android:focusable="true"
-                    android:gravity="center"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_local_video_48"
-                        app:tint="?attr/skin_accent" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
-                        android:focusable="false"
-                        android:focusableInTouchMode="false"
                         android:text="本地视频"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="13sp" />
+                        android:textSize="15sp" />
+
+                    <Space
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1" />
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:alpha="0.35"
+                        android:src="@drawable/icon_pre"
+                        app:tint="?attr/skin_text_primary" />
                 </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/skin_card_border" />
 
                 <LinearLayout
                     android:id="@+id/addrPlay"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_quick_pill"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="?android:selectableItemBackground"
                     android:focusable="true"
-                    android:gravity="center"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_copyright_48"
-                        app:tint="?attr/skin_accent" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
-                        android:focusable="false"
-                        android:focusableInTouchMode="false"
                         android:text="播放链接"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="13sp" />
+                        android:textSize="15sp" />
+
+                    <Space
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1" />
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:alpha="0.35"
+                        android:src="@drawable/icon_pre"
+                        app:tint="?attr/skin_text_primary" />
                 </LinearLayout>
+
             </LinearLayout>
 
             <!-- 原设置页全部条目 -->
