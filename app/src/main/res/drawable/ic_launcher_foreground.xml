@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- adaptive-icon 前景层：盒子+播放三角，画布 108x108，图形居中 72x72 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 外发光光晕：48dp 居中，柔化渐变 -->
+    <path
+        android:pathData="M54,32 C66,32 76,42 76,54 C76,66 66,76 54,76 C42,76 32,66 32,54 C32,42 42,32 54,32 Z"
+        android:fillColor="#33FFFFFF" />
+
+    <!-- 主卡片：圆角方形盒子，56dp 居中 -->
+    <path
+        android:pathData="M32,34 C32,27 38,22 45,22 L63,22 C70,22 76,27 76,34 L76,74 C76,81 70,86 63,86 L45,86 C38,86 32,81 32,74 Z"
+        android:fillColor="#FFFFFF" />
+
+    <!-- 卡片高光：顶部一条半透明白线，增加立体感 -->
+    <path
+        android:pathData="M34,34 C34,29 39,26 44,26 L64,26 C69,26 74,29 74,34 L74,36 L34,36 Z"
+        android:fillColor="#FFE4E4E8" />
+
+    <!-- 播放三角：居中，指向右侧 -->
+    <path
+        android:pathData="M48,40 L48,64 L66,52 Z"
+        android:fillColor="#3B6EF6" />
+
+    <!-- 右上小装饰：三个小圆点，暗示"追剧/集数" -->
+    <path
+        android:pathData="M66,28 m-1.5,0 a1.5,1.5 0,1 1,3 0 a1.5,1.5 0,1 1,-3 0"
+        android:fillColor="#333B6EF6" />
+    <path
+        android:pathData="M71,28 m-1.5,0 a1.5,1.5 0,1 1,3 0 a1.5,1.5 0,1 1,-3 0"
+        android:fillColor="#333B6EF6" />
+
+</vector>
