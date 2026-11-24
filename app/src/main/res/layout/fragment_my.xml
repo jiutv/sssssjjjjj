@@ -7,6 +7,7 @@
     android:layout_height="match_parent"
     android:background="?attr/skin_page_bg"
     android:orientation="vertical"
+    android:fitsSystemWindows="true"
     android:paddingBottom="@dimen/bottom_nav_overlay_padding">
 
     <LinearLayout
