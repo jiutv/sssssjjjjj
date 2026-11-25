@@ -62,6 +62,7 @@ public class SourceViewModel extends ViewModel {
     public MutableLiveData<AbsXml> searchResult;
     public MutableLiveData<AbsXml> quickSearchResult;
     public MutableLiveData<AbsXml> detailResult;
+    public MutableLiveData<AbsXml> speedTestDetail;
     public MutableLiveData<JSONObject> playResult;
 
     public SourceViewModel() {
@@ -70,8 +71,12 @@ public class SourceViewModel extends ViewModel {
         searchResult = new MutableLiveData<>();
         quickSearchResult = new MutableLiveData<>();
         detailResult = new MutableLiveData<>();
+        speedTestDetail = new MutableLiveData<>();
         playResult = new MutableLiveData<>();
     }
+
+    /** 测速专用的详情线程池：和其他源的详情并行拉取 */
+    private final ExecutorService speedTestPool = Executors.newFixedThreadPool(3);
 
     public static final ExecutorService spThreadPool = Executors.newSingleThreadExecutor();
     /**
@@ -456,30 +461,40 @@ public class SourceViewModel extends ViewModel {
     }
     // detailContent
     public void getDetail(String sourceKey, String id) {
+        getDetailInternal(sourceKey, id, detailResult, pageThreadPool);
+    }
+
+    /** 播放测速专用：并行拉取其他源的详情，结果走单独的 LiveData，不影响播放页 */
+    public void getDetailForSpeedTest(String sourceKey, String id) {
+        getDetailInternal(sourceKey, id, speedTestDetail, speedTestPool);
+    }
+
+    private void getDetailInternal(String sourceKey, String id, MutableLiveData<AbsXml> result,
+                                   ExecutorService pool) {
         lastDetailError = "";
         SourceBean sourceBean = ApiConfig.get().getSource(sourceKey);
         if (sourceBean == null) {
             // 源配置已变更/被删除（例如历史记录、收藏中的旧源），避免空指针
             lastDetailError = "源不存在(" + sourceKey + ")";
-            detailResult.postValue(null);
+            result.postValue(null);
             return;
         }
         int type = sourceBean.getType();
         if (type == 3) {
-            pageThreadPool.execute(new Runnable() {
+            pool.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
                         Spider sp = ApiConfig.get().getCSP(sourceBean);
                         List<String> ids = new ArrayList<>();
                         ids.add(id);
-                        json(detailResult, sp.detailContent(ids), sourceBean.getKey());
+                        json(result, sp.detailContent(ids), sourceBean.getKey());
                     } catch (Throwable th) {
                         th.printStackTrace();
                         // 修复：爬虫异常时立即通知页面加载失败，避免页面一直等到超时才提示
                         lastDetailError = "爬虫异常:" + th.getClass().getSimpleName()
                                 + (TextUtils.isEmpty(th.getMessage()) ? "" : " " + th.getMessage());
-                        detailResult.postValue(null);
+                        result.postValue(null);
                     }
                 }
             });
@@ -503,11 +518,11 @@ public class SourceViewModel extends ViewModel {
                         public void onSuccess(Response<String> response) {
                             if (type == 0) {
                                 String xml = response.body();
-                                xml(detailResult, xml, sourceBean.getKey());
+                                xml(result, xml, sourceBean.getKey());
                             } else {
                                 String json = response.body();
                                 LOG.i(json);
-                                json(detailResult, json, sourceBean.getKey());
+                                json(result, json, sourceBean.getKey());
                             }
                         }
 
@@ -516,12 +531,12 @@ public class SourceViewModel extends ViewModel {
                             super.onError(response);
                             lastDetailError = "网络错误:" + response.code()
                                     + (TextUtils.isEmpty(response.message()) ? "" : " " + response.message());
-                            detailResult.postValue(null);
+                            result.postValue(null);
                         }
                     });
         } else {
             lastDetailError = "不支持的源类型:" + type;
-            detailResult.postValue(null);
+            result.postValue(null);
         }
     }
     // searchContent

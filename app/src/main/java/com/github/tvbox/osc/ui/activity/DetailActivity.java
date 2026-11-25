@@ -77,6 +77,7 @@ import com.github.tvbox.osc.util.DefaultConfig;
 import com.github.tvbox.osc.util.FastClickCheckUtil;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.PlayCache;
+import com.github.tvbox.osc.util.PlaySpeedMeter;
 import com.github.tvbox.osc.util.ScreenShotListenManager;
 import com.github.tvbox.osc.util.SearchHelper;
 import com.github.tvbox.osc.util.SubtitleHelper;
@@ -107,6 +108,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -139,6 +142,15 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
     private final ArrayList<String> playSourceNotes = new ArrayList<>();
     /** 各源的搜索响应耗时(ms)，与上面的 key 一一对应，-1 表示未知 */
     private long[] playSourceCosts;
+    /** 播放测速结果：sourceKey -> 读 256KB 耗时(ms)，以及实际字节数 */
+    private final HashMap<String, Long> speedCost = new HashMap<>();
+    private final HashMap<String, Long> speedBytes = new HashMap<>();
+    /** 已测速缓存：key|vodId -> {耗时ms, 时间戳}，10 分钟内不重复测 */
+    private static final HashMap<String, long[]> SPEED_CACHE = new HashMap<>();
+    private int speedSession = 0;
+    private String speedVodId;
+    private final HashSet<String> speedWaitingDetail = new HashSet<>();
+    private int speedPending = 0;
     private View seriesFlagFocus = null;
     private boolean isReverse;
     /** 需求4：选集布局模式 0=完整(单列) 1=紧凑(固定4列) 2=智能(按屏宽自适应) */
@@ -761,7 +773,12 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         SourceBean bean = ApiConfig.get().getSource(key);
         String name = bean != null && !TextUtils.isEmpty(bean.getName()) ? bean.getName() : key;
         String address = bean != null && !TextUtils.isEmpty(bean.getApi()) ? bean.getApi() : key;
-        if (playSourceCosts != null && index < playSourceCosts.length && playSourceCosts[index] > 0) {
+        Long measured = speedCost.get(key);
+        if (measured != null && measured > 0) {
+            long bytes = speedBytes.containsKey(key) ? speedBytes.get(key) : 0;
+            long kbps = bytes > 0 ? bytes * 1000 / measured / 1024 : 0;
+            address = address + " · " + (kbps > 0 ? kbps + "KB/s" : measured + "ms");
+        } else if (playSourceCosts != null && index < playSourceCosts.length && playSourceCosts[index] > 0) {
             address = address + " · " + playSourceCosts[index] + "ms";
         }
         String note = index < playSourceNotes.size() ? playSourceNotes.get(index) : "";
@@ -894,6 +911,133 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                 }
             }
         });
+        // 播放测速：其他源的详情回来后，解析播放地址并实测加载速度
+        sourceViewModel.speedTestDetail.observe(this, new Observer<AbsXml>() {
+            @Override
+            public void onChanged(AbsXml absXml) {
+                if (absXml == null || TextUtils.isEmpty(absXml.sourceKey)) return;
+                final String key = absXml.sourceKey;
+                if (!speedWaitingDetail.remove(key)) return;
+                final int session = speedSession;
+                speedPending++;
+                PlaySpeedMeter.measure(key, absXml, currentSeriesIndex(),
+                        vodInfo == null ? null : vodInfo.playFlag,
+                        new PlaySpeedMeter.Callback() {
+                            @Override
+                            public void onResult(String k, long scoreMs, long bytes) {
+                                if (session != speedSession) return;
+                                speedCost.put(k, scoreMs);
+                                speedBytes.put(k, bytes);
+                                speedPending--;
+                                if (speedPending <= 0 && speedWaitingDetail.isEmpty()) {
+                                    applySpeedOrder();
+                                }
+                            }
+                        });
+            }
+        });
+    }
+
+    /** 测速时用当前正在看的集数，找不到就用第一集 */
+    private int currentSeriesIndex() {
+        return vodInfo == null ? 0 : Math.max(0, vodInfo.playIndex);
+    }
+
+    /** 打开播放页后，后台并行测各个源的真实加载速度，测完按速度重排播放源 */
+    private void maybeStartSpeedTest() {
+        if (playSourceKeys.size() <= 1 || vodInfo == null || TextUtils.isEmpty(vodId)) return;
+        if (vodId.equals(speedVodId)) return;
+        speedVodId = vodId;
+        speedSession++;
+        final int session = speedSession;
+        speedCost.clear();
+        speedBytes.clear();
+        speedWaitingDetail.clear();
+        speedPending = 0;
+
+        long now = System.currentTimeMillis();
+        boolean allCached = true;
+        for (String key : playSourceKeys) {
+            long[] c = SPEED_CACHE.get(key + "|" + vodId);
+            if (c != null && now - c[1] < 10 * 60 * 1000L) {
+                speedCost.put(key, c[0]);
+            } else {
+                allCached = false;
+            }
+        }
+        if (allCached) {
+            applySpeedOrder();
+            return;
+        }
+        for (int i = 0; i < playSourceKeys.size() && i < playSourceIds.size(); i++) {
+            String key = playSourceKeys.get(i);
+            if (speedCost.containsKey(key)) continue;
+            speedWaitingDetail.add(key);
+            sourceViewModel.getDetailForSpeedTest(key, playSourceIds.get(i));
+        }
+        if (speedWaitingDetail.isEmpty()) {
+            applySpeedOrder();
+            return;
+        }
+        mTimeoutHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (session != speedSession) return;
+                speedWaitingDetail.clear();
+                applySpeedOrder();
+            }
+        }, 15000);
+    }
+
+    /** 按实测加载速度重排播放源：快的在前，测不出速度的排最后 */
+    private void applySpeedOrder() {
+        if (playSourceKeys.size() <= 1) return;
+        List<Integer> order = new ArrayList<>();
+        for (int i = 0; i < playSourceKeys.size(); i++) order.add(i);
+        Collections.sort(order, new Comparator<Integer>() {
+            @Override
+            public int compare(Integer a, Integer b) {
+                long ca = scoreOf(playSourceKeys.get(a));
+                long cb = scoreOf(playSourceKeys.get(b));
+                if (ca <= 0 && cb <= 0) return 0;
+                if (ca <= 0) return 1;
+                if (cb <= 0) return -1;
+                return Long.compare(ca, cb);
+            }
+        });
+        ArrayList<String> keys = new ArrayList<>();
+        ArrayList<String> ids = new ArrayList<>();
+        ArrayList<String> notes = new ArrayList<>();
+        long[] costs = playSourceCosts == null ? null : new long[playSourceCosts.length];
+        for (int i = 0; i < order.size(); i++) {
+            int old = order.get(i);
+            keys.add(playSourceKeys.get(old));
+            ids.add(playSourceIds.get(old));
+            if (old < playSourceNotes.size()) notes.add(playSourceNotes.get(old));
+            if (costs != null && playSourceCosts != null && old < playSourceCosts.length) {
+                costs[i] = playSourceCosts[old];
+            }
+        }
+        playSourceKeys.clear();
+        playSourceKeys.addAll(keys);
+        playSourceIds.clear();
+        playSourceIds.addAll(ids);
+        playSourceNotes.clear();
+        playSourceNotes.addAll(notes);
+        playSourceCosts = costs;
+        long now = System.currentTimeMillis();
+        for (String key : playSourceKeys) {
+            Long cost = speedCost.get(key);
+            if (cost != null && cost > 0) {
+                SPEED_CACHE.put(key + "|" + vodId, new long[]{cost, now});
+            }
+        }
+        rebuildPlaySources();
+    }
+
+    private long scoreOf(String key) {
+        Long value = speedCost.get(key);
+        return value == null ? -1 : value;
     }
 
     /**
@@ -957,6 +1101,8 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                         mBinding.mGridViewFlag.scrollToPosition(flagScrollTo);
 
                         refreshList();
+                        // 打开播放页后后台测速，测完按真实加载速度重排播放源
+                        maybeStartSpeedTest();
                         // 需求4：同步正序/倒序按钮文案
                         mBinding.tvSort.setText(vodInfo.reverseSort ? "倒序" : "正序");
                         if (showPreview) {
@@ -1265,6 +1411,8 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         registerActionReceiver(false);
         // 需求2：页面销毁时移除超时回调，避免泄漏
         mTimeoutHandler.removeCallbacks(detailTimeoutRunnable);
+        // 页面销毁后测速回包不再更新 UI
+        speedSession++;
         super.onDestroy();
         unregisterReceiver(mBatteryReceiver);
         // 注销广播接收器
