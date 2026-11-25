@@ -137,6 +137,9 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
     private boolean isReverse;
     /** 需求4：选集布局模式 0=完整(单列) 1=紧凑(固定4列) 2=智能(按屏宽自适应) */
     private int seriesLayoutMode = 2;
+    /** 选集分段：每段 30 集，选集网格只显示当前段，避免集数多时整页铺满 */
+    private static final int SERIES_SEGMENT_SIZE = 30;
+    private int seriesSegment = 0;
     /** 需求2：详情缓存 key */
     private String detailCacheKey;
     /** 排查加载慢：记录详情请求发起时间，用于日志里输出真实耗时 */
@@ -276,7 +279,8 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             @Override
             public void onItemClick(BaseQuickAdapter adapter, View view, int position) {
                 FastClickCheckUtil.check(view);
-                chooseSeries(position, false);
+                // 网格里只显示当前分段的 30 集，需换算成整部剧的绝对集数
+                chooseSeries(seriesSegment * SERIES_SEGMENT_SIZE + position, false);
             }
         });
 
@@ -475,7 +479,9 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
 
             // 需求4：保留正序/倒序切换，并同步按钮文案
             mBinding.tvSort.setText(vodInfo.reverseSort ? "倒序" : "正序");
-            seriesAdapter.notifyDataSetChanged();
+            // 列表已整体反转，播放集所在分段随之变化
+            seriesSegment = Math.max(0, vodInfo.playIndex / SERIES_SEGMENT_SIZE);
+            applySeriesData();
             rebuildSeriesJumpBar();
         }
     }
@@ -504,7 +510,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                     .isViewMode(true)
                     .hasNavigationBar(false)
                     .maxHeight(ScreenUtils.getScreenHeight() - (ScreenUtils.getScreenHeight() / 4))
-                    .asCustom(new AllVodSeriesBottomDialog(this, seriesAdapter.getData(), (position, text) -> {
+                    .asCustom(new AllVodSeriesBottomDialog(this, new ArrayList<>(fullSeries()), (position, text) -> {
                         chooseSeries(position, false);
                     }));
             mAllSeriesBottomDialog.show();
@@ -538,16 +544,15 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
     }
 
     private void chooseSeries(int position, boolean reloadWithChangeLine) {
-        if (vodInfo != null && vodInfo.seriesMap.get(vodInfo.playFlag).size() > 0) {
+        List<VodInfo.VodSeries> full = fullSeries();
+        if (vodInfo != null && position >= 0 && position < full.size()) {
             boolean reload = false;
-            for (int j = 0; j < vodInfo.seriesMap.get(vodInfo.playFlag).size(); j++) {
-                seriesAdapter.getData().get(j).selected = false;
-                seriesAdapter.notifyItemChanged(j);
+            for (int j = 0; j < full.size(); j++) {
+                full.get(j).selected = false;
             }
             //解决倒叙不刷新
             if (vodInfo.playIndex != position) {
-                seriesAdapter.getData().get(position).selected = true;
-                seriesAdapter.notifyItemChanged(position);
+                full.get(position).selected = true;
                 vodInfo.playIndex = position;
 
                 reload = true;
@@ -557,14 +562,49 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                 reload = true;
             }
 
-            seriesAdapter.getData().get(vodInfo.playIndex).selected = true;
-            seriesAdapter.notifyItemChanged(vodInfo.playIndex);
+            full.get(vodInfo.playIndex).selected = true;
+
+            // 选中的集不在当前分段时，自动切到它所在的分段
+            int seg = vodInfo.playIndex / SERIES_SEGMENT_SIZE;
+            if (seg != seriesSegment) {
+                seriesSegment = seg;
+                applySeriesData();
+                rebuildSeriesJumpBar();
+            } else {
+                seriesAdapter.notifyDataSetChanged();
+            }
 
             //选集全屏 想选集不全屏的注释下面一行
             if (!showPreview || reload || reloadWithChangeLine) {
                 jumpToPlay();
             }
         }
+    }
+
+    /** 当前线路的全部集数（真实数据源，不受分段显示影响） */
+    private List<VodInfo.VodSeries> fullSeries() {
+        if (vodInfo == null || vodInfo.seriesMap == null) {
+            return new ArrayList<>();
+        }
+        List<VodInfo.VodSeries> list = vodInfo.seriesMap.get(vodInfo.playFlag);
+        return list == null ? new ArrayList<>() : list;
+    }
+
+    /** 把当前分段的集数装进选集网格 */
+    private void applySeriesData() {
+        List<VodInfo.VodSeries> full = fullSeries();
+        int total = full.size();
+        if (total == 0) {
+            seriesAdapter.setNewData(new ArrayList<>());
+            return;
+        }
+        int start = seriesSegment * SERIES_SEGMENT_SIZE;
+        if (start >= total) {
+            seriesSegment = 0;
+            start = 0;
+        }
+        int end = Math.min(start + SERIES_SEGMENT_SIZE, total);
+        seriesAdapter.setNewData(new ArrayList<>(full.subList(start, end)));
     }
 
     private void initCheckedSourcesForSearch() {
@@ -629,11 +669,13 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             if (canSelect)
                 vodInfo.seriesMap.get(vodInfo.playFlag).get(vodInfo.playIndex).selected = true;
         }
-        seriesAdapter.setNewData(vodInfo.seriesMap.get(vodInfo.playFlag));
+        // 默认定位到当前播放集所在的分段
+        seriesSegment = Math.max(0, vodInfo.playIndex / SERIES_SEGMENT_SIZE);
+        applySeriesData();
         rebuildSeriesJumpBar();
     }
 
-    /** 集数分段跳转：每 30 集一段，点击 smoothScrollToPosition 到该段首个 item */
+    /** 选集分段条：每 30 集一段，点击切换下方网格显示的分段 */
     private void rebuildSeriesJumpBar() {
         if (vodInfo == null || vodInfo.seriesMap == null) return;
         java.util.List<VodInfo.VodSeries> list = vodInfo.seriesMap.get(vodInfo.playFlag);
@@ -647,15 +689,15 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             return;
         }
         mBinding.hsvSeriesJump.setVisibility(View.VISIBLE);
-        int step = 30;
-        boolean reverse = !isReverse;
-        // reverse=true 表示正序显示，reverse=false 表示倒序显示
+        int step = SERIES_SEGMENT_SIZE;
         int textColor = resolveSkinColor(R.attr.skin_text_secondary);
-        for (int start = 0; start < total; start += step) {
+        int selectedColor = resolveSkinColor(R.attr.skin_text_primary);
+        for (int i = 0; i * step < total; i++) {
+            int start = i * step;
             int end = Math.min(start + step, total);
-            int count = end - start;
-            int startIndex = reverse ? start : (total - end);
-            int lastIndex = startIndex + count - 1;
+            // 分段直接对应网格里显示的那 30 集（列表顺序已包含正/倒序）
+            int startIndex = start;
+            int lastIndex = end - 1;
             String label;
             try {
                 String n1 = list.get(startIndex).name.replaceAll("\\D+", "");
@@ -670,32 +712,44 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             } catch (Throwable th) {
                 label = (start + 1) + "-" + end;
             }
+            final int seg = i;
+            boolean active = (i == seriesSegment);
             TextView tv = new TextView(this);
             tv.setText(label);
             tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-            tv.setTextColor(textColor);
+            tv.setTextColor(active ? selectedColor : textColor);
             int padX = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics());
             int padY = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 5, getResources().getDisplayMetrics());
             tv.setPadding(padX, padY, padX, padY);
             android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
             bg.setCornerRadius(padY * 1.2f);
-            bg.setStroke(1, 0x33888888);
+            if (active) {
+                bg.setColor(0x33FFFFFF);
+                bg.setStroke(1, 0xFF3B7BFF);
+            } else {
+                bg.setStroke(1, 0x33888888);
+            }
             tv.setBackground(bg);
             int margin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 6, getResources().getDisplayMetrics());
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             lp.setMargins(margin / 2, 0, margin / 2, 0);
             tv.setLayoutParams(lp);
-            final int finalStartIndex = startIndex;
-            tv.setOnClickListener(v -> scrollToSeries(finalStartIndex));
+            tv.setOnClickListener(v -> selectSeriesSegment(seg));
             ll.addView(tv);
         }
     }
 
-    /**
-     * 选集在 ScrollView 内铺开，RecyclerView 本身不可滚动，
-     * 因此分段跳转必须滚动外层 ScrollView 到目标集所在行。
-     */
-    private void scrollToSeries(int pos) {
+    /** 切换选集分段：网格只显示这一段，并且把页面滚回选集顶部 */
+    private void selectSeriesSegment(int seg) {
+        if (seg == seriesSegment) return;
+        seriesSegment = seg;
+        applySeriesData();
+        rebuildSeriesJumpBar();
+        scrollGridToTop();
+    }
+
+    /** 把外层 ScrollView 滚到选集网格顶部，避免切段后还停在下方的空白处 */
+    private void scrollGridToTop() {
         android.widget.ScrollView scroll = null;
         android.view.ViewParent p = mBinding.mGridView.getParent();
         while (p != null) {
@@ -706,25 +760,12 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             p = p.getParent();
         }
         if (scroll == null) return;
-        androidx.recyclerview.widget.RecyclerView.LayoutManager lm = mBinding.mGridView.getLayoutManager();
-        int yInGrid;
-        View child = lm == null ? null : lm.findViewByPosition(pos);
-        if (child != null) {
-            yInGrid = child.getTop();
-        } else {
-            int span = 1;
-            if (lm instanceof androidx.recyclerview.widget.GridLayoutManager) {
-                span = ((androidx.recyclerview.widget.GridLayoutManager) lm).getSpanCount();
-            }
-            int h = mBinding.mGridView.getChildCount() > 0 ? mBinding.mGridView.getChildAt(0).getHeight() : 0;
-            yInGrid = (pos / Math.max(1, span)) * h;
-        }
         int[] g = new int[2];
         int[] s = new int[2];
         mBinding.mGridView.getLocationOnScreen(g);
         scroll.getLocationOnScreen(s);
         int gridTop = g[1] - s[1] + scroll.getScrollY();
-        scroll.smoothScrollTo(0, Math.max(0, gridTop + yInGrid - 40));
+        scroll.smoothScrollTo(0, Math.max(0, gridTop - 60));
     }
 
     /** 读取当前主题 skin_* 属性颜色，取不到时退回半透明灰 */
@@ -945,14 +986,18 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             if (event.obj != null) {
                 if (event.obj instanceof Integer) {
                     int index = (int) event.obj;
-                    for (int j = 0; j < vodInfo.seriesMap.get(vodInfo.playFlag).size(); j++) {
-                        seriesAdapter.getData().get(j).selected = false;
-                        seriesAdapter.notifyItemChanged(j);
+                    List<VodInfo.VodSeries> full = fullSeries();
+                    for (int j = 0; j < full.size(); j++) {
+                        full.get(j).selected = false;
                     }
-                    seriesAdapter.getData().get(index).selected = true;
-                    seriesAdapter.notifyItemChanged(index);
-                    //mBinding.mGridView.setSelection(index);
+                    if (index >= 0 && index < full.size()) {
+                        full.get(index).selected = true;
+                    }
                     vodInfo.playIndex = index;
+                    // 切到当前播放集所在分段并刷新网格
+                    seriesSegment = Math.max(0, index / SERIES_SEGMENT_SIZE);
+                    applySeriesData();
+                    rebuildSeriesJumpBar();
                     //保存历史
                     insertVod(sourceKey, vodInfo);
                 } else if (event.obj instanceof JSONObject) {
