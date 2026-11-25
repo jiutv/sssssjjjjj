@@ -27,6 +27,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -210,7 +211,6 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         mBinding.mGridView.setHasFixedSize(true);
         mBinding.mGridView.setNestedScrollingEnabled(false);
         mBinding.mGridViewFlag.setNestedScrollingEnabled(false);
-        mBinding.rvParse.setNestedScrollingEnabled(false);
         seriesAdapter = new SeriesAdapter(true);
         applySeriesLayout();
         mBinding.mGridView.setAdapter(seriesAdapter);
@@ -650,18 +650,20 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         int step = 30;
         boolean reverse = !isReverse;
         // reverse=true 表示正序显示，reverse=false 表示倒序显示
-        int spanCount = ((GridLayoutManager) mBinding.mGridView.getLayoutManager()).getSpanCount();
+        int textColor = resolveSkinColor(R.attr.skin_text_secondary);
         for (int start = 0; start < total; start += step) {
             int end = Math.min(start + step, total);
+            int count = end - start;
             int startIndex = reverse ? start : (total - end);
+            int lastIndex = startIndex + count - 1;
             String label;
             try {
-                String s = list.get(reverse ? start : (total - end)).name.trim();
-                String e = list.get(reverse ? (end - 1) : (total - start - 1)).name.trim();
-                String sNum = s.replaceAll("\\D+", "");
-                String eNum = e.replaceAll("\\D+", "");
-                if (!sNum.isEmpty() && !eNum.isEmpty()) {
-                    label = sNum + "-" + eNum;
+                String n1 = list.get(startIndex).name.replaceAll("\\D+", "");
+                String n2 = list.get(lastIndex).name.replaceAll("\\D+", "");
+                if (!n1.isEmpty() && !n2.isEmpty()) {
+                    int a = Integer.parseInt(n1);
+                    int b = Integer.parseInt(n2);
+                    label = Math.min(a, b) + "-" + Math.max(a, b);
                 } else {
                     label = (start + 1) + "-" + end;
                 }
@@ -671,7 +673,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             TextView tv = new TextView(this);
             tv.setText(label);
             tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-            tv.setTextColor(getResources().getColor(R.color.skin_text_secondary));
+            tv.setTextColor(textColor);
             int padX = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics());
             int padY = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 5, getResources().getDisplayMetrics());
             tv.setPadding(padX, padY, padX, padY);
@@ -684,11 +686,57 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             lp.setMargins(margin / 2, 0, margin / 2, 0);
             tv.setLayoutParams(lp);
             final int finalStartIndex = startIndex;
-            tv.setOnClickListener(v -> {
-                mBinding.mGridView.smoothScrollToPosition(finalStartIndex);
-            });
+            tv.setOnClickListener(v -> scrollToSeries(finalStartIndex));
             ll.addView(tv);
         }
+    }
+
+    /**
+     * 选集在 ScrollView 内铺开，RecyclerView 本身不可滚动，
+     * 因此分段跳转必须滚动外层 ScrollView 到目标集所在行。
+     */
+    private void scrollToSeries(int pos) {
+        android.widget.ScrollView scroll = null;
+        android.view.ViewParent p = mBinding.mGridView.getParent();
+        while (p != null) {
+            if (p instanceof android.widget.ScrollView) {
+                scroll = (android.widget.ScrollView) p;
+                break;
+            }
+            p = p.getParent();
+        }
+        if (scroll == null) return;
+        androidx.recyclerview.widget.RecyclerView.LayoutManager lm = mBinding.mGridView.getLayoutManager();
+        int yInGrid;
+        View child = lm == null ? null : lm.findViewByPosition(pos);
+        if (child != null) {
+            yInGrid = child.getTop();
+        } else {
+            int span = 1;
+            if (lm instanceof androidx.recyclerview.widget.GridLayoutManager) {
+                span = ((androidx.recyclerview.widget.GridLayoutManager) lm).getSpanCount();
+            }
+            int h = mBinding.mGridView.getChildCount() > 0 ? mBinding.mGridView.getChildAt(0).getHeight() : 0;
+            yInGrid = (pos / Math.max(1, span)) * h;
+        }
+        int[] g = new int[2];
+        int[] s = new int[2];
+        mBinding.mGridView.getLocationOnScreen(g);
+        scroll.getLocationOnScreen(s);
+        int gridTop = g[1] - s[1] + scroll.getScrollY();
+        scroll.smoothScrollTo(0, Math.max(0, gridTop + yInGrid - 40));
+    }
+
+    /** 读取当前主题 skin_* 属性颜色，取不到时退回半透明灰 */
+    private int resolveSkinColor(int attr) {
+        TypedValue tv = new TypedValue();
+        if (getTheme().resolveAttribute(attr, tv, true)) {
+            if (tv.resourceId != 0) {
+                return androidx.core.content.ContextCompat.getColor(this, tv.resourceId);
+            }
+            return tv.data;
+        }
+        return 0x88FFFFFF;
     }
 
     private void initViewModel() {
