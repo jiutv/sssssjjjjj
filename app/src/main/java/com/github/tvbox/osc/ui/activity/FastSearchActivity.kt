@@ -1,6 +1,8 @@
 package com.github.tvbox.osc.ui.activity
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.Editable
 import android.text.TextUtils
 import android.text.TextWatcher
@@ -51,6 +53,7 @@ import com.orhanobut.hawk.Hawk
 import com.zhy.view.flowlayout.FlowLayout
 import com.zhy.view.flowlayout.TagAdapter
 import okhttp3.Response
+import java.net.URLEncoder
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import java.util.concurrent.ExecutorService
@@ -62,6 +65,11 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
     override fun vbInflate(inflater: android.view.LayoutInflater, parent: android.view.ViewGroup?, attachToRoot: Boolean) = ActivityFastSearchBinding.inflate(inflater, parent, attachToRoot)
 
     companion object {
+        /** 单源超时：超过这个时间仍未返回，就当作无响应，避免整页一直等 */
+        private const val SEARCH_TIMEOUT_MS = 12_000L
+        /** 联想词防抖间隔 */
+        private const val SUGGEST_DEBOUNCE_MS = 280L
+
         private var mCheckSources: HashMap<String, String>? = null
         fun setCheckedSourcesForSearch(checkedSources: HashMap<String, String>?) {
             mCheckSources = checkedSources
@@ -78,9 +86,31 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
     private var resultVods = HashMap<String, MutableList<Movie.Video>>()
     private var pauseRunnable: MutableList<Runnable>? = null
     private var mSearchSuggestionsDialog: SearchSuggestionsDialog? = null
+
+    /** 主线程定时器：联想防抖 + 搜索超时兜底 */
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var suggestRunnable: Runnable? = null
+    private val suggestSeq = AtomicInteger(0)
+    /** 搜索批次号：每次新搜索递增，迟到的旧结果直接丢弃 */
+    private var searchToken = 0
+    /** 本次搜索还没有返回的源 */
+    private val pendingSources = HashSet<String>()
+    private var searchTotal = 0
+    private var searchDone = 0
+    private var searchFinished = true
+    private var timeoutRunnable: Runnable? = null
+    /** 剧名归一化后 -> 各源结果，用于同剧去重合并 */
+    private val groupedVideos = LinkedHashMap<String, MutableList<Movie.Video>>()
+
     override fun init() {
         sourceViewModel = ViewModelProvider(this).get(SourceViewModel::class.java)
         initView()
+        // 同一个剧名合并了多个源时，列表项显示「· N源」
+        val sourceCounter = FastSearchAdapter.SourceCounter { video ->
+            groupedVideos[normalizeTitle(video.name)]?.size ?: 0
+        }
+        searchAdapter.setSourceCounter(sourceCounter)
+        searchAdapterFilter.setSourceCounter(sourceCounter)
         initData()
         //历史搜索
         initHistorySearch()
@@ -126,20 +156,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         mBinding.mGridView.adapter = searchAdapter
         searchAdapter.setOnItemClickListener { _, view, position ->
             FastClickCheckUtil.check(view)
-            val video = searchAdapter.data[position]
-            try {
-                if (searchExecutorService != null) {
-                    pauseRunnable = searchExecutorService!!.shutdownNow()
-                    searchExecutorService = null
-                    JsLoader.stopAll()
-                }
-            } catch (th: Throwable) {
-                th.printStackTrace()
-            }
-            val bundle = Bundle()
-            bundle.putString("id", video.id)
-            bundle.putString("sourceKey", video.sourceKey)
-            jumpActivity(DetailActivity::class.java, bundle)
+            openVideo(searchAdapter.data[position])
         }
         mBinding.mGridViewFilter.setLayoutManager(LinearLayoutManager(this))
 
@@ -147,21 +164,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         searchAdapterFilter.setOnItemClickListener { _, view, position ->
             FastClickCheckUtil.check(view)
             val video = searchAdapterFilter.data[position]
-            if (video != null) {
-                try {
-                    if (searchExecutorService != null) {
-                        pauseRunnable = searchExecutorService!!.shutdownNow()
-                        searchExecutorService = null
-                        JsLoader.stopAll()
-                    }
-                } catch (th: Throwable) {
-                    th.printStackTrace()
-                }
-                val bundle = Bundle()
-                bundle.putString("id", video.id)
-                bundle.putString("sourceKey", video.sourceKey)
-                jumpActivity(DetailActivity::class.java, bundle)
-            }
+            if (video != null) openVideo(video)
         }
 
         searchAdapter.setOnItemLongClickListener { _, _, position ->
@@ -208,8 +211,9 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         if (key.isNullOrEmpty()) return
         if (searchFilterKey === key) return
         searchFilterKey = key
-        val list: List<Movie.Video> = (resultVods[key])!!
-        searchAdapterFilter.setNewData(list)
+        // 该源可能还没返回，不能强解包
+        val list: List<Movie.Video> = resultVods[key] ?: ArrayList()
+        searchAdapterFilter.setNewData(ArrayList(list))
     }
 
     private fun initData() {
@@ -315,10 +319,15 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
      * 联想搜索
      */
     private fun getSuggest(text: String) {
-        // 加载热词
-        OkGo.get<String>("https://suggest.video.iqiyi.com/?if=mobile&key=$text")
+        // 同一时刻只允许一个联想请求，避免「庆余年」三个字发出三个请求、旧结果覆盖新结果
+        val seq = suggestSeq.incrementAndGet()
+        OkGo.getInstance().cancelTag("suggest")
+        val url = "https://suggest.video.iqiyi.com/?if=mobile&key=" + URLEncoder.encode(text, "UTF-8")
+        OkGo.get<String>(url)
+            .tag("suggest")
             .execute(object : AbsCallback<String?>() {
                 override fun onSuccess(response: com.lzy.okgo.model.Response<String?>) {
+                    if (seq != suggestSeq.get()) return // 已有更新的联想请求，丢弃本次结果
                     val titles: MutableList<String> = ArrayList()
                     try {
                         val json = JsonParser.parseString(response.body()).asJsonObject
@@ -424,6 +433,11 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         hideHotAndHistorySearch(true)
         KeyboardUtils.hideSoftInput(this)
         cancel()
+        // 取消可能还在路上的联想请求，避免弹窗又冒出来
+        suggestRunnable?.let { mainHandler.removeCallbacks(it) }
+        suggestSeq.incrementAndGet()
+        OkGo.getInstance().cancelTag("suggest")
+        searchToken++ // 新批次：旧结果一律丢弃
         showLoading()
         searchTitle = title
         //fenci();
@@ -432,6 +446,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         searchAdapter!!.setNewData(ArrayList())
         searchAdapterFilter!!.setNewData(ArrayList())
         resultVods.clear()
+        groupedVideos.clear()
         searchFilterKey = ""
         isFilterMode = false
         spNames.clear()
@@ -467,6 +482,12 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
             searchAdapterFilter.setNewData(ArrayList())
             allRunCount.set(0)
         }
+        // 新一轮搜索：重置统计
+        groupedVideos.clear()
+        pendingSources.clear()
+        searchDone = 0
+        searchTotal = 0
+        searchFinished = false
         searchExecutorService = Executors.newFixedThreadPool(10)
         val searchRequestList: MutableList<SourceBean> = ArrayList()
         searchRequestList.addAll(ApiConfig.get().sourceBeanList)
@@ -487,10 +508,21 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
             spNames[bean.name] = bean.key
             allRunCount.incrementAndGet()
         }
+        pendingSources.addAll(siteKey)
+        searchTotal = siteKey.size
+        if (siteKey.isEmpty()) {
+            finishSearch()
+            return
+        }
+        updateSearchProgress()
+        // 超时兜底：到点强制收尾，不让用户无限等
+        timeoutRunnable?.let { mainHandler.removeCallbacks(it) }
+        timeoutRunnable = Runnable { finishSearch() }
+        mainHandler.postDelayed(timeoutRunnable!!, SEARCH_TIMEOUT_MS)
         for (key: String in siteKey) {
             searchExecutorService!!.execute {
                 try {
-                    sourceViewModel.getSearch(key, searchTitle)
+                    sourceViewModel.getSearch(key, searchTitle, searchToken.toString())
                 } catch (_: Exception) {
                 }
             }
@@ -537,34 +569,159 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
     }
 
     private fun searchData(absXml: AbsXml?) {
-        var lastSourceKey = ""
-        if ((absXml != null) && (absXml.movie != null) && (absXml.movie.videoList != null) && (absXml.movie.videoList.size > 0)) {
-            val data: MutableList<Movie.Video> = ArrayList()
-            for (video: Movie.Video in absXml.movie.videoList) {
+        // 上一轮搜索迟到的结果，直接丢弃
+        val token = absXml?.searchToken
+        if (!token.isNullOrEmpty() && token != searchToken.toString()) return
+
+        // 计数：这个源已经回来了（空结果也算）
+        val sourceKey = absXml?.sourceKey
+        if (sourceKey != null && pendingSources.remove(sourceKey)) {
+            searchDone++
+        }
+
+        var added = false
+        val list = absXml?.movie?.videoList
+        if (list != null && list.isNotEmpty()) {
+            for (video: Movie.Video in list) {
                 if (!matchSearchResult(video.name, searchTitle)) continue
-                data.add(video)
-                if (!resultVods.containsKey(video.sourceKey)) {
-                    resultVods[video.sourceKey] = ArrayList()
-                }
-                resultVods[video.sourceKey]!!.add(video)
-                if (video.sourceKey !== lastSourceKey) { // 添加到最后面并记录最后一个key用于下次判断
-                    lastSourceKey = addWordAdapterIfNeed(video.sourceKey)
-                }
-            }
-            if (searchAdapter.data.size > 0) {
-                searchAdapter.addData(data)
-            } else {
-                showSuccess()
-                if (!isFilterMode) mBinding.mGridView.visibility = View.VISIBLE
-                searchAdapter.setNewData(data)
+                added = true
+                resultVods.getOrPut(video.sourceKey) { ArrayList() }.add(video)
+                groupedVideos.getOrPut(normalizeTitle(video.name)) { ArrayList() }.add(video)
+                addWordAdapterIfNeed(video.sourceKey)
             }
         }
-        val count = allRunCount.decrementAndGet()
-        if (count <= 0) {
-            if (searchAdapter.data.size <= 0) {
-                showEmpty()
+        if (added) {
+            rebuildGroupedList()
+            showSuccess()
+            if (!isFilterMode) mBinding.mGridView.visibility = View.VISIBLE
+        }
+
+        updateSearchProgress()
+        if (pendingSources.isEmpty()) {
+            finishSearch()
+        }
+    }
+
+    /** 按剧名归一化合并后重建列表，并按匹配度排序 */
+    private fun rebuildGroupedList() {
+        val rows = ArrayList<Movie.Video>()
+        for (group in groupedVideos.values) {
+            if (group.isEmpty()) continue
+            rows.add(pickRepresentative(group))
+        }
+        rows.sortWith(
+            compareByDescending<Movie.Video> { scoreName(it.name) }
+                .thenBy { it.name?.length ?: 0 }
+        )
+        searchAdapter.setNewData(rows)
+        if (isFilterMode) {
+            val key = searchFilterKey
+            val list: List<Movie.Video> = if (key.isNullOrEmpty()) emptyList() else (resultVods[key] ?: emptyList())
+            searchAdapterFilter.setNewData(ArrayList(list))
+        }
+    }
+
+    /** 同剧多源时选一个最有代表性的（优先名称完全一致，其次名称最短） */
+    private fun pickRepresentative(group: MutableList<Movie.Video>): Movie.Video {
+        val title = searchTitle?.trim()
+        if (!title.isNullOrEmpty()) {
+            for (v in group) if (v.name?.trim() == title) return v
+        }
+        var best = group[0]
+        for (v in group) {
+            val n = v.name ?: continue
+            if (n.length < (best.name?.length ?: Int.MAX_VALUE)) best = v
+        }
+        return best
+    }
+
+    /** 去重用的标题归一化：去括号备注、去空白与标点 */
+    private fun normalizeTitle(name: String?): String {
+        if (name.isNullOrEmpty()) return ""
+        return name
+            .replace(Regex("[（(\\[【][^）)\\]】]*[）)\\]】]"), "")
+            .replace(Regex("[\\s\\p{Z}\\p{P}\\p{S}]"), "")
+            .lowercase()
+    }
+
+    /** 相关度：完全一致 > 开头匹配 > 包含 > 分词全中 */
+    private fun scoreName(name: String?): Int {
+        val n = name?.trim() ?: return 0
+        val t = searchTitle?.trim() ?: return 0
+        if (t.isEmpty()) return 0
+        return when {
+            n == t -> 100
+            n.startsWith(t) -> 80
+            n.contains(t) -> 60
+            matchSearchResult(n, t) -> 40
+            else -> 0
+        }
+    }
+
+    /** 点结果：同剧只有一个源直接进详情，多个源弹窗让用户选 */
+    private fun openVideo(video: Movie.Video) {
+        val group = groupedVideos[normalizeTitle(video.name)]
+        if (group == null || group.size <= 1) {
+            jumpToDetail(video)
+            return
+        }
+        val names = group.map { v ->
+            val site = ApiConfig.get().getSource(v.sourceKey)?.name ?: v.sourceKey
+            if (v.note.isNullOrEmpty()) site else site + " · " + v.note
+        }.toTypedArray()
+        XPopup.Builder(this)
+            .isDarkTheme(com.github.tvbox.osc.util.Utils.isDarkTheme())
+            .asCenterList("选择播放源（共 " + group.size + " 个）", names, null) { position, _ ->
+                if (position in group.indices) jumpToDetail(group[position])
             }
-            cancel()
+            .show()
+    }
+
+    private fun jumpToDetail(video: Movie.Video) {
+        try {
+            if (searchExecutorService != null) {
+                pauseRunnable = searchExecutorService!!.shutdownNow()
+                searchExecutorService = null
+                JsLoader.stopAll()
+            }
+        } catch (th: Throwable) {
+            th.printStackTrace()
+        }
+        val bundle = Bundle()
+        bundle.putString("id", video.id)
+        bundle.putString("sourceKey", video.sourceKey)
+        jumpActivity(DetailActivity::class.java, bundle)
+    }
+
+    private fun updateSearchProgress() {
+        if (searchTotal <= 0) {
+            mBinding.tvSearchProgress.visibility = View.GONE
+            return
+        }
+        mBinding.tvSearchProgress.visibility = View.VISIBLE
+        mBinding.tvSearchProgress.text = if (searchFinished) {
+            if (pendingSources.isEmpty()) "已搜索 " + searchTotal + " 个源"
+            else "已返回 " + searchDone + "/" + searchTotal + " 个源 · " + pendingSources.size + " 个无响应"
+        } else {
+            "搜索中 " + searchDone + "/" + searchTotal + " 个源"
+        }
+    }
+
+    private fun finishSearch() {
+        if (searchFinished) return
+        searchFinished = true
+        timeoutRunnable?.let { mainHandler.removeCallbacks(it) }
+        timeoutRunnable = null
+        if (searchAdapter.data.isEmpty()) {
+            showEmpty()
+        } else {
+            showSuccess()
+            if (!isFilterMode) mBinding.mGridView.visibility = View.VISIBLE
+        }
+        cancel()
+        updateSearchProgress()
+        if (pendingSources.isNotEmpty()) {
+            ToastUtils.showShort(pendingSources.size.toString() + " 个源无响应")
         }
     }
 
@@ -574,6 +731,9 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
 
     override fun onDestroy() {
         super.onDestroy()
+        suggestRunnable?.let { mainHandler.removeCallbacks(it) }
+        timeoutRunnable?.let { mainHandler.removeCallbacks(it) }
+        OkGo.getInstance().cancelTag("suggest")
         cancel()
         try {
             if (searchExecutorService != null) {
@@ -590,11 +750,17 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
     override fun onTextChanged(charSequence: CharSequence, i: Int, i1: Int, i2: Int) {}
     override fun afterTextChanged(editable: Editable) {
         val text = editable.toString()
+        suggestRunnable?.let { mainHandler.removeCallbacks(it) }
         if (TextUtils.isEmpty(text)) {
+            suggestSeq.incrementAndGet()
+            OkGo.getInstance().cancelTag("suggest")
             mSearchSuggestionsDialog?.dismiss()
             hideHotAndHistorySearch(false)
         } else {
-            getSuggest(text)
+            // 停止输入 280ms 后才发联想请求，避免每敲一个字都打网络
+            val task = Runnable { getSuggest(text) }
+            suggestRunnable = task
+            mainHandler.postDelayed(task, SUGGEST_DEBOUNCE_MS)
         }
     }
 

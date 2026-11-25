@@ -518,7 +518,7 @@ public class SourceViewModel extends ViewModel {
         }
     }
     // searchContent
-    public void getSearch(String sourceKey, String wd) {
+    public void getSearch(String sourceKey, String wd, String searchToken) {
         SourceBean sourceBean = ApiConfig.get().getSource(sourceKey);
         int type = sourceBean.getType();
         if (type == 3) {
@@ -529,13 +529,13 @@ public class SourceViewModel extends ViewModel {
                         Spider sp = ApiConfig.get().getCSP(sourceBean);
                         String search = sp.searchContent(wd, false);
                         if(!TextUtils.isEmpty(search)){
-                            json(searchResult, search, sourceBean.getKey());
+                            json(searchResult, search, sourceBean.getKey(), searchToken);
                         } else {
-                            json(searchResult, "", sourceBean.getKey());
+                            json(searchResult, "", sourceBean.getKey(), searchToken);
                         }
                     } catch (Throwable th) {
                         th.printStackTrace();
-                        json(searchResult, "", sourceBean.getKey());
+                        json(searchResult, "", sourceBean.getKey(), searchToken);
                     }
                 }
             });
@@ -558,18 +558,17 @@ public class SourceViewModel extends ViewModel {
                         public void onSuccess(Response<String> response) {
                             if (type == 0) {
                                 String xml = response.body();
-                                xml(searchResult, xml, sourceBean.getKey());
+                                xml(searchResult, xml, sourceBean.getKey(), searchToken);
                             } else {
                                 String json = response.body();
-                                json(searchResult, json, sourceBean.getKey());
+                                json(searchResult, json, sourceBean.getKey(), searchToken);
                             }
                         }
 
                         @Override
                         public void onError(Response<String> response) {
                             super.onError(response);
-                            // searchResult.postValue(null);
-                            EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_SEARCH_RESULT, null));
+                            postSearchEmpty(sourceBean.getKey(), searchToken);
                         }
                     });
         }else if (type == 4) {
@@ -592,7 +591,7 @@ public class SourceViewModel extends ViewModel {
                     public void onSuccess(Response<String> response) {
                             String json = response.body();
                         LOG.i(json);
-                            json(searchResult, json, sourceBean.getKey());
+                            json(searchResult, json, sourceBean.getKey(), searchToken);
                     }
 
                     @Override
@@ -603,7 +602,7 @@ public class SourceViewModel extends ViewModel {
                     }
                 });
         } else {
-            searchResult.postValue(null);
+            postSearchEmpty(sourceBean.getKey(), searchToken);
         }
     }
     // searchContent
@@ -851,6 +850,16 @@ public class SourceViewModel extends ViewModel {
         }
     }
 
+    /** 搜索失败或空结果时回一个带 sourceKey 的空包，界面才能按源计数、提示无响应 */
+    private void postSearchEmpty(String sourceKey, String searchToken) {
+        AbsXml data = new AbsXml();
+        data.searchToken = searchToken;
+        data.sourceKey = sourceKey;
+        data.movie = new Movie();
+        data.movie.videoList = new ArrayList<>();
+        EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_SEARCH_RESULT, data));
+    }
+
     private void absXml(AbsXml data, String sourceKey) {
         if (data.movie != null && data.movie.videoList != null) {
             for (Movie.Video video : data.movie.videoList) {
@@ -959,6 +968,10 @@ public class SourceViewModel extends ViewModel {
 
 
     private AbsXml xml(MutableLiveData<AbsXml> result, String xml, String sourceKey) {
+        return xml(result, xml, sourceKey, null);
+    }
+
+    private AbsXml xml(MutableLiveData<AbsXml> result, String xml, String sourceKey, String searchToken) {
         try {
             XStream xstream = new XStream(new DomDriver());//创建Xstram对象
             xstream.autodetectAnnotations(true);
@@ -971,6 +984,10 @@ public class SourceViewModel extends ViewModel {
                 xml = xml.replace("<state></state>", "<state>0</state>");
             }
             AbsXml data = (AbsXml) xstream.fromXML(xml);
+            if (data != null) {
+                data.searchToken = searchToken;
+                data.sourceKey = sourceKey;
+            }
             absXml(data, sourceKey);
             if (data == null || data.movie == null || data.movie.videoList == null
                     || data.movie.videoList.isEmpty()) {
@@ -991,7 +1008,7 @@ public class SourceViewModel extends ViewModel {
         } catch (Exception e) {
             setDetailError(result, "解析失败:" + e.getClass().getSimpleName());
             if (searchResult == result) {
-                EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_SEARCH_RESULT, null));
+                postSearchEmpty(sourceKey, searchToken);
             } else if (quickSearchResult == result) {
                 EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_QUICK_SEARCH_RESULT, null));
             } else if (result != null) {
@@ -1002,6 +1019,10 @@ public class SourceViewModel extends ViewModel {
     }
 
     private AbsXml json(MutableLiveData<AbsXml> result, String json, String sourceKey) {
+        return json(result, json, sourceKey, null);
+    }
+
+    private AbsXml json(MutableLiveData<AbsXml> result, String json, String sourceKey, String searchToken) {
         try {
             // 测试数据
             /*json = "{\n" +
@@ -1032,6 +1053,10 @@ public class SourceViewModel extends ViewModel {
                 }
             }
             AbsXml data = absJson.toAbsXml();
+            if (data != null) {
+                data.searchToken = searchToken;
+                data.sourceKey = sourceKey;
+            }
             absXml(data, sourceKey);
             if (data == null || data.movie == null || data.movie.videoList == null
                     || data.movie.videoList.isEmpty()) {
@@ -1052,7 +1077,7 @@ public class SourceViewModel extends ViewModel {
         } catch (Exception e) {
             setDetailError(result, "解析失败:" + e.getClass().getSimpleName());
             if (searchResult == result) {
-                EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_SEARCH_RESULT, null));
+                postSearchEmpty(sourceKey, searchToken);
             } else if (quickSearchResult == result) {
                 EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_QUICK_SEARCH_RESULT, null));
             } else if (result != null) {

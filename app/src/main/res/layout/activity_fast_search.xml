@@ -164,6 +164,17 @@
             android:paddingLeft="10dp"
             android:paddingRight="10dp">
 
+            <!-- 搜索进度：已返回 x/y 个源，结束后提示无响应源数量 -->
+            <TextView
+                android:id="@+id/tvSearchProgress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingVertical="6dp"
+                android:textSize="12sp"
+                android:textColor="?attr/skin_text_secondary"
+                android:visibility="gone"
+                tools:text="搜索中 12/38 个源"
+                tools:visibility="visible" />
 
             <com.owen.tvrecyclerview.widget.TvRecyclerView
                 android:id="@+id/mGridView"
