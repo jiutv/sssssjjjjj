@@ -32,6 +32,7 @@ import com.github.tvbox.osc.databinding.ActivityFastSearchBinding
 import com.github.tvbox.osc.event.RefreshEvent
 import com.github.tvbox.osc.event.ServerEvent
 import com.github.tvbox.osc.ui.adapter.FastSearchAdapter
+import com.github.tvbox.osc.ui.dialog.AllSitesResultDialog
 import com.github.tvbox.osc.ui.dialog.DoubanSuggestDialog
 import com.github.tvbox.osc.ui.dialog.SearchCheckboxDialog
 import com.github.tvbox.osc.ui.dialog.SearchSuggestionsDialog
@@ -102,13 +103,18 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
     private val sourceTimeoutRunnables = ArrayList<Runnable>()
     /** 剧名归一化后 -> 各源结果，用于同剧去重合并 */
     private val groupedVideos = LinkedHashMap<String, MutableList<Movie.Video>>()
+    /** 本次搜索的站点顺序，「全部站点结果」按这个顺序分组 */
+    private val siteOrder = ArrayList<String>()
 
     override fun init() {
         sourceViewModel = ViewModelProvider(this).get(SourceViewModel::class.java)
         initView()
         // 同一个剧名合并了多个源时，列表项显示「· N源」
         val sourceCounter = FastSearchAdapter.SourceCounter { video ->
-            groupedVideos[normalizeTitle(video.name)]?.size ?: 0
+            groupedVideos[normalizeTitle(video.name)]
+                ?.mapNotNull { it.sourceKey }
+                ?.distinct()
+                ?.size ?: 0
         }
         searchAdapter.setSourceCounter(sourceCounter)
         searchAdapterFilter.setSourceCounter(sourceCounter)
@@ -141,6 +147,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
             false
         }
         mBinding.etSearch.addTextChangedListener(this)
+        mBinding.ivAllSites.setOnClickListener { showAllSitesResult() }
         mBinding.ivFilter.setOnClickListener { filterSearchSource() }
         mBinding.ivBack.setOnClickListener { finish() }
         mBinding.ivSearch.setOnClickListener {
@@ -485,6 +492,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         }
         // 新一轮搜索：重置统计
         groupedVideos.clear()
+        siteOrder.clear()
         pendingSources.clear()
         searchDone = 0
         searchTotal = 0
@@ -506,6 +514,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
                 continue
             }
             siteKey.add(bean.key)
+            siteOrder.add(bean.key)
             spNames[bean.name] = bean.key
             allRunCount.incrementAndGet()
         }
@@ -656,13 +665,52 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         return best
     }
 
-    /** 去重用的标题归一化：去括号备注、去空白与标点 */
+    /**
+     * 聚合用的标题归一化：
+     * 去括号备注、站点名前缀（如「酷酷看·嫁金钗」）、清晰度/语言/版本、集数标记，再去空白与标点。
+     */
     private fun normalizeTitle(name: String?): String {
         if (name.isNullOrEmpty()) return ""
-        return name
+        var title = name
             .replace(Regex("[（(\\[【][^）)\\]】]*[）)\\]】]"), "")
+            .trim()
+        title = stripSitePrefix(title)
+        title = title
+            .replace(Regex("(?i)(2160p|1080p|720p|4k|8k|hdr|hd|蓝光|超清|高清|国语|粤语|中字|双语|完整版|未删减|tv版|剧版|电影版|电视剧)"), "")
+            .replace(Regex("第\\s*\\d+\\s*[集话期]"), "")
+            .replace(Regex("(全|共|更新至|已更新至|更新|连载至)\\s*\\d+\\s*[集话期]"), "")
+            .replace(Regex("(完结|已完结|全集)"), "")
+            .trim()
+        val cleaned = title
             .replace(Regex("[\\s\\p{Z}\\p{P}\\p{S}]"), "")
             .lowercase()
+        // 全是噪音时退回原名的清理结果，避免把所有结果并成一条
+        if (cleaned.isEmpty()) {
+            return name.replace(Regex("[\\s\\p{Z}\\p{P}\\p{S}]"), "").lowercase()
+        }
+        return cleaned
+    }
+
+    /** 去掉片名前的站点名/品牌前缀，如「酷酷看·嫁金钗」→「嫁金钗」 */
+    private fun stripSitePrefix(title: String): String {
+        val m = Regex("^(.{1,12}?)\\s*[·|｜\\-—_:：]\\s*(.+)$").find(title) ?: return title
+        val prefix = m.groupValues[1].replace(Regex("[^\\u4e00-\\u9fa5A-Za-z0-9]"), "")
+        if (prefix.isEmpty()) return title
+        val rest = m.groupValues[2].trim()
+        if (rest.isEmpty()) return title
+        // 1) 前缀就是已知站点名
+        for (site in spNames.keys) {
+            val s = site.replace(Regex("[^\\u4e00-\\u9fa5A-Za-z0-9]"), "")
+            if (s.isNotEmpty() && s.equals(prefix, true)) return rest
+        }
+        // 2) 未知品牌前缀：剩余部分和搜索词高度吻合时才去掉（如「酷酷看·嫁金钗」）
+        val query = searchTitle?.trim().orEmpty()
+        if (prefix.length <= 6 && query.isNotEmpty()) {
+            val q = query.replace(Regex("[\\s\\p{Z}\\p{P}\\p{S}]"), "").lowercase()
+            val r = rest.replace(Regex("[\\s\\p{Z}\\p{P}\\p{S}]"), "").lowercase()
+            if (q.isNotEmpty() && (r == q || r.startsWith(q) || q.startsWith(r))) return rest
+        }
+        return title
     }
 
     /** 相关度：完全一致 > 开头匹配 > 包含 > 分词全中 */
@@ -721,6 +769,26 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
             bundle.putStringArrayList("searchSourceNotes", notes)
         }
         jumpActivity(DetailActivity::class.java, bundle)
+    }
+
+    /** 右上角按钮：按站点分组展示所有站点搜到的全部影片 */
+    private fun showAllSitesResult() {
+        val data = LinkedHashMap<String, List<Movie.Video>>()
+        for (key in siteOrder) {
+            val list = resultVods[key]
+            if (!list.isNullOrEmpty()) data[key] = ArrayList(list)
+        }
+        if (data.isEmpty()) {
+            ToastUtils.showShort("还没有搜索结果")
+            return
+        }
+        val dialog = AllSitesResultDialog(this, data) { video -> openVideo(video) }
+        XPopup.Builder(this)
+            .isDarkTheme(com.github.tvbox.osc.util.Utils.isDarkTheme())
+            .popupWidth(ScreenUtils.getScreenWidth())
+            .popupHeight(ScreenUtils.getScreenHeight())
+            .asCustom(dialog)
+            .show()
     }
 
     private fun updateSearchProgress() {
