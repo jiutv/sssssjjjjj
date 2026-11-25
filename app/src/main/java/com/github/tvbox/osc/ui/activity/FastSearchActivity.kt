@@ -105,6 +105,9 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
     private val groupedVideos = LinkedHashMap<String, MutableList<Movie.Video>>()
     /** 本次搜索的站点顺序，「全部站点结果」按这个顺序分组 */
     private val siteOrder = ArrayList<String>()
+    /** 每个源搜索的开始时间 / 实际耗时(ms)，用于按响应速度排序站点 */
+    private val sourceStart = HashMap<String, Long>()
+    private val sourceCost = HashMap<String, Long>()
 
     override fun init() {
         sourceViewModel = ViewModelProvider(this).get(SourceViewModel::class.java)
@@ -493,6 +496,8 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         // 新一轮搜索：重置统计
         groupedVideos.clear()
         siteOrder.clear()
+        sourceStart.clear()
+        sourceCost.clear()
         pendingSources.clear()
         searchDone = 0
         searchTotal = 0
@@ -529,6 +534,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         clearSourceTimeouts()
         val token = searchToken
         for (key: String in siteKey) {
+            sourceStart[key] = System.currentTimeMillis()
             val timeout = Runnable { markSourceFinished(key, token) }
             sourceTimeoutRunnables.add(timeout)
             mainHandler.postDelayed(timeout, SEARCH_TIMEOUT_MS)
@@ -546,6 +552,8 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
     /** 单个源到点仍未返回：只淘汰该源；批次已切换则忽略 */
     private fun markSourceFinished(key: String, token: Int) {
         if (token != searchToken) return
+        val start = sourceStart[key]
+        if (start != null) sourceCost[key] = System.currentTimeMillis() - start
         if (!pendingSources.remove(key)) return
         searchDone++
         updateSearchProgress()
@@ -603,10 +611,14 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         val token = absXml?.searchToken
         if (!token.isNullOrEmpty() && token != searchToken.toString()) return
 
-        // 计数：这个源已经回来了（空结果也算）
+        // 计数：这个源已经回来了（空结果也算），顺便记录响应耗时
         val sourceKey = absXml?.sourceKey
-        if (sourceKey != null && pendingSources.remove(sourceKey)) {
-            searchDone++
+        if (sourceKey != null) {
+            if (pendingSources.remove(sourceKey)) searchDone++
+            if (!sourceCost.containsKey(sourceKey)) {
+                val start = sourceStart[sourceKey]
+                if (start != null) sourceCost[sourceKey] = System.currentTimeMillis() - start
+            }
         }
 
         var added = false
@@ -737,6 +749,8 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
             val key = v.sourceKey ?: ""
             if (seen.add(key)) picked.add(v)
         }
+        // 按搜索响应速度排序：快的源排前面，进播放页默认用最快的源
+        picked.sortBy { sourceCost[it.sourceKey] ?: Long.MAX_VALUE }
         jumpToDetail(picked)
     }
 
@@ -759,30 +773,35 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
             val keys = ArrayList<String>()
             val ids = ArrayList<String>()
             val notes = ArrayList<String>()
-            for (v in videos) {
+            val costs = LongArray(videos.size)
+            for ((i, v) in videos.withIndex()) {
                 keys.add(v.sourceKey ?: "")
                 ids.add(v.id ?: "")
                 notes.add(v.note ?: "")
+                costs[i] = sourceCost[v.sourceKey] ?: -1L
             }
             bundle.putStringArrayList("searchSourceKeys", keys)
             bundle.putStringArrayList("searchSourceIds", ids)
             bundle.putStringArrayList("searchSourceNotes", notes)
+            bundle.putLongArray("searchSourceCosts", costs)
         }
         jumpActivity(DetailActivity::class.java, bundle)
     }
 
-    /** 右上角按钮：按站点分组展示所有站点搜到的全部影片 */
+    /** 右上角按钮：按站点分组展示所有站点搜到的全部影片，站点按响应速度排序 */
     private fun showAllSitesResult() {
+        val orderedKeys = siteOrder
+            .filter { !resultVods[it].isNullOrEmpty() }
+            .sortedBy { sourceCost[it] ?: Long.MAX_VALUE }
         val data = LinkedHashMap<String, List<Movie.Video>>()
-        for (key in siteOrder) {
-            val list = resultVods[key]
-            if (!list.isNullOrEmpty()) data[key] = ArrayList(list)
+        for (key in orderedKeys) {
+            data[key] = ArrayList(resultVods[key]!!)
         }
         if (data.isEmpty()) {
             ToastUtils.showShort("还没有搜索结果")
             return
         }
-        val dialog = AllSitesResultDialog(this, data) { video -> openVideo(video) }
+        val dialog = AllSitesResultDialog(this, data, sourceCost) { video -> openVideo(video) }
         XPopup.Builder(this)
             .isDarkTheme(com.github.tvbox.osc.util.Utils.isDarkTheme())
             .popupWidth(ScreenUtils.getScreenWidth())

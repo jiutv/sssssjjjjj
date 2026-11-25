@@ -137,6 +137,8 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
     private final ArrayList<String> playSourceKeys = new ArrayList<>();
     private final ArrayList<String> playSourceIds = new ArrayList<>();
     private final ArrayList<String> playSourceNotes = new ArrayList<>();
+    /** 各源的搜索响应耗时(ms)，与上面的 key 一一对应，-1 表示未知 */
+    private long[] playSourceCosts;
     private View seriesFlagFocus = null;
     private boolean isReverse;
     /** 需求4：选集布局模式 0=完整(单列) 1=紧凑(固定4列) 2=智能(按屏宽自适应) */
@@ -759,6 +761,9 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         SourceBean bean = ApiConfig.get().getSource(key);
         String name = bean != null && !TextUtils.isEmpty(bean.getName()) ? bean.getName() : key;
         String address = bean != null && !TextUtils.isEmpty(bean.getApi()) ? bean.getApi() : key;
+        if (playSourceCosts != null && index < playSourceCosts.length && playSourceCosts[index] > 0) {
+            address = address + " · " + playSourceCosts[index] + "ms";
+        }
         String note = index < playSourceNotes.size() ? playSourceNotes.get(index) : "";
         if (!TextUtils.isEmpty(note)) {
             name = name + " · " + note;
@@ -986,6 +991,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             ArrayList<String> keys = bundle.getStringArrayList("searchSourceKeys");
             ArrayList<String> ids = bundle.getStringArrayList("searchSourceIds");
             ArrayList<String> notes = bundle.getStringArrayList("searchSourceNotes");
+            playSourceCosts = bundle.getLongArray("searchSourceCosts");
             if (keys != null && ids != null && keys.size() == ids.size()) {
                 playSourceKeys.clear();
                 playSourceIds.clear();

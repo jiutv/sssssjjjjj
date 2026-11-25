@@ -39,6 +39,7 @@ public class AllSitesResultDialog extends CenterPopupView {
     }
 
     private final LinkedHashMap<String, List<Movie.Video>> data;
+    private final java.util.Map<String, Long> costs;
     private final OnVideoClick listener;
 
     private FastSearchAdapter adapter;
@@ -50,9 +51,11 @@ public class AllSitesResultDialog extends CenterPopupView {
 
     public AllSitesResultDialog(@NonNull @NotNull Context context,
                                 LinkedHashMap<String, List<Movie.Video>> data,
+                                java.util.Map<String, Long> costs,
                                 OnVideoClick listener) {
         super(context);
         this.data = data;
+        this.costs = costs;
         this.listener = listener;
     }
 
@@ -97,13 +100,15 @@ public class AllSitesResultDialog extends CenterPopupView {
 
         siteContainer.removeAllViews();
         siteViews.clear();
-        addSiteView("全部显示", 0);
+        addSiteView("全部显示\n" + total + " 部", 0);
         for (int i = 0; i < siteKeys.size(); i++) {
             String key = siteKeys.get(i);
             SourceBean source = ApiConfig.get().getSource(key);
             String name = source == null || TextUtils.isEmpty(source.getName()) ? key : source.getName();
             List<Movie.Video> list = data.get(key);
-            addSiteView(name + " · " + (list == null ? 0 : list.size()), i + 1);
+            int size = list == null ? 0 : list.size();
+            Long cost = costs == null ? null : costs.get(key);
+            addSiteView(name + "\n" + size + " 部" + (cost == null ? "" : " · " + cost + "ms"), i + 1);
         }
         selectSite(0);
     }
