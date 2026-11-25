@@ -679,26 +679,21 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         }
     }
 
-    /** 点结果：同剧只有一个源直接进详情，多个源弹窗让用户选 */
+    /** 点结果：直接进播放页，这个剧在所有源的结果一起带过去，在播放页里切换 */
     private fun openVideo(video: Movie.Video) {
-        val group = groupedVideos[normalizeTitle(video.name)]
-        if (group == null || group.size <= 1) {
-            jumpToDetail(video)
-            return
+        val picked = ArrayList<Movie.Video>()
+        picked.add(video)
+        val seen = HashSet<String>()
+        seen.add(video.sourceKey ?: "")
+        groupedVideos[normalizeTitle(video.name)]?.forEach { v ->
+            val key = v.sourceKey ?: ""
+            if (seen.add(key)) picked.add(v)
         }
-        val names = group.map { v ->
-            val site = ApiConfig.get().getSource(v.sourceKey)?.name ?: v.sourceKey
-            if (v.note.isNullOrEmpty()) site else site + " · " + v.note
-        }.toTypedArray()
-        XPopup.Builder(this)
-            .isDarkTheme(com.github.tvbox.osc.util.Utils.isDarkTheme())
-            .asCenterList("选择播放源（共 " + group.size + " 个）", names, null) { position, _ ->
-                if (position in group.indices) jumpToDetail(group[position])
-            }
-            .show()
+        jumpToDetail(picked)
     }
 
-    private fun jumpToDetail(video: Movie.Video) {
+    private fun jumpToDetail(videos: List<Movie.Video>) {
+        if (videos.isEmpty()) return
         try {
             if (searchExecutorService != null) {
                 pauseRunnable = searchExecutorService!!.shutdownNow()
@@ -708,9 +703,23 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         } catch (th: Throwable) {
             th.printStackTrace()
         }
+        val first = videos[0]
         val bundle = Bundle()
-        bundle.putString("id", video.id)
-        bundle.putString("sourceKey", video.sourceKey)
+        bundle.putString("id", first.id)
+        bundle.putString("sourceKey", first.sourceKey)
+        if (videos.size > 1) {
+            val keys = ArrayList<String>()
+            val ids = ArrayList<String>()
+            val notes = ArrayList<String>()
+            for (v in videos) {
+                keys.add(v.sourceKey ?: "")
+                ids.add(v.id ?: "")
+                notes.add(v.note ?: "")
+            }
+            bundle.putStringArrayList("searchSourceKeys", keys)
+            bundle.putStringArrayList("searchSourceIds", ids)
+            bundle.putStringArrayList("searchSourceNotes", notes)
+        }
         jumpActivity(DetailActivity::class.java, bundle)
     }
 

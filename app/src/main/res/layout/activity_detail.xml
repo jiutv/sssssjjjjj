@@ -267,6 +267,40 @@
                     android:layout_marginHorizontal="14dp"
                     android:layout_marginTop="2dp"/>
 
+                <!-- 搜索结果里同剧的多个播放源：显示源名称和地址，点击直接切源 -->
+                <LinearLayout
+                    android:id="@+id/llSourceSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="14dp"
+                        android:layout_marginTop="12dp"
+                        android:text="播放源"
+                        android:textColor="?attr/skin_text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <HorizontalScrollView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:clipToPadding="false"
+                        android:paddingHorizontal="14dp"
+                        android:scrollbars="none">
+
+                        <LinearLayout
+                            android:id="@+id/llPlaySources"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal" />
+                    </HorizontalScrollView>
+                </LinearLayout>
 
                 <LinearLayout
                     android:id="@+id/mEmptyPlaylist"

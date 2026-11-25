@@ -133,6 +133,10 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
     public SeriesAdapter seriesAdapter;
     public String vodId;
     public String sourceKey;
+    /** 搜索结果带过来的同剧其他播放源（与 id 一一对应），用于在播放页内直接切源 */
+    private final ArrayList<String> playSourceKeys = new ArrayList<>();
+    private final ArrayList<String> playSourceIds = new ArrayList<>();
+    private final ArrayList<String> playSourceNotes = new ArrayList<>();
     private View seriesFlagFocus = null;
     private boolean isReverse;
     /** 需求4：选集布局模式 0=完整(单列) 1=紧凑(固定4列) 2=智能(按屏宽自适应) */
@@ -739,6 +743,83 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         }
     }
 
+    /** 搜索结果里的同剧多源：在播放页展示源名称和地址，点击直接切换 */
+    private void rebuildPlaySources() {
+        boolean show = playSourceKeys.size() > 1;
+        mBinding.llSourceSection.setVisibility(show ? View.VISIBLE : View.GONE);
+        mBinding.llPlaySources.removeAllViews();
+        if (!show) return;
+        for (int i = 0; i < playSourceKeys.size(); i++) {
+            mBinding.llPlaySources.addView(buildPlaySourceChip(i));
+        }
+    }
+
+    private View buildPlaySourceChip(int index) {
+        String key = playSourceKeys.get(index);
+        SourceBean bean = ApiConfig.get().getSource(key);
+        String name = bean != null && !TextUtils.isEmpty(bean.getName()) ? bean.getName() : key;
+        String address = bean != null && !TextUtils.isEmpty(bean.getApi()) ? bean.getApi() : key;
+        String note = index < playSourceNotes.size() ? playSourceNotes.get(index) : "";
+        if (!TextUtils.isEmpty(note)) {
+            name = name + " · " + note;
+        }
+        boolean active = key.equals(sourceKey);
+
+        LinearLayout chip = new LinearLayout(this);
+        chip.setOrientation(LinearLayout.VERTICAL);
+        int padX = ConvertUtils.dp2px(12);
+        int padY = ConvertUtils.dp2px(8);
+        chip.setPadding(padX, padY, padX, padY);
+
+        TextView nameView = new TextView(this);
+        nameView.setText(name);
+        nameView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        nameView.setTextColor(resolveSkinColor(active ? R.attr.skin_text_primary : R.attr.skin_text_secondary));
+        nameView.setSingleLine(true);
+        nameView.setEllipsize(TextUtils.TruncateAt.END);
+        chip.addView(nameView);
+
+        TextView addressView = new TextView(this);
+        addressView.setText(address);
+        addressView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+        addressView.setTextColor(resolveSkinColor(R.attr.skin_text_secondary));
+        addressView.setSingleLine(true);
+        addressView.setEllipsize(TextUtils.TruncateAt.MIDDLE);
+        addressView.setMaxWidth(ConvertUtils.dp2px(200));
+        chip.addView(addressView);
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(ConvertUtils.dp2px(10));
+        if (active) {
+            bg.setColor(0x223B7BFF);
+            bg.setStroke(1, 0xFF3B7BFF);
+        } else {
+            bg.setStroke(1, 0x33888888);
+        }
+        chip.setBackground(bg);
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.rightMargin = ConvertUtils.dp2px(10);
+        chip.setLayoutParams(lp);
+        chip.setOnClickListener(v -> switchPlaySource(index));
+        return chip;
+    }
+
+    /** 在播放页内切换播放源：重新拉取该源的线路和选集 */
+    private void switchPlaySource(int index) {
+        if (index < 0 || index >= playSourceKeys.size() || index >= playSourceIds.size()) return;
+        String key = playSourceKeys.get(index);
+        String id = playSourceIds.get(index);
+        if (TextUtils.isEmpty(id)) return;
+        if (key.equals(sourceKey) && id.equals(vodId)) return;
+        SourceBean bean = ApiConfig.get().getSource(key);
+        String name = bean != null && !TextUtils.isEmpty(bean.getName()) ? bean.getName() : key;
+        ToastUtils.showShort("切换到 " + name);
+        loadDetail(id, key);
+        rebuildPlaySources();
+    }
+
     /** 切换选集分段：网格只显示这一段，并且把页面滚回选集顶部 */
     private void selectSeriesSegment(int seg) {
         if (seg == seriesSegment) return;
@@ -791,6 +872,10 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                 mTimeoutHandler.removeCallbacks(detailTimeoutRunnable);
                 if (absXml != null && absXml.movie != null && absXml.movie.videoList != null
                         && absXml.movie.videoList.size() > 0) {
+                    // 在播放页里切源时，上一次源的迟到结果直接丢弃
+                    if (!TextUtils.isEmpty(absXml.sourceKey) && !absXml.sourceKey.equals(sourceKey)) {
+                        return;
+                    }
                     // 剧集列表写入内存缓存，短时间内重复打开优先命中
                     if (detailCacheKey != null) {
                         PlayCache.putDetail(detailCacheKey, absXml);
@@ -824,6 +909,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                     String srcName = detailSource == null ? null : detailSource.getName();
                     mBinding.tvSite.setText("来源：" + (TextUtils.isEmpty(srcName) ? "未知" : srcName));
                     bindDetailInfo(mVideo);
+                    rebuildPlaySources();
 
                     if (vodInfo.seriesMap != null && vodInfo.seriesMap.size() > 0) {//线路
                         mBinding.mGridViewFlag.setVisibility(View.VISIBLE);
@@ -897,7 +983,21 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         Intent intent = getIntent();
         if (intent != null && intent.getExtras() != null) {
             Bundle bundle = intent.getExtras();
+            ArrayList<String> keys = bundle.getStringArrayList("searchSourceKeys");
+            ArrayList<String> ids = bundle.getStringArrayList("searchSourceIds");
+            ArrayList<String> notes = bundle.getStringArrayList("searchSourceNotes");
+            if (keys != null && ids != null && keys.size() == ids.size()) {
+                playSourceKeys.clear();
+                playSourceIds.clear();
+                playSourceNotes.clear();
+                playSourceKeys.addAll(keys);
+                playSourceIds.addAll(ids);
+                if (notes != null && notes.size() == keys.size()) {
+                    playSourceNotes.addAll(notes);
+                }
+            }
             loadDetail(bundle.getString("id", null), bundle.getString("sourceKey", ""));
+            rebuildPlaySources();
         }
     }
 
