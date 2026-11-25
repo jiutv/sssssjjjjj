@@ -65,8 +65,8 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
     override fun vbInflate(inflater: android.view.LayoutInflater, parent: android.view.ViewGroup?, attachToRoot: Boolean) = ActivityFastSearchBinding.inflate(inflater, parent, attachToRoot)
 
     companion object {
-        /** 单源超时：超过这个时间仍未返回，就当作无响应，避免整页一直等 */
-        private const val SEARCH_TIMEOUT_MS = 12_000L
+        /** 单源超时：每个源独立计时，到点只淘汰这一个源，不影响其他源继续搜索 */
+        private const val SEARCH_TIMEOUT_MS = 30_000L
         /** 联想词防抖间隔 */
         private const val SUGGEST_DEBOUNCE_MS = 280L
 
@@ -98,7 +98,8 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
     private var searchTotal = 0
     private var searchDone = 0
     private var searchFinished = true
-    private var timeoutRunnable: Runnable? = null
+    /** 每个源各自的超时定时器，新一轮搜索/页面销毁时统一移除 */
+    private val sourceTimeoutRunnables = ArrayList<Runnable>()
     /** 剧名归一化后 -> 各源结果，用于同剧去重合并 */
     private val groupedVideos = LinkedHashMap<String, MutableList<Movie.Video>>()
 
@@ -515,18 +516,38 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
             return
         }
         updateSearchProgress()
-        // 超时兜底：到点强制收尾，不让用户无限等
-        timeoutRunnable?.let { mainHandler.removeCallbacks(it) }
-        timeoutRunnable = Runnable { finishSearch() }
-        mainHandler.postDelayed(timeoutRunnable!!, SEARCH_TIMEOUT_MS)
+        // 每个源独立计时：到点只淘汰这一个源，其他源继续搜索，不再整页一刀切
+        clearSourceTimeouts()
+        val token = searchToken
         for (key: String in siteKey) {
+            val timeout = Runnable { markSourceFinished(key, token) }
+            sourceTimeoutRunnables.add(timeout)
+            mainHandler.postDelayed(timeout, SEARCH_TIMEOUT_MS)
             searchExecutorService!!.execute {
                 try {
                     sourceViewModel.getSearch(key, searchTitle, searchToken.toString())
                 } catch (_: Exception) {
+                    // 提交失败也要回包，否则这个源只能干等超时
+                    mainHandler.post { markSourceFinished(key, token) }
                 }
             }
         }
+    }
+
+    /** 单个源到点仍未返回：只淘汰该源；批次已切换则忽略 */
+    private fun markSourceFinished(key: String, token: Int) {
+        if (token != searchToken) return
+        if (!pendingSources.remove(key)) return
+        searchDone++
+        updateSearchProgress()
+        if (pendingSources.isEmpty()) finishSearch()
+    }
+
+    private fun clearSourceTimeouts() {
+        for (runnable in sourceTimeoutRunnables) {
+            mainHandler.removeCallbacks(runnable)
+        }
+        sourceTimeoutRunnables.clear()
     }
 
     /**
@@ -710,8 +731,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
     private fun finishSearch() {
         if (searchFinished) return
         searchFinished = true
-        timeoutRunnable?.let { mainHandler.removeCallbacks(it) }
-        timeoutRunnable = null
+        clearSourceTimeouts()
         if (searchAdapter.data.isEmpty()) {
             showEmpty()
         } else {
@@ -732,7 +752,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
     override fun onDestroy() {
         super.onDestroy()
         suggestRunnable?.let { mainHandler.removeCallbacks(it) }
-        timeoutRunnable?.let { mainHandler.removeCallbacks(it) }
+        clearSourceTimeouts()
         OkGo.getInstance().cancelTag("suggest")
         cancel()
         try {

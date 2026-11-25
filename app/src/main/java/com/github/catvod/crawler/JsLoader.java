@@ -108,7 +108,8 @@ public class JsLoader {
     private volatile String recentJarKey = "";
 
 
-    public Spider getSpider(String key, String api, String ext, String jar) {
+    // 搜索改为多线程并发后，同一个 js 源可能被同时创建；加锁避免重复初始化 js 引擎
+    public synchronized Spider getSpider(String key, String api, String ext, String jar) {
         Class<?> classLoader = null;
         if (!jar.isEmpty()) {
             String[] urls = jar.split(";md5;");

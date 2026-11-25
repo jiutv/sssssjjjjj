@@ -118,7 +118,8 @@ public class JarLoader {
         return null;
     }
 
-    public Spider getSpider(String key, String cls, String ext, String jar) {
+    // 搜索改为多线程并发后，爬虫首次创建/下载 jar 可能同时发生；加锁避免重复下载和覆盖缓存文件
+    public synchronized Spider getSpider(String key, String cls, String ext, String jar) {
         String clsKey = cls.replace("csp_", "");
         String jarUrl = "";
         String jarMd5 = "";

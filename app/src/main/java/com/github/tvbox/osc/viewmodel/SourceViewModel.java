@@ -88,6 +88,13 @@ public class SourceViewModel extends ViewModel {
      */
     public static final ExecutorService listThreadPool = Executors.newFixedThreadPool(3);
     /**
+     * 搜索专用线程池：
+     * 原来 jar/js 源的搜索和首页/详情共用 spThreadPool 单线程，多个源只能排队，
+     * 总超时一到，排在后面的源还没开始跑就被判成"无响应"。
+     * 搜索单独用固定线程池并发执行，各源互不阻塞。
+     */
+    private static final ExecutorService searchSpiderPool = Executors.newFixedThreadPool(8);
+    /**
      * 最近一次"获取剧集列表"失败的具体原因，详情页会把它显示在加载提示里。
      * 只用于定位问题，不参与业务逻辑。
      */
@@ -520,9 +527,14 @@ public class SourceViewModel extends ViewModel {
     // searchContent
     public void getSearch(String sourceKey, String wd, String searchToken) {
         SourceBean sourceBean = ApiConfig.get().getSource(sourceKey);
+        if (sourceBean == null) {
+            // 源已不存在：也要回空包，否则这个源永远挂在"未返回"里
+            postSearchEmpty(sourceKey, searchToken);
+            return;
+        }
         int type = sourceBean.getType();
         if (type == 3) {
-            spThreadPool.execute(new Runnable() {
+            searchSpiderPool.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -597,8 +609,8 @@ public class SourceViewModel extends ViewModel {
                     @Override
                     public void onError(Response<String> response) {
                         super.onError(response);
-                        // searchResult.postValue(null);
-                        EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_SEARCH_RESULT, null));
+                        // 回带 sourceKey 的空包，界面才能把该源计为"已返回"
+                        postSearchEmpty(sourceBean.getKey(), searchToken);
                     }
                 });
         } else {
