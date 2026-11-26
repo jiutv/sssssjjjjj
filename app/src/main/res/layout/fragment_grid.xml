@@ -19,18 +19,28 @@
         android:paddingBottom="@dimen/bottom_nav_overlay_padding"
         android:clipToPadding="false" />
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
+    <!-- 筛选：胶囊按钮，文字「筛选」 -->
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_filter"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="40dp"
         android:layout_alignParentEnd="true"
         android:layout_alignParentBottom="true"
-        android:layout_marginTop="20dp"
         android:layout_marginEnd="20dp"
         android:layout_marginBottom="96dp"
-        android:backgroundTint="@color/colorPrimary"
-        app:borderWidth="0dp"
-        android:src="@drawable/ic_filter_list"
-        app:tint="@android:color/white"
-        />
+        android:insetLeft="0dp"
+        android:insetRight="0dp"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="0dp"
+        android:text="筛选"
+        android:textColor="?attr/skin_on_accent"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        app:backgroundTint="?attr/skin_accent"
+        app:cornerRadius="20dp"
+        app:elevation="6dp" />
 </RelativeLayout>
