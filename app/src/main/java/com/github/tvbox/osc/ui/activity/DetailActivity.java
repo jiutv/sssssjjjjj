@@ -991,11 +991,12 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         return 0;
     }
 
-    /** 当前列表里实测最快的源，没测出来返回 null */
+    /** 当前列表里实测最快的源，没测出来返回 null；跳过音乐/短剧等不匹配的源 */
     private String fastestSourceKey() {
         String fastest = null;
         long best = Long.MAX_VALUE;
         for (String k : playSourceKeys) {
+            if (isSuspectSource(k)) continue;
             Long c = speedCost.get(k);
             if (c != null && c > 0 && c < best) {
                 best = c;
@@ -1003,6 +1004,23 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             }
         }
         return fastest;
+    }
+
+    /**
+     * 判断源是否明显不是这部剧：
+     * 1) 站点名带音乐/短剧/听书等关键词；
+     * 2) 当前是剧集（≥2集），该源却只有 1 集。
+     */
+    private boolean isSuspectSource(String key) {
+        SourceBean bean = ApiConfig.get().getSource(key);
+        String name = bean != null && !TextUtils.isEmpty(bean.getName()) ? bean.getName() : key;
+        String[] badWords = {"音乐", "短剧", "听书", "有声", "小说", "漫画", "歌曲", "评书", "MV", "DJ"};
+        for (String word : badWords) {
+            if (name.contains(word)) return true;
+        }
+        int currentEps = episodeCountFor(sourceKey);
+        int eps = episodeCountFor(key);
+        return currentEps >= 2 && eps == 1;
     }
 
     /** 从详情里取各线路中最大的集数 */
@@ -1183,6 +1201,10 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                 boolean aActive = sourceKey != null && sourceKey.equals(playSourceKeys.get(a));
                 boolean bActive = sourceKey != null && sourceKey.equals(playSourceKeys.get(b));
                 if (aActive != bActive) return aActive ? -1 : 1;
+                // 音乐/短剧/听书等明显不匹配的源，无论多快都排到最后
+                boolean aBad = isSuspectSource(playSourceKeys.get(a));
+                boolean bBad = isSuspectSource(playSourceKeys.get(b));
+                if (aBad != bBad) return aBad ? 1 : -1;
                 long ca = scoreOf(playSourceKeys.get(a));
                 long cb = scoreOf(playSourceKeys.get(b));
                 if (ca <= 0 && cb <= 0) return 0;
