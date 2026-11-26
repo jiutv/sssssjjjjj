@@ -10,7 +10,9 @@ import android.view.Gravity
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.GridLayoutManager
@@ -53,7 +55,12 @@ import com.orhanobut.hawk.Hawk
 import com.zhy.view.flowlayout.FlowLayout
 import com.zhy.view.flowlayout.TagAdapter
 import okhttp3.Response
+import org.json.JSONObject
 import java.net.URLEncoder
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import java.util.concurrent.ExecutorService
@@ -73,6 +80,13 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         private val FALLBACK_HOT_WORDS = listOf(
             "庆余年", "狂飙", "繁花", "长相思", "莲花楼", "三体", "漫长的季节", "苍兰诀"
         )
+        /** 热搜数据源：豆瓣年度热门（参考 AVBox 的实现） */
+        private const val HOT_URL =
+            "https://movie.douban.com/j/new_search_subjects?sort=U&range=0,10&tags=&playable=1&start=0&year_range="
+        private const val HOT_UA =
+            "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+        private const val HOT_CACHE_JSON = "fast_search_hot_json"
+        private const val HOT_CACHE_DAY = "fast_search_hot_day"
 
         private var mCheckSources: HashMap<String, String>? = null
         fun setCheckedSourcesForSearch(checkedSources: HashMap<String, String>?) {
@@ -119,7 +133,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         //历史搜索
         initHistorySearch()
         // 热门搜索
-        hotWords
+        loadHotWords()
     }
 
     override fun onResume() {
@@ -272,55 +286,113 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
     /**
      * 热门搜索
      */
-    private val hotWords: Unit
-        get() {
-            // 先展示内置热词，保证「热门搜索」永远有内容
-            applyHotWords(FALLBACK_HOT_WORDS)
-            // 接口成功再替换成实时热词
-            OkGo.get<String>("https://node.video.qq.com/x/api/hot_search")
-                .params("channdlId", "0")
-                .params("_", System.currentTimeMillis())
-                .execute(object : AbsCallback<String?>() {
-                    override fun onSuccess(response: com.lzy.okgo.model.Response<String?>) {
-                        try {
-                            val hots = ArrayList<String>()
-                            val itemList =
-                                JsonParser.parseString(response.body()).asJsonObject["data"].asJsonObject["mapResult"].asJsonObject["0"].asJsonObject["listInfo"].asJsonArray
-                            for (ele: JsonElement in itemList) {
-                                val obj = ele as JsonObject
-                                val word = obj["title"].asString.trim()
-                                    .replace("<|>|《|》|-".toRegex(), "")
-                                    .split(" ".toRegex())
-                                    .firstOrNull { it.isNotBlank() }
-                                if (!word.isNullOrBlank()) hots.add(word)
-                            }
-                            if (hots.isNotEmpty()) applyHotWords(hots)
-                        } catch (_: Throwable) {
-                            // 接口结构变动时保留内置热词
-                        }
-                    }
-
-                    @Throws(Throwable::class)
-                    override fun convertResponse(response: Response): String {
-                        return response.body()!!.string()
-                    }
-                })
-        }
-
-    private fun applyHotWords(words: List<String>) {
-        val list = ArrayList(words)
-        mBinding.flHot.adapter = object : TagAdapter<String>(list) {
-            override fun getView(parent: FlowLayout, position: Int, s: String): View {
-                val tv: TextView = LayoutInflater.from(this@FastSearchActivity).inflate(
-                    R.layout.item_search_word_hot, mBinding.flHot, false
-                ) as TextView
-                tv.text = s
-                return tv
+    /**
+     * 热搜榜：豆瓣年度热门 + 当天缓存 + 内置兜底（逻辑参考 AVBox）
+     */
+    private fun loadHotWords() {
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.CHINA).format(Date())
+        val cachedDay = Hawk.get<String>(HOT_CACHE_DAY, "")
+        val cachedJson = Hawk.get<String>(HOT_CACHE_JSON, "")
+        if (cachedDay == today && !cachedJson.isNullOrEmpty()) {
+            val cachedWords = parseHotTitles(cachedJson)
+            if (cachedWords.isNotEmpty()) {
+                applyHotRank(cachedWords)
+                return
             }
         }
-        mBinding.flHot.setOnTagClickListener { _: View?, position: Int, _: FlowLayout? ->
-            if (position in list.indices) search(list[position])
-            true
+        // 接口返回前先展示兜底榜，保证永远有内容
+        applyHotRank(FALLBACK_HOT_WORDS)
+        val year = Calendar.getInstance().get(Calendar.YEAR)
+        OkGo.get<String>(HOT_URL + "$year,$year")
+            .headers("User-Agent", HOT_UA)
+            .headers("Referer", "https://movie.douban.com/")
+            .execute(object : AbsCallback<String?>() {
+                override fun onSuccess(response: com.lzy.okgo.model.Response<String?>) {
+                    val body = response.body() ?: return
+                    val words = parseHotTitles(body)
+                    if (words.isNotEmpty()) {
+                        Hawk.put(HOT_CACHE_JSON, body)
+                        Hawk.put(HOT_CACHE_DAY, today)
+                        applyHotRank(words)
+                    }
+                }
+
+                @Throws(Throwable::class)
+                override fun convertResponse(response: Response): String {
+                    return response.body()!!.string()
+                }
+            })
+    }
+
+    private fun parseHotTitles(json: String?): List<String> = try {
+        val arr = JSONObject(json ?: "").optJSONArray("data") ?: return emptyList()
+        (0 until minOf(arr.length(), 20)).mapNotNull {
+            arr.optJSONObject(it)?.optString("title")?.takeIf { t -> t.isNotBlank() }
+        }
+    } catch (_: Throwable) {
+        emptyList()
+    }
+
+    /** 热搜榜：两列、带名次，前三名用 accent 色 */
+    private fun applyHotRank(words: List<String>) {
+        val container = mBinding.llHotRank
+        container.removeAllViews()
+        val density = resources.displayMetrics.density
+        val accent = resolveSkinColor(R.attr.skin_accent)
+        val primary = resolveSkinColor(R.attr.skin_text_primary)
+        val muted = resolveSkinColor(R.attr.skin_text_secondary)
+        fun dp(v: Int) = (v * density + 0.5f).toInt()
+        words.chunked(2).forEachIndexed { rowIndex, pair ->
+            val row = LinearLayout(this)
+            row.orientation = LinearLayout.HORIZONTAL
+            row.layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            pair.forEachIndexed { colIndex, title ->
+                val rank = rowIndex * 2 + colIndex + 1
+                val item = LinearLayout(this)
+                item.orientation = LinearLayout.HORIZONTAL
+                item.gravity = Gravity.CENTER_VERTICAL
+                item.setPadding(dp(4), dp(8), dp(4), dp(8))
+                item.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+
+                val numView = TextView(this)
+                numView.text = rank.toString()
+                numView.textSize = 14f
+                numView.gravity = Gravity.CENTER
+                numView.setTextColor(if (rank <= 3) accent else muted)
+                numView.layoutParams = LinearLayout.LayoutParams(dp(22), ViewGroup.LayoutParams.WRAP_CONTENT)
+
+                val nameView = TextView(this)
+                nameView.text = title
+                nameView.textSize = 14f
+                nameView.maxLines = 1
+                nameView.ellipsize = TextUtils.TruncateAt.END
+                nameView.setTextColor(primary)
+                val nameLp = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                nameLp.leftMargin = dp(8)
+                nameView.layoutParams = nameLp
+
+                item.addView(numView)
+                item.addView(nameView)
+                item.setOnClickListener { search(title) }
+                row.addView(item)
+            }
+            if (pair.size == 1) {
+                val spacer = View(this)
+                spacer.layoutParams = LinearLayout.LayoutParams(0, 1, 1f)
+                row.addView(spacer)
+            }
+            container.addView(row)
+        }
+    }
+
+    private fun resolveSkinColor(attr: Int): Int {
+        val value = android.util.TypedValue()
+        return if (theme.resolveAttribute(attr, value, true)) {
+            androidx.core.content.ContextCompat.getColor(this, value.resourceId)
+        } else {
+            0x88FFFFFF.toInt()
         }
     }
 

@@ -126,13 +126,12 @@
             android:textSize="15sp"
             android:textAlignment="center"/>
 
-        <com.zhy.view.flowlayout.TagFlowLayout
-            android:id="@+id/fl_hot"
-            zhy:max_select="1"
+        <LinearLayout
+            android:id="@+id/ll_hot_rank"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp">
-        </com.zhy.view.flowlayout.TagFlowLayout>
+            android:layout_marginTop="10dp"
+            android:orientation="vertical" />
 
     </LinearLayout>
 
