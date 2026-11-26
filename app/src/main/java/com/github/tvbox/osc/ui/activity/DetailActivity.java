@@ -144,6 +144,8 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
     private long[] playSourceCosts;
     /** 播放测速结果：sourceKey -> 读 256KB 耗时(ms)，以及实际字节数 */
     private final HashMap<String, Long> speedCost = new HashMap<>();
+    /** 各源当前的总集数（测速时顺手从详情里取），用于播放源卡片显示「共 N 集」 */
+    private final HashMap<String, Integer> sourceEpisodes = new HashMap<>();
     private final HashMap<String, Long> speedBytes = new HashMap<>();
     /** 已测速缓存：key|vodId -> {耗时ms, 时间戳}，10 分钟内不重复测 */
     private static final HashMap<String, long[]> SPEED_CACHE = new HashMap<>();
@@ -757,7 +759,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         }
     }
 
-    /** 搜索结果里的同剧多源：在播放页展示源名称和地址，点击直接切换 */
+    /** 搜索结果里的同剧多源：在播放页展示源名称、集数/清晰度和实测速度，点击直接切换 */
     private void rebuildPlaySources() {
         boolean show = playSourceKeys.size() > 1;
         mBinding.llSourceSection.setVisibility(show ? View.VISIBLE : View.GONE);
@@ -772,14 +774,14 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         String key = playSourceKeys.get(index);
         SourceBean bean = ApiConfig.get().getSource(key);
         String name = bean != null && !TextUtils.isEmpty(bean.getName()) ? bean.getName() : key;
-        String address = bean != null && !TextUtils.isEmpty(bean.getApi()) ? bean.getApi() : key;
+        // 不再展示 jar/接口地址：有集数就显示「共 N 集」，否则显示「高清」，后面接实测速度
+        int eps = episodeCountFor(key);
+        String info = eps > 0 ? "共 " + eps + " 集" : "高清";
         Long measured = speedCost.get(key);
         if (measured != null && measured > 0) {
             long bytes = speedBytes.containsKey(key) ? speedBytes.get(key) : 0;
             long kbps = bytes > 0 ? bytes * 1000 / measured / 1024 : 0;
-            address = address + " · " + (kbps > 0 ? kbps + "KB/s" : measured + "ms");
-        } else if (playSourceCosts != null && index < playSourceCosts.length && playSourceCosts[index] > 0) {
-            address = address + " · " + playSourceCosts[index] + "ms";
+            info = info + " · " + (kbps > 0 ? kbps + "KB/s" : measured + "ms");
         }
         String note = index < playSourceNotes.size() ? playSourceNotes.get(index) : "";
         if (!TextUtils.isEmpty(note)) {
@@ -802,11 +804,11 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         chip.addView(nameView);
 
         TextView addressView = new TextView(this);
-        addressView.setText(address);
+        addressView.setText(info);
         addressView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
         addressView.setTextColor(resolveSkinColor(R.attr.skin_text_secondary));
         addressView.setSingleLine(true);
-        addressView.setEllipsize(TextUtils.TruncateAt.MIDDLE);
+        addressView.setEllipsize(TextUtils.TruncateAt.END);
         addressView.setMaxWidth(ConvertUtils.dp2px(200));
         chip.addView(addressView);
 
@@ -919,6 +921,11 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                 final String key = absXml.sourceKey;
                 if (!speedWaitingDetail.remove(key)) return;
                 final int session = speedSession;
+                int eps = episodeCountOf(absXml);
+                if (eps > 0) {
+                    sourceEpisodes.put(key, eps);
+                    rebuildPlaySources();
+                }
                 speedPending++;
                 PlaySpeedMeter.measure(key, absXml, currentSeriesIndex(),
                         vodInfo == null ? null : vodInfo.playFlag,
@@ -943,6 +950,33 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         return vodInfo == null ? 0 : Math.max(0, vodInfo.playIndex);
     }
 
+    /** 取某源的总集数：优先测速时拿到的详情，其次当前源的选集列表 */
+    private int episodeCountFor(String key) {
+        Integer cached = sourceEpisodes.get(key);
+        if (cached != null && cached > 0) return cached;
+        if (key.equals(sourceKey) && vodInfo != null && vodInfo.seriesMap != null) {
+            List<VodInfo.VodSeries> list = vodInfo.seriesMap.get(vodInfo.playFlag);
+            if (list != null) return list.size();
+        }
+        return 0;
+    }
+
+    /** 从详情里取各线路中最大的集数 */
+    private int episodeCountOf(AbsXml absXml) {
+        try {
+            if (absXml.movie == null || absXml.movie.videoList == null || absXml.movie.videoList.isEmpty()) return 0;
+            Movie.Video video = absXml.movie.videoList.get(0);
+            if (video.urlBean == null || video.urlBean.infoList == null) return 0;
+            int max = 0;
+            for (Movie.Video.UrlBean.UrlInfo info : video.urlBean.infoList) {
+                if (info.beanList != null) max = Math.max(max, info.beanList.size());
+            }
+            return max;
+        } catch (Throwable ignore) {
+            return 0;
+        }
+    }
+
     /** 打开播放页后，后台并行测各个源的真实加载速度，测完按速度重排播放源 */
     private void maybeStartSpeedTest() {
         if (playSourceKeys.size() <= 1 || vodInfo == null || TextUtils.isEmpty(vodId)) return;
@@ -952,6 +986,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         final int session = speedSession;
         speedCost.clear();
         speedBytes.clear();
+        sourceEpisodes.clear();
         speedWaitingDetail.clear();
         speedPending = 0;
 
