@@ -276,15 +276,33 @@
                     android:visibility="gone"
                     tools:visibility="visible">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <RelativeLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginHorizontal="14dp"
-                        android:layout_marginTop="12dp"
-                        android:text="播放源"
-                        android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
+                        android:layout_marginTop="12dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerVertical="true"
+                            android:text="播放源"
+                            android:textColor="?attr/skin_text_primary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvChangeSource"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentRight="true"
+                            android:drawableRight="@drawable/ic_change_20"
+                            android:drawablePadding="4dp"
+                            android:paddingLeft="20dp"
+                            android:paddingVertical="6dp"
+                            android:text="快捷换源"
+                            android:textColor="?attr/skin_text_primary" />
+                    </RelativeLayout>
 
                     <HorizontalScrollView
                         android:layout_width="match_parent"

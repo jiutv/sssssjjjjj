@@ -20,7 +20,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.SpannableString;
+import android.text.Spanned;
 import android.text.TextUtils;
+import android.text.style.ForegroundColorSpan;
 import android.util.Rational;
 import android.util.TypedValue;
 import android.view.KeyEvent;
@@ -263,6 +266,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                 use1DMDownload();
             }
         });
+        mBinding.tvChangeSource.setOnClickListener(v -> quickSourceChange());
         mBinding.tvSort.setOnClickListener(new View.OnClickListener() {
             @SuppressLint("NotifyDataSetChanged")
             @Override
@@ -774,19 +778,20 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         String key = playSourceKeys.get(index);
         SourceBean bean = ApiConfig.get().getSource(key);
         String name = bean != null && !TextUtils.isEmpty(bean.getName()) ? bean.getName() : key;
-        // 不再展示 jar/接口地址：有集数就显示「共 N 集」，否则显示「高清」，后面接实测速度
+        // 站点后面的备注/集数/清晰度全部放到第二行；第一行只留站点名
         int eps = episodeCountFor(key);
-        String info = eps > 0 ? "共 " + eps + " 集" : "高清";
+        String note = index < playSourceNotes.size() ? playSourceNotes.get(index) : "";
+        List<String> parts = new ArrayList<>();
+        if (!TextUtils.isEmpty(note)) parts.add(note);
+        if (eps > 0) parts.add("共 " + eps + " 集");
+        if (parts.isEmpty()) parts.add("高清");
         Long measured = speedCost.get(key);
         if (measured != null && measured > 0) {
             long bytes = speedBytes.containsKey(key) ? speedBytes.get(key) : 0;
             long kbps = bytes > 0 ? bytes * 1000 / measured / 1024 : 0;
-            info = info + " · " + (kbps > 0 ? kbps + "KB/s" : measured + "ms");
+            parts.add(kbps > 0 ? kbps + "KB/s" : measured + "ms");
         }
-        String note = index < playSourceNotes.size() ? playSourceNotes.get(index) : "";
-        if (!TextUtils.isEmpty(note)) {
-            name = name + " · " + note;
-        }
+        String info = TextUtils.join(" · ", parts);
         boolean active = key.equals(sourceKey);
 
         LinearLayout chip = new LinearLayout(this);
@@ -796,7 +801,15 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         chip.setPadding(padX, padY, padX, padY);
 
         TextView nameView = new TextView(this);
-        nameView.setText(name);
+        String fastest = fastestSourceKey();
+        if (key.equals(fastest)) {
+            SpannableString ss = new SpannableString(name + "  最快");
+            ss.setSpan(new ForegroundColorSpan(resolveSkinColor(R.attr.skin_accent)),
+                    name.length() + 2, ss.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            nameView.setText(ss);
+        } else {
+            nameView.setText(name);
+        }
         nameView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         nameView.setTextColor(resolveSkinColor(active ? R.attr.skin_text_primary : R.attr.skin_text_secondary));
         nameView.setSingleLine(true);
@@ -828,6 +841,14 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         chip.setLayoutParams(lp);
         chip.setOnClickListener(v -> switchPlaySource(index));
         return chip;
+    }
+
+    /** 快捷换源：切到列表里的下一个源 */
+    private void quickSourceChange() {
+        if (playSourceKeys.size() <= 1) return;
+        int current = playSourceKeys.indexOf(sourceKey);
+        int next = current < 0 ? 0 : (current + 1) % playSourceKeys.size();
+        switchPlaySource(next);
     }
 
     /** 在播放页内切换播放源：重新拉取该源的线路和选集 */
@@ -961,6 +982,20 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         return 0;
     }
 
+    /** 当前列表里实测最快的源，没测出来返回 null */
+    private String fastestSourceKey() {
+        String fastest = null;
+        long best = Long.MAX_VALUE;
+        for (String k : playSourceKeys) {
+            Long c = speedCost.get(k);
+            if (c != null && c > 0 && c < best) {
+                best = c;
+                fastest = k;
+            }
+        }
+        return fastest;
+    }
+
     /** 从详情里取各线路中最大的集数 */
     private int episodeCountOf(AbsXml absXml) {
         try {
@@ -1032,6 +1067,10 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         Collections.sort(order, new Comparator<Integer>() {
             @Override
             public int compare(Integer a, Integer b) {
+                // 当前正在播的源固定排第一，其余按实测速度
+                boolean aActive = sourceKey != null && sourceKey.equals(playSourceKeys.get(a));
+                boolean bActive = sourceKey != null && sourceKey.equals(playSourceKeys.get(b));
+                if (aActive != bActive) return aActive ? -1 : 1;
                 long ca = scoreOf(playSourceKeys.get(a));
                 long cb = scoreOf(playSourceKeys.get(b));
                 if (ca <= 0 && cb <= 0) return 0;

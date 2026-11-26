@@ -730,8 +730,13 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
             val key = v.sourceKey ?: ""
             if (seen.add(key)) picked.add(v)
         }
-        // 按搜索响应速度排序：快的源排前面，进播放页默认用最快的源
-        picked.sortBy { sourceCost[it.sourceKey] ?: Long.MAX_VALUE }
+        // 点击的站点优先播放；同片其余站点按搜索响应速度排在后面
+        val clickedKey = video.sourceKey ?: ""
+        val rest = picked.filter { (it.sourceKey ?: "") != clickedKey }
+            .sortedBy { sourceCost[it.sourceKey] ?: Long.MAX_VALUE }
+        picked.clear()
+        picked.add(video)
+        picked.addAll(rest)
         jumpToDetail(picked)
     }
 
