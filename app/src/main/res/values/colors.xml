@@ -37,6 +37,7 @@
 
     <color name="orange">#ff4600</color>
 
+    <!-- 历史遗留：Material 默认色，禁止新代码使用 -->
     <color name="color_6200EE">#6200EE</color>
     <color name="color_3700B3">#3700B3</color>
     <color name="color_03DAC5">#03DAC5</color>
@@ -53,6 +54,12 @@
     <color name="color_3D3D3D">#3D3D3D</color>
     <color name="color_32364E">#32364E</color>
     <color name="color_6632364E">#6632364E</color>
+    <!-- 首页悬浮玻璃胶囊（bg_home_glass_bar 固定浅色磨砂）上的文字/图标色：
+         胶囊在任何皮肤下都是浅色，所以这里必须用固定的深色，不能跟随皮肤 -->
+    <color name="home_glass_text">#F21A1A1A</color>
+    <color name="home_glass_text_2">#991A1A1A</color>
+
+    <!-- 已废弃：名字写 CC(80%)，实际值是 BB(约73%) 白，禁止新代码使用 -->
     <color name="color_CCFFFFFF">#BBFFFFFF</color>
     <color name="color_0CADE2">#0CADE2</color>
     <color name="color_6CFFFFFF">#6CFFFFFF</color>
@@ -65,6 +72,7 @@
     <color name="color_BBFFFFFF">#bbffffff</color>
     <color name="color_FFFFFF">#ffffffff</color>
     <color name="color_33FFFFFF">#33ffffff</color>
+    <!-- 已废弃：名字是 99% 白，实际值是 #4D777373（灰色），禁止新代码使用 -->
     <color name="color_99FFFFFF">#4D777373</color>
     <color name="color_59353744">#59353744</color>
     <color name="color_80FF0057">#66FF0057</color>
@@ -207,8 +215,8 @@
     <color name="skin_cream_card">#FFFFFF</color>
     <color name="skin_cream_border">#EDE3D3</color>
     <color name="skin_cream_text">#2A241C</color>
-    <color name="skin_cream_text_2">#7C7264</color>
-    <color name="skin_cream_accent">#C9855A</color>
+    <color name="skin_cream_text_2">#746A5C</color>
+    <color name="skin_cream_accent">#A5653F</color>
     <color name="skin_cream_accent_soft">#26C9855A</color>
     <color name="skin_cream_on_accent">#FFFFFF</color>
     <color name="skin_cream_glow">#33C9855A</color>

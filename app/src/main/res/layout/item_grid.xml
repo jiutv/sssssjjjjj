@@ -32,7 +32,7 @@
             <com.lihang.ShadowLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                app:hl_layoutBackground="@color/orange"
+                app:hl_layoutBackground="?attr/skin_accent"
                 app:hl_cornerRadius_rightBottom="8dp">
 
                 <TextView
@@ -43,7 +43,7 @@
                     android:ellipsize="end"
                     android:padding="5dp"
                     android:singleLine="true"
-                    android:textColor="@color/white"
+                    android:textColor="?attr/skin_on_accent"
                     android:textSize="10dp"
                     tools:text="1970" />
             </com.lihang.ShadowLayout>
