@@ -144,14 +144,14 @@
         android:visibility="gone"
         tools:visibility="visible">
 
-        <!-- 聚合搜索：站点列表已移到右上角「全部站点」里，这里不再显示 -->
+        <!-- 站点栏：默认隐藏，点右上角按钮显示/隐藏（不再新开界面） -->
         <LinearLayout
             android:id="@+id/llWord"
-            android:layout_width="120dp"
+            android:layout_width="104dp"
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:visibility="gone"
-            android:paddingLeft="10dp">
+            android:paddingLeft="6dp">
 
             <com.angcyo.tablayout.DslTabLayout
                 android:id="@+id/tab_layout"

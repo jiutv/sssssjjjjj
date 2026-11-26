@@ -21,19 +21,8 @@ import me.jessyan.autosize.utils.AutoSizeUtils;
 
 public class FastSearchAdapter extends BaseQuickAdapter<Movie.Video, BaseViewHolder> {
 
-    /** 同一个剧名合并了多少个源，用于在来源后面标注「· N源」 */
-    public interface SourceCounter {
-        int countOf(Movie.Video video);
-    }
-
-    private SourceCounter sourceCounter;
-
-    public void setSourceCounter(SourceCounter sourceCounter) {
-        this.sourceCounter = sourceCounter;
-    }
-
     public FastSearchAdapter() {
-        super(R.layout.item_search, new ArrayList<>());
+        super(R.layout.item_search_grid, new ArrayList<>());
     }
 
     @Override
@@ -43,10 +32,6 @@ public class FastSearchAdapter extends BaseQuickAdapter<Movie.Video, BaseViewHol
         helper.setText(R.id.tvName, item.name);
         SourceBean source = ApiConfig.get().getSource(item.sourceKey);
         String siteName = source == null ? (item.sourceKey == null ? "" : item.sourceKey) : source.getName();
-        int count = sourceCounter == null ? 0 : sourceCounter.countOf(item);
-        if (count > 1) {
-            siteName = siteName + " · " + count + "源";
-        }
         helper.setText(R.id.tvSite, siteName);
         helper.setVisible(R.id.tvNote, item.note != null && !item.note.isEmpty());
         if (item.note != null && !item.note.isEmpty()) {

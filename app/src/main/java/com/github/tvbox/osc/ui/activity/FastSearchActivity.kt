@@ -13,7 +13,7 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.TextView
 import androidx.lifecycle.ViewModelProvider
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
 import com.angcyo.tablayout.DslTabLayout
 import com.blankj.utilcode.util.GsonUtils
 import com.blankj.utilcode.util.KeyboardUtils
@@ -32,7 +32,6 @@ import com.github.tvbox.osc.databinding.ActivityFastSearchBinding
 import com.github.tvbox.osc.event.RefreshEvent
 import com.github.tvbox.osc.event.ServerEvent
 import com.github.tvbox.osc.ui.adapter.FastSearchAdapter
-import com.github.tvbox.osc.ui.dialog.AllSitesResultDialog
 import com.github.tvbox.osc.ui.dialog.DoubanSuggestDialog
 import com.github.tvbox.osc.ui.dialog.SearchCheckboxDialog
 import com.github.tvbox.osc.ui.dialog.SearchSuggestionsDialog
@@ -112,15 +111,6 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
     override fun init() {
         sourceViewModel = ViewModelProvider(this).get(SourceViewModel::class.java)
         initView()
-        // 同一个剧名合并了多个源时，列表项显示「· N源」
-        val sourceCounter = FastSearchAdapter.SourceCounter { video ->
-            groupedVideos[normalizeTitle(video.name)]
-                ?.mapNotNull { it.sourceKey }
-                ?.distinct()
-                ?.size ?: 0
-        }
-        searchAdapter.setSourceCounter(sourceCounter)
-        searchAdapterFilter.setSourceCounter(sourceCounter)
         initData()
         //历史搜索
         initHistorySearch()
@@ -150,7 +140,9 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
             false
         }
         mBinding.etSearch.addTextChangedListener(this)
-        mBinding.ivAllSites.setOnClickListener { showAllSitesResult() }
+        // 右上角按钮改为「左侧站点栏」开关，不新开界面
+        mBinding.ivAllSites.alpha = 0.45f
+        mBinding.ivAllSites.setOnClickListener { toggleSiteBar() }
         mBinding.ivFilter.setOnClickListener { filterSearchSource() }
         mBinding.ivBack.setOnClickListener { finish() }
         mBinding.ivSearch.setOnClickListener {
@@ -163,13 +155,14 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
                 }
         }
         mBinding.mGridView.setHasFixedSize(true)
-        mBinding.mGridView.setLayoutManager(LinearLayoutManager(this))
+        // 三列竖滑
+        mBinding.mGridView.setLayoutManager(GridLayoutManager(this, 3))
         mBinding.mGridView.adapter = searchAdapter
         searchAdapter.setOnItemClickListener { _, view, position ->
             FastClickCheckUtil.check(view)
             openVideo(searchAdapter.data[position])
         }
-        mBinding.mGridViewFilter.setLayoutManager(LinearLayoutManager(this))
+        mBinding.mGridViewFilter.setLayoutManager(GridLayoutManager(this, 3))
 
         mBinding.mGridViewFilter.adapter = searchAdapterFilter
         searchAdapterFilter.setOnItemClickListener { _, view, position ->
@@ -633,7 +626,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
             }
         }
         if (added) {
-            rebuildGroupedList()
+            rebuildResultList()
             showSuccess()
             if (!isFilterMode) mBinding.mGridView.visibility = View.VISIBLE
         }
@@ -644,12 +637,14 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         }
     }
 
-    /** 按剧名归一化合并后重建列表，并按匹配度排序 */
-    private fun rebuildGroupedList() {
+    /** 展示全部搜到的影片（不做同名合并），按匹配度排序 */
+    private fun rebuildResultList() {
         val rows = ArrayList<Movie.Video>()
-        for (group in groupedVideos.values) {
-            if (group.isEmpty()) continue
-            rows.add(pickRepresentative(group))
+        for (key in siteOrder) {
+            resultVods[key]?.let { rows.addAll(it) }
+        }
+        for ((key, list) in resultVods) {
+            if (!siteOrder.contains(key)) rows.addAll(list)
         }
         rows.sortWith(
             compareByDescending<Movie.Video> { scoreName(it.name) }
@@ -663,22 +658,8 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         }
     }
 
-    /** 同剧多源时选一个最有代表性的（优先名称完全一致，其次名称最短） */
-    private fun pickRepresentative(group: MutableList<Movie.Video>): Movie.Video {
-        val title = searchTitle?.trim()
-        if (!title.isNullOrEmpty()) {
-            for (v in group) if (v.name?.trim() == title) return v
-        }
-        var best = group[0]
-        for (v in group) {
-            val n = v.name ?: continue
-            if (n.length < (best.name?.length ?: Int.MAX_VALUE)) best = v
-        }
-        return best
-    }
-
     /**
-     * 聚合用的标题归一化：
+     * 标题归一化：仅用于点开播放页时把同一部剧的多个源带过去，不再用于列表合并。
      * 去括号备注、站点名前缀（如「酷酷看·嫁金钗」）、清晰度/语言/版本、集数标记，再去空白与标点。
      */
     private fun normalizeTitle(name: String?): String {
@@ -788,26 +769,11 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         jumpActivity(DetailActivity::class.java, bundle)
     }
 
-    /** 右上角按钮：按站点分组展示所有站点搜到的全部影片，站点按响应速度排序 */
-    private fun showAllSitesResult() {
-        val orderedKeys = siteOrder
-            .filter { !resultVods[it].isNullOrEmpty() }
-            .sortedBy { sourceCost[it] ?: Long.MAX_VALUE }
-        val data = LinkedHashMap<String, List<Movie.Video>>()
-        for (key in orderedKeys) {
-            data[key] = ArrayList(resultVods[key]!!)
-        }
-        if (data.isEmpty()) {
-            ToastUtils.showShort("还没有搜索结果")
-            return
-        }
-        val dialog = AllSitesResultDialog(this, data, sourceCost) { video -> openVideo(video) }
-        XPopup.Builder(this)
-            .isDarkTheme(com.github.tvbox.osc.util.Utils.isDarkTheme())
-            .popupWidth(ScreenUtils.getScreenWidth())
-            .popupHeight(ScreenUtils.getScreenHeight())
-            .asCustom(dialog)
-            .show()
+    /** 右上角按钮：左侧站点栏开关（不新开界面） */
+    private fun toggleSiteBar() {
+        val show = mBinding.llWord.visibility != View.VISIBLE
+        mBinding.llWord.visibility = if (show) View.VISIBLE else View.GONE
+        mBinding.ivAllSites.alpha = if (show) 1f else 0.45f
     }
 
     private fun updateSearchProgress() {
