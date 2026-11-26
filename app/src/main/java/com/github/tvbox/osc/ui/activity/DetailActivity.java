@@ -159,6 +159,15 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
     private final HashMap<String, Long> speedBytes = new HashMap<>();
     /** 已测速缓存：key|vodId -> {耗时ms, 时间戳}，10 分钟内不重复测 */
     private static final HashMap<String, long[]> SPEED_CACHE = new HashMap<>();
+    /** 同片多源搜索结果缓存：15 分钟内重进同一部片，播放源立即出现 */
+    private static final HashMap<String, SourceHit> AUTO_SOURCE_CACHE = new HashMap<>();
+
+    private static final class SourceHit {
+        final ArrayList<String> keys = new ArrayList<>();
+        final ArrayList<String> ids = new ArrayList<>();
+        final ArrayList<String> notes = new ArrayList<>();
+        final long time = System.currentTimeMillis();
+    }
     private int speedSession = 0;
     private String speedVodId;
     private final HashSet<String> speedWaitingDetail = new HashSet<>();
@@ -1039,21 +1048,39 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         }
     }
 
-    /** 从站点列表进入时，后台搜索同片的其他源，回填「播放源」，20 秒兜底 */
-    private void startAutoSourceSearch() {
-        if (vodInfo == null || TextUtils.isEmpty(vodInfo.name) || TextUtils.isEmpty(sourceKey)) return;
-        if (autoSourceRunning) return;
-        if (vodInfo.name.equals(autoSourceTitle)) return;
-        autoSourceTitle = vodInfo.name;
+    /** 两个入口共用：把源加入播放源列表（去重，保持 key/id/note 三个列表对齐） */
+    private void addPlaySource(String key, String id, String note) {
+        if (TextUtils.isEmpty(key) || TextUtils.isEmpty(id) || playSourceKeys.contains(key)) return;
+        playSourceKeys.add(key);
+        playSourceIds.add(id);
+        playSourceNotes.add(note == null ? "" : note);
+    }
+
+    /** 聚合同片的其他源：搜索页入口直接用现成结果，站点入口在后台补搜，15 秒兜底 */
+    private void startAutoSourceSearch(String title) {
+        if (TextUtils.isEmpty(title) || TextUtils.isEmpty(sourceKey) || TextUtils.isEmpty(vodId)) return;
+        if (autoSourceRunning || !TextUtils.isEmpty(autoSourceTitle)) return;
+        autoSourceTitle = title;
         // 已经是从搜索页带进来的多源，无需再搜
         if (playSourceKeys.size() > 1) return;
-        if (vodId == null) return;
         initCheckedSourcesForSearch();
         // 当前源也放进列表，保证高亮和快捷换源可用
-        if (!playSourceKeys.contains(sourceKey)) {
-            playSourceKeys.add(sourceKey);
-            playSourceIds.add(vodId);
-            playSourceNotes.add("");
+        addPlaySource(sourceKey, vodId, "");
+        // 15 分钟内搜过同一部片，直接复用结果，秒出播放源
+        SourceHit hit = AUTO_SOURCE_CACHE.get(title);
+        if (hit != null && System.currentTimeMillis() - hit.time < 15 * 60 * 1000L) {
+            boolean changed = false;
+            for (int i = 0; i < hit.keys.size(); i++) {
+                if (!playSourceKeys.contains(hit.keys.get(i))) {
+                    addPlaySource(hit.keys.get(i), hit.ids.get(i), hit.notes.get(i));
+                    changed = true;
+                }
+            }
+            if (changed) {
+                rebuildPlaySources();
+                maybeStartSpeedTest();
+            }
+            return;
         }
         List<String> keys = new ArrayList<>();
         for (SourceBean bean : ApiConfig.get().getSourceBeanList()) {
@@ -1068,14 +1095,14 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         autoSourceRunning = true;
         autoSourcePending.clear();
         autoSourcePending.addAll(keys);
-        if (autoSourceExecutor == null) autoSourceExecutor = Executors.newFixedThreadPool(6);
-        final String title = vodInfo.name;
+        if (autoSourceExecutor == null) autoSourceExecutor = Executors.newFixedThreadPool(10);
+        final String searchTitle = title;
         for (final String key : keys) {
             autoSourceExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        sourceViewModel.getSearch(key, title, "auto_src_" + session);
+                        sourceViewModel.getSearch(key, searchTitle, "auto_src_" + session);
                     } catch (Throwable ignore) {
                     }
                 }
@@ -1086,7 +1113,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             public void run() {
                 finishAutoSourceSearch(session);
             }
-        }, 20000);
+        }, 15000);
     }
 
     /** 自动聚合同片多源的搜索结果（EventBus 分发） */
@@ -1096,11 +1123,11 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         String key = absXml.sourceKey;
         if (key == null || !autoSourcePending.remove(key)) return;
         Movie.Video match = findSameMovie(absXml, autoSourceTitle);
-        if (match != null && !TextUtils.isEmpty(match.id) && !playSourceKeys.contains(key)) {
-            playSourceKeys.add(key);
-            playSourceIds.add(match.id);
-            playSourceNotes.add(match.note == null ? "" : match.note);
+        if (match != null && !playSourceKeys.contains(key)) {
+            addPlaySource(key, match.id, match.note);
             rebuildPlaySources();
+            // 找到一个就立刻测一个，不用等全部搜完
+            maybeStartSpeedTest();
         }
         if (autoSourcePending.isEmpty()) {
             finishAutoSourceSearch(autoSourceSession);
@@ -1113,7 +1140,13 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         autoSourcePending.clear();
         rebuildPlaySources();
         if (playSourceKeys.size() > 1) {
-            speedVodId = "";
+            // 缓存本次聚合结果，15 分钟内重进同一部片不再重复搜索
+            SourceHit hit = new SourceHit();
+            hit.keys.addAll(playSourceKeys);
+            hit.ids.addAll(playSourceIds);
+            hit.notes.addAll(playSourceNotes);
+            if (AUTO_SOURCE_CACHE.size() > 20) AUTO_SOURCE_CACHE.clear();
+            AUTO_SOURCE_CACHE.put(autoSourceTitle, hit);
             maybeStartSpeedTest();
         }
     }
@@ -1142,51 +1175,45 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         return sb.toString();
     }
 
-    /** 打开播放页后，后台并行测各个源的真实加载速度，测完按速度重排播放源 */
+    /** 打开播放页后，后台并行测各源的真实加载速度；源找到多少就先测多少，不必等全部搜完 */
     private void maybeStartSpeedTest() {
         if (playSourceKeys.size() <= 1 || vodInfo == null || TextUtils.isEmpty(vodId)) return;
-        if (vodId.equals(speedVodId)) return;
-        speedVodId = vodId;
-        speedSession++;
-        final int session = speedSession;
-        speedCost.clear();
-        speedBytes.clear();
-        sourceEpisodes.clear();
-        speedWaitingDetail.clear();
-        speedPending = 0;
-
-        long now = System.currentTimeMillis();
-        boolean allCached = true;
-        for (String key : playSourceKeys) {
-            long[] c = SPEED_CACHE.get(key + "|" + vodId);
-            if (c != null && now - c[1] < 10 * 60 * 1000L) {
-                speedCost.put(key, c[0]);
-            } else {
-                allCached = false;
+        if (!vodId.equals(speedVodId)) {
+            speedVodId = vodId;
+            speedSession++;
+            final int session = speedSession;
+            speedCost.clear();
+            speedBytes.clear();
+            sourceEpisodes.clear();
+            speedWaitingDetail.clear();
+            speedPending = 0;
+            long now = System.currentTimeMillis();
+            for (String key : playSourceKeys) {
+                long[] c = SPEED_CACHE.get(key + "|" + vodId);
+                if (c != null && now - c[1] < 10 * 60 * 1000L) {
+                    speedCost.put(key, c[0]);
+                }
             }
+            mTimeoutHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (session != speedSession) return;
+                    speedWaitingDetail.clear();
+                    applySpeedOrder();
+                }
+            }, 15000);
         }
-        if (allCached) {
-            applySpeedOrder();
-            return;
-        }
+        boolean requested = false;
         for (int i = 0; i < playSourceKeys.size() && i < playSourceIds.size(); i++) {
             String key = playSourceKeys.get(i);
-            if (speedCost.containsKey(key)) continue;
+            if (speedCost.containsKey(key) || speedWaitingDetail.contains(key)) continue;
             speedWaitingDetail.add(key);
             sourceViewModel.getDetailForSpeedTest(key, playSourceIds.get(i));
+            requested = true;
         }
-        if (speedWaitingDetail.isEmpty()) {
+        if (!requested && speedWaitingDetail.isEmpty()) {
             applySpeedOrder();
-            return;
         }
-        mTimeoutHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                if (session != speedSession) return;
-                speedWaitingDetail.clear();
-                applySpeedOrder();
-            }
-        }, 15000);
     }
 
     /** 按实测加载速度重排播放源：快的在前，测不出速度的排最后 */
@@ -1312,7 +1339,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                         // 打开播放页后后台测速，测完按真实加载速度重排播放源
                         maybeStartSpeedTest();
                         // 非搜索入口进入时，自动补齐其他站点，让播放源和搜索入口一致
-                        startAutoSourceSearch();
+                        startAutoSourceSearch(vodInfo.name);
                         // 需求4：同步正序/倒序按钮文案
                         mBinding.tvSort.setText(vodInfo.reverseSort ? "倒序" : "正序");
                         if (showPreview) {
@@ -1352,14 +1379,16 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                 playSourceKeys.clear();
                 playSourceIds.clear();
                 playSourceNotes.clear();
-                playSourceKeys.addAll(keys);
-                playSourceIds.addAll(ids);
-                if (notes != null && notes.size() == keys.size()) {
-                    playSourceNotes.addAll(notes);
+                for (int i = 0; i < keys.size(); i++) {
+                    addPlaySource(keys.get(i), ids.get(i),
+                            notes != null && i < notes.size() ? notes.get(i) : "");
                 }
             }
+            String title = bundle.getString("title", "");
             loadDetail(bundle.getString("id", null), bundle.getString("sourceKey", ""));
             rebuildPlaySources();
+            // 详情请求与多源聚合并行：先用列表页带过来的剧名开搜，播放源更快出现
+            startAutoSourceSearch(title);
         }
     }
 
