@@ -7,8 +7,7 @@
     android:layout_height="match_parent"
     android:background="?attr/skin_page_bg"
     android:orientation="vertical"
-    android:fitsSystemWindows="true"
-    android:paddingBottom="@dimen/bottom_nav_overlay_padding">
+    android:fitsSystemWindows="true">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -52,7 +51,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingHorizontal="20dp"
-            android:paddingBottom="20dp">
+            android:paddingBottom="@dimen/bottom_nav_overlay_padding">
 
             <!-- 快捷入口分组（与下方设置卡片同款样式） -->
             <TextView
