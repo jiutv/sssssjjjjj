@@ -149,6 +149,13 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
     private final HashMap<String, Long> speedCost = new HashMap<>();
     /** 各源当前的总集数（测速时顺手从详情里取），用于播放源卡片显示「共 N 集」 */
     private final HashMap<String, Integer> sourceEpisodes = new HashMap<>();
+    /** 从站点列表进入详情页时，自动搜索同片的其他源，让两个入口的播放页功能一致 */
+    private String autoSourceTitle = "";
+    private int autoSourceSession = 0;
+    private boolean autoSourceRunning = false;
+    private final HashSet<String> autoSourcePending = new HashSet<>();
+    private ExecutorService autoSourceExecutor;
+    private final Handler autoSourceHandler = new Handler(Looper.getMainLooper());
     private final HashMap<String, Long> speedBytes = new HashMap<>();
     /** 已测速缓存：key|vodId -> {耗时ms, 时间戳}，10 分钟内不重复测 */
     private static final HashMap<String, long[]> SPEED_CACHE = new HashMap<>();
@@ -934,6 +941,26 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                 }
             }
         });
+        // 站点列表进入详情：自动搜索同片其他源，结果回填到「播放源」
+        sourceViewModel.searchResult.observe(this, new Observer<AbsXml>() {
+            @Override
+            public void onChanged(AbsXml absXml) {
+                if (absXml == null || !autoSourceRunning) return;
+                if (absXml.searchToken == null || !absXml.searchToken.equals("auto_src_" + autoSourceSession)) return;
+                String key = absXml.sourceKey;
+                if (key == null || !autoSourcePending.remove(key)) return;
+                Movie.Video match = findSameMovie(absXml, autoSourceTitle);
+                if (match != null && !TextUtils.isEmpty(match.id) && !playSourceKeys.contains(key)) {
+                    playSourceKeys.add(key);
+                    playSourceIds.add(match.id);
+                    playSourceNotes.add(match.note == null ? "" : match.note);
+                    rebuildPlaySources();
+                }
+                if (autoSourcePending.isEmpty()) {
+                    finishAutoSourceSearch(autoSourceSession);
+                }
+            }
+        });
         // 播放测速：其他源的详情回来后，解析播放地址并实测加载速度
         sourceViewModel.speedTestDetail.observe(this, new Observer<AbsXml>() {
             @Override
@@ -1010,6 +1037,91 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         } catch (Throwable ignore) {
             return 0;
         }
+    }
+
+    /** 从站点列表进入时，后台搜索同片的其他源，回填「播放源」，12 秒兜底 */
+    private void startAutoSourceSearch() {
+        if (vodInfo == null || TextUtils.isEmpty(vodInfo.name) || TextUtils.isEmpty(sourceKey)) return;
+        if (autoSourceRunning) return;
+        if (vodInfo.name.equals(autoSourceTitle)) return;
+        autoSourceTitle = vodInfo.name;
+        // 已经是从搜索页带进来的多源，无需再搜
+        if (playSourceKeys.size() > 1) return;
+        if (vodId == null) return;
+        initCheckedSourcesForSearch();
+        // 当前源也放进列表，保证高亮和快捷换源可用
+        if (!playSourceKeys.contains(sourceKey)) {
+            playSourceKeys.add(sourceKey);
+            playSourceIds.add(vodId);
+            playSourceNotes.add("");
+        }
+        List<String> keys = new ArrayList<>();
+        for (SourceBean bean : ApiConfig.get().getSourceBeanList()) {
+            if (bean == null || !bean.isSearchable()) continue;
+            if (mCheckSources != null && !mCheckSources.containsKey(bean.getKey())) continue;
+            if (bean.getKey().equals(sourceKey)) continue;
+            keys.add(bean.getKey());
+        }
+        if (keys.isEmpty()) return;
+        autoSourceSession++;
+        final int session = autoSourceSession;
+        autoSourceRunning = true;
+        autoSourcePending.clear();
+        autoSourcePending.addAll(keys);
+        if (autoSourceExecutor == null) autoSourceExecutor = Executors.newFixedThreadPool(6);
+        final String title = vodInfo.name;
+        for (final String key : keys) {
+            autoSourceExecutor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        sourceViewModel.getSearch(key, title, "auto_src_" + session);
+                    } catch (Throwable ignore) {
+                    }
+                }
+            });
+        }
+        autoSourceHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                finishAutoSourceSearch(session);
+            }
+        }, 12000);
+    }
+
+    private void finishAutoSourceSearch(int session) {
+        if (session != autoSourceSession || !autoSourceRunning) return;
+        autoSourceRunning = false;
+        autoSourcePending.clear();
+        rebuildPlaySources();
+        if (playSourceKeys.size() > 1) {
+            speedVodId = "";
+            maybeStartSpeedTest();
+        }
+    }
+
+    /** 在搜索结果里找同名影片 */
+    private Movie.Video findSameMovie(AbsXml absXml, String title) {
+        if (absXml.movie == null || absXml.movie.videoList == null) return null;
+        String target = normalizeTitle(title);
+        if (target.isEmpty()) return null;
+        for (Movie.Video video : absXml.movie.videoList) {
+            if (video == null || TextUtils.isEmpty(video.id)) continue;
+            String name = normalizeTitle(video.name);
+            if (name.isEmpty()) continue;
+            if (name.equals(target) || name.contains(target) || target.contains(name)) return video;
+        }
+        return null;
+    }
+
+    private String normalizeTitle(String s) {
+        if (s == null) return "";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (Character.isLetterOrDigit(c)) sb.append(Character.toLowerCase(c));
+        }
+        return sb.toString();
     }
 
     /** 打开播放页后，后台并行测各个源的真实加载速度，测完按速度重排播放源 */
@@ -1177,6 +1289,8 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                         refreshList();
                         // 打开播放页后后台测速，测完按真实加载速度重排播放源
                         maybeStartSpeedTest();
+                        // 非搜索入口进入时，自动补齐其他站点，让播放源和搜索入口一致
+                        startAutoSourceSearch();
                         // 需求4：同步正序/倒序按钮文案
                         mBinding.tvSort.setText(vodInfo.reverseSort ? "倒序" : "正序");
                         if (showPreview) {
@@ -1487,6 +1601,13 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         mTimeoutHandler.removeCallbacks(detailTimeoutRunnable);
         // 页面销毁后测速回包不再更新 UI
         speedSession++;
+        autoSourceSession++;
+        autoSourceRunning = false;
+        autoSourceHandler.removeCallbacksAndMessages(null);
+        if (autoSourceExecutor != null) {
+            autoSourceExecutor.shutdownNow();
+            autoSourceExecutor = null;
+        }
         super.onDestroy();
         unregisterReceiver(mBatteryReceiver);
         // 注销广播接收器

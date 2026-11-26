@@ -69,6 +69,10 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         private const val SEARCH_TIMEOUT_MS = 30_000L
         /** 联想词防抖间隔 */
         private const val SUGGEST_DEBOUNCE_MS = 280L
+        /** 热门搜索兜底词：接口失效时保证有内容 */
+        private val FALLBACK_HOT_WORDS = listOf(
+            "庆余年", "狂飙", "繁花", "长相思", "莲花楼", "三体", "漫长的季节", "苍兰诀"
+        )
 
         private var mCheckSources: HashMap<String, String>? = null
         fun setCheckedSourcesForSearch(checkedSources: HashMap<String, String>?) {
@@ -270,7 +274,9 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
      */
     private val hotWords: Unit
         get() {
-            // 加载热词
+            // 先展示内置热词，保证「热门搜索」永远有内容
+            applyHotWords(FALLBACK_HOT_WORDS)
+            // 接口成功再替换成实时热词
             OkGo.get<String>("https://node.video.qq.com/x/api/hot_search")
                 .params("channdlId", "0")
                 .params("_", System.currentTimeMillis())
@@ -280,35 +286,17 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
                             val hots = ArrayList<String>()
                             val itemList =
                                 JsonParser.parseString(response.body()).asJsonObject["data"].asJsonObject["mapResult"].asJsonObject["0"].asJsonObject["listInfo"].asJsonArray
-                            //                            JsonArray itemList = JsonParser.parseString(response.body()).getAsJsonObject().get("data").getAsJsonArray();
                             for (ele: JsonElement in itemList) {
                                 val obj = ele as JsonObject
-                                hots.add(obj["title"].asString.trim { it <= ' ' }
-                                    .replace("<|>|《|》|-".toRegex(), "").split(" ".toRegex())
-                                    .dropLastWhile { it.isEmpty() }
-                                    .toTypedArray()[0])
+                                val word = obj["title"].asString.trim()
+                                    .replace("<|>|《|》|-".toRegex(), "")
+                                    .split(" ".toRegex())
+                                    .firstOrNull { it.isNotBlank() }
+                                if (!word.isNullOrBlank()) hots.add(word)
                             }
-                            mBinding.flHot.adapter = object : TagAdapter<String?>(hots as List<String?>?) {
-                                override fun getView(
-                                    parent: FlowLayout,
-                                    position: Int,
-                                    s: String?
-                                ): View {
-                                    val tv: TextView =
-                                        LayoutInflater.from(this@FastSearchActivity).inflate(
-                                            R.layout.item_search_word_hot,
-                                            mBinding.flHot, false
-                                        ) as TextView
-                                    tv.text = s
-                                    return tv
-                                }
-                            }
-                            mBinding.flHot.setOnTagClickListener { _: View?, position: Int, _: FlowLayout? ->
-                                search(hots.get(position))
-                                true
-                            }
-                        } catch (th: Throwable) {
-                            th.printStackTrace()
+                            if (hots.isNotEmpty()) applyHotWords(hots)
+                        } catch (_: Throwable) {
+                            // 接口结构变动时保留内置热词
                         }
                     }
 
@@ -318,6 +306,23 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
                     }
                 })
         }
+
+    private fun applyHotWords(words: List<String>) {
+        val list = ArrayList(words)
+        mBinding.flHot.adapter = object : TagAdapter<String>(list) {
+            override fun getView(parent: FlowLayout, position: Int, s: String): View {
+                val tv: TextView = LayoutInflater.from(this@FastSearchActivity).inflate(
+                    R.layout.item_search_word_hot, mBinding.flHot, false
+                ) as TextView
+                tv.text = s
+                return tv
+            }
+        }
+        mBinding.flHot.setOnTagClickListener { _: View?, position: Int, _: FlowLayout? ->
+            if (position in list.indices) search(list[position])
+            true
+        }
+    }
 
     /**
      * 联想搜索
