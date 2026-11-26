@@ -53,8 +53,9 @@
                 android:layout_height="36dp"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
+                app:backgroundTint="?attr/skin_accent"
                 app:cornerRadius="20dp"
-                android:textColor="@color/white"
+                android:textColor="?attr/skin_on_accent"
                 android:text="筛选"
                 android:stateListAnimator="@null"
                 android:layout_marginBottom="14dp"/>
