@@ -325,9 +325,13 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
     }
 
     private fun parseHotTitles(json: String?): List<String> = try {
-        val arr = JSONObject(json ?: "").optJSONArray("data") ?: return emptyList()
-        (0 until minOf(arr.length(), 20)).mapNotNull {
-            arr.optJSONObject(it)?.optString("title")?.takeIf { t -> t.isNotBlank() }
+        val arr = JSONObject(json ?: "").optJSONArray("data")
+        if (arr == null) {
+            emptyList()
+        } else {
+            (0 until minOf(arr.length(), 20)).mapNotNull {
+                arr.optJSONObject(it)?.optString("title")?.takeIf { t -> t.isNotBlank() }
+            }
         }
     } catch (_: Throwable) {
         emptyList()
