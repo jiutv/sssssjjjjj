@@ -941,26 +941,8 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                 }
             }
         });
-        // 站点列表进入详情：自动搜索同片其他源，结果回填到「播放源」
-        sourceViewModel.searchResult.observe(this, new Observer<AbsXml>() {
-            @Override
-            public void onChanged(AbsXml absXml) {
-                if (absXml == null || !autoSourceRunning) return;
-                if (absXml.searchToken == null || !absXml.searchToken.equals("auto_src_" + autoSourceSession)) return;
-                String key = absXml.sourceKey;
-                if (key == null || !autoSourcePending.remove(key)) return;
-                Movie.Video match = findSameMovie(absXml, autoSourceTitle);
-                if (match != null && !TextUtils.isEmpty(match.id) && !playSourceKeys.contains(key)) {
-                    playSourceKeys.add(key);
-                    playSourceIds.add(match.id);
-                    playSourceNotes.add(match.note == null ? "" : match.note);
-                    rebuildPlaySources();
-                }
-                if (autoSourcePending.isEmpty()) {
-                    finishAutoSourceSearch(autoSourceSession);
-                }
-            }
-        });
+        // 说明：SourceViewModel 的搜索结果是走 EventBus(TYPE_SEARCH_RESULT) 分发的，
+        // 不走 LiveData，回包统一在 refresh(RefreshEvent) 里处理。
         // 播放测速：其他源的详情回来后，解析播放地址并实测加载速度
         sourceViewModel.speedTestDetail.observe(this, new Observer<AbsXml>() {
             @Override
@@ -1039,7 +1021,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         }
     }
 
-    /** 从站点列表进入时，后台搜索同片的其他源，回填「播放源」，12 秒兜底 */
+    /** 从站点列表进入时，后台搜索同片的其他源，回填「播放源」，20 秒兜底 */
     private void startAutoSourceSearch() {
         if (vodInfo == null || TextUtils.isEmpty(vodInfo.name) || TextUtils.isEmpty(sourceKey)) return;
         if (autoSourceRunning) return;
@@ -1086,7 +1068,25 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             public void run() {
                 finishAutoSourceSearch(session);
             }
-        }, 12000);
+        }, 20000);
+    }
+
+    /** 自动聚合同片多源的搜索结果（EventBus 分发） */
+    private void onAutoSearchResult(AbsXml absXml) {
+        if (absXml == null || !autoSourceRunning) return;
+        if (absXml.searchToken == null || !absXml.searchToken.equals("auto_src_" + autoSourceSession)) return;
+        String key = absXml.sourceKey;
+        if (key == null || !autoSourcePending.remove(key)) return;
+        Movie.Video match = findSameMovie(absXml, autoSourceTitle);
+        if (match != null && !TextUtils.isEmpty(match.id) && !playSourceKeys.contains(key)) {
+            playSourceKeys.add(key);
+            playSourceIds.add(match.id);
+            playSourceNotes.add(match.note == null ? "" : match.note);
+            rebuildPlaySources();
+        }
+        if (autoSourcePending.isEmpty()) {
+            finishAutoSourceSearch(autoSourceSession);
+        }
     }
 
     private void finishAutoSourceSearch(int session) {
@@ -1457,6 +1457,8 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                 String word = (String) event.obj;
                 switchSearchWord(word);
             }
+        } else if (event.type == RefreshEvent.TYPE_SEARCH_RESULT) {
+            onAutoSearchResult(event.obj == null ? null : (AbsXml) event.obj);
         } else if (event.type == RefreshEvent.TYPE_QUICK_SEARCH_RESULT) {
             try {
                 searchData(event.obj == null ? null : (AbsXml) event.obj);
