@@ -11,6 +11,7 @@ import android.net.http.SslError;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
 import android.view.KeyEvent;
@@ -84,6 +85,7 @@ import com.github.tvbox.osc.util.VideoParseRuler;
 import com.github.tvbox.osc.util.thunder.Jianpian;
 import com.github.tvbox.osc.util.thunder.Thunder;
 import com.github.tvbox.osc.viewmodel.SourceViewModel;
+import xyz.doikki.videoplayer.player.VideoView;
 import androidx.media3.common.text.CueGroup;
 import androidx.media3.common.Player;
 import androidx.media3.common.text.Cue;
@@ -145,6 +147,20 @@ public class PlayFragment extends BaseLazyFragment {
     private String mPlayCacheKey;
     /** 需求2：是否已收到播放线路结果（用于超时判断） */
     private boolean playResultReceived;
+
+    // ===== 缓冲卡死自愈（切后台回来后播放器停在缓冲态 / 播放器被系统回收） =====
+    /** 缓冲或准备阶段多久没有进度就判定为卡死（毫秒） */
+    private static final long BUFFER_STALL_TIMEOUT = 10000L;
+    /** 看门狗轮询间隔（毫秒） */
+    private static final long BUFFER_WATCH_INTERVAL = 1000L;
+    /** 单次播放最多自动恢复次数，避免无限重试 */
+    private static final int MAX_BUFFER_RECOVER = 2;
+    private final Handler mBufferWatchHandler = new Handler(Looper.getMainLooper());
+    private long mBufferLastPos = -1L;
+    private long mBufferLastTick = 0L;
+    private int mBufferRecoverCount = 0;
+    /** 正在执行缓冲自愈时，不重置恢复计数，避免死循环重播 */
+    private boolean mRecoveringFromBuffer = false;
 
     private final long videoDuration = -1;
     /**
@@ -405,6 +421,103 @@ public class PlayFragment extends BaseLazyFragment {
             }
         });
         mVideoView.setVideoController(mController);
+
+        // 缓冲看门狗：进入缓冲/准备态开始计时，长时间无进度自动重播
+        mVideoView.addOnStateChangeListener(new VideoView.SimpleOnStateChangeListener() {
+            @Override
+            public void onPlayStateChanged(int playState) {
+                switch (playState) {
+                    case VideoView.STATE_BUFFERING:
+                    case VideoView.STATE_PREPARING:
+                        startBufferWatchdog();
+                        break;
+                    case VideoView.STATE_PLAYING:
+                        // 真正播起来了，重置自动恢复次数
+                        mBufferRecoverCount = 0;
+                        stopBufferWatchdog();
+                        break;
+                    default:
+                        stopBufferWatchdog();
+                        break;
+                }
+            }
+        });
+    }
+
+    /** 启动缓冲看门狗 */
+    private void startBufferWatchdog() {
+        if (mBufferWatchHandler == null) return;
+        // 只在可见（前台）状态监控，后台不做自愈
+        if (!isAdded() || !isResumed()) return;
+        mBufferWatchHandler.removeCallbacks(mBufferWatchdog);
+        mBufferLastPos = -1L;
+        mBufferLastTick = 0L;
+        mBufferWatchHandler.postDelayed(mBufferWatchdog, BUFFER_WATCH_INTERVAL);
+    }
+
+    /** 停止缓冲看门狗 */
+    private void stopBufferWatchdog() {
+        if (mBufferWatchHandler != null) {
+            mBufferWatchHandler.removeCallbacks(mBufferWatchdog);
+        }
+        mBufferLastPos = -1L;
+        mBufferLastTick = 0L;
+    }
+
+    /** 缓冲/准备态下每秒检查一次播放进度，超过阈值没有变化就恢复播放 */
+    private final Runnable mBufferWatchdog = new Runnable() {
+        @Override
+        public void run() {
+            if (!isAdded() || !isResumed() || mVideoView == null) return;
+            int state = mVideoView.getCurrentPlayState();
+            // PLAYING 也纳入监控：切后台回来 resume() 可能把"假播放"直接置成 PLAYING，
+            // 此时画面其实没有数据，靠进度是否变化来判断
+            boolean stallState = state == VideoView.STATE_BUFFERING
+                    || state == VideoView.STATE_PREPARING
+                    || state == VideoView.STATE_PLAYING;
+            if (!stallState) {
+                mBufferLastPos = -1L;
+                mBufferLastTick = 0L;
+                return;
+            }
+            long pos = mVideoView.getCurrentPosition();
+            long now = System.currentTimeMillis();
+            if (pos != mBufferLastPos) {
+                mBufferLastPos = pos;
+                mBufferLastTick = now;
+            } else if (mBufferLastTick > 0L && now - mBufferLastTick >= BUFFER_STALL_TIMEOUT) {
+                recoverFromBufferStall();
+                return;
+            }
+            mBufferWatchHandler.postDelayed(this, BUFFER_WATCH_INTERVAL);
+        }
+    };
+
+    /** 缓冲卡死恢复：先原地重播，仍不行再整条线路重新解析 */
+    private void recoverFromBufferStall() {
+        stopBufferWatchdog();
+        if (mVideoView == null || !isAdded()) return;
+        mBufferRecoverCount++;
+        if (mBufferRecoverCount > MAX_BUFFER_RECOVER) {
+            setTip("播放长时间无响应，请切换线路重试", false, true);
+            return;
+        }
+        mRecoveringFromBuffer = true;
+        try {
+            if (mBufferRecoverCount == 1) {
+                ToastUtils.showShort("缓冲超时，正在自动重播");
+                mVideoView.replay(false);
+            } else if (mVodInfo != null && mVodInfo.seriesMap != null) {
+                ToastUtils.showShort("仍然卡住，正在重新加载线路");
+                play(false);
+            } else {
+                mVideoView.replay(false);
+            }
+        } catch (Throwable th) {
+            LogUtils.e(th.toString());
+        } finally {
+            mRecoveringFromBuffer = false;
+        }
     }
 
     public boolean hideAllDialogSuccess(){
@@ -1209,6 +1322,10 @@ public class PlayFragment extends BaseLazyFragment {
     @Override
     public void onPause() {
         super.onPause();
+        // 后台不做缓冲自愈，避免在后台反复重播
+        if (mBufferWatchHandler != null) {
+            mBufferWatchHandler.removeCallbacksAndMessages(null);
+        }
         if (mVideoView != null) {
             mVideoView.pause();
         }
@@ -1219,7 +1336,40 @@ public class PlayFragment extends BaseLazyFragment {
         super.onResume();
         if (mVideoView != null) {
             mVideoView.resume();
+            recoverIfStuckOnResume();
         }
+    }
+
+    /**
+     * 回到前台自愈：切后台期间播放器可能被系统回收或停在缓冲/错误态，
+     * 此时 resume() 无法拉起，需要重新准备或重播。
+     */
+    private void recoverIfStuckOnResume() {
+        if (mVideoView == null || mCurrentUrl == null || mVodInfo == null) return;
+        int state = mVideoView.getCurrentPlayState();
+        boolean dead = state == VideoView.STATE_ERROR
+                || state == VideoView.STATE_IDLE
+                || state == VideoView.STATE_START_ABORT;
+        boolean buffering = state == VideoView.STATE_BUFFERING
+                || state == VideoView.STATE_PREPARING
+                || state == VideoView.STATE_PLAYING;
+        if (!dead && !buffering) return;
+        if (dead) {
+            // 播放器已被系统回收 / 出错：延迟确认后重新解析并重建播放器
+            mBufferWatchHandler.postDelayed(() -> {
+                if (!isAdded() || mVideoView == null) return;
+                // 线路还在解析中：交给解析超时逻辑处理，避免重复触发播放
+                if (!playResultReceived) return;
+                int s = mVideoView.getCurrentPlayState();
+                if (s == VideoView.STATE_ERROR || s == VideoView.STATE_IDLE || s == VideoView.STATE_START_ABORT) {
+                    mBufferRecoverCount = 0;
+                    play(false);
+                }
+            }, 1200L);
+            return;
+        }
+        // 缓冲 / 假播放：交给看门狗，10 秒没有进度就自动恢复
+        startBufferWatchdog();
     }
 
     @Override
@@ -1241,6 +1391,8 @@ public class PlayFragment extends BaseLazyFragment {
         super.onDestroyView();
         // P0 fix: 移除所有 pending callbacks/runnables，防止退出后回调访问已 detach 的 View/Activity
         if (mHandler != null) mHandler.removeCallbacksAndMessages(null);
+        // 移除缓冲看门狗，避免页面销毁后继续重播
+        if (mBufferWatchHandler != null) mBufferWatchHandler.removeCallbacksAndMessages(null);
         //手动注销
         sourceViewModel.playResult.removeObserver(mObserverPlayResult);
 
@@ -1402,6 +1554,11 @@ public class PlayFragment extends BaseLazyFragment {
 
     public void play(boolean reset) {
         if (mVodInfo == null) return;
+        // 用户主动播放（换源/选集/重播）时重置缓冲自愈计数；自愈内部触发的重播不重置
+        if (!mRecoveringFromBuffer) {
+            mBufferRecoverCount = 0;
+        }
+        stopBufferWatchdog();
         VodInfo.VodSeries vs = mVodInfo.seriesMap.get(mVodInfo.playFlag).get(mVodInfo.playIndex);
         EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_REFRESH, mVodInfo.playIndex));
         EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_REFRESH_NOTIFY, mVodInfo.name + "&&" + vs.name));
