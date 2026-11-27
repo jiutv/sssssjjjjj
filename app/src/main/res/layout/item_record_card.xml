@@ -88,7 +88,7 @@
         <!-- 左上角来源角标 -->
         <TextView
             android:id="@+id/tv_source"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:layout_marginTop="6dp"
@@ -102,7 +102,9 @@
             android:paddingBottom="2dp"
             android:textColor="@color/white"
             android:textSize="9sp"
+            app:layout_constrainedWidth="true"
             app:layout_constraintEnd_toStartOf="@id/iv_del"
+            app:layout_constraintHorizontal_bias="0"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             tools:text="金牌 | 影视资源" />
