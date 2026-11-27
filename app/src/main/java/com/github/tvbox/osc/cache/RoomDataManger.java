@@ -120,6 +120,8 @@ public class RoomDataManger {
                             info = getVodInfoGson().fromJson(record.dataJson, new TypeToken<VodInfo>() {
                             }.getType());
                             info.sourceKey = record.sourceKey;
+                            // 回填最后观看时间，供记录页展示「N分钟前 / N天前」
+                            info.historyTime = record.updateTime;
                             SourceBean sourceBean = ApiConfig.get().getSource(info.sourceKey);
                             if (sourceBean == null || info.name == null)
                                 info = null;

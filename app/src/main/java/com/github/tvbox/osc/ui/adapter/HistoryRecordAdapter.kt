@@ -12,16 +12,17 @@ import com.github.tvbox.osc.api.ApiConfig
 import com.github.tvbox.osc.bean.VodInfo
 import com.github.tvbox.osc.cache.VodCollect
 import com.github.tvbox.osc.databinding.ItemRecordCardBinding
-import com.github.tvbox.osc.picasso.RoundTransformation
 import com.github.tvbox.osc.util.DefaultConfig
 import com.squareup.picasso.Picasso
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * 记录页（历史 / 收藏）卡片适配器
  *
- * 卡片 UI 与「订阅管理」页保持一致：左侧封面、中间标题信息、右侧独立删除按钮；
- * 支持点击跳转、右侧按钮删除、长按整卡删除（两种删除方式共存）。
- * 历史 / 收藏通过顶部 Tab 切换，由 Activity 传入当前 Tab 的数据。
+ * 流式海报卡片：封面 + 左上角来源角标 + 左下角「上次观看」+ 下方标题 / 相对时间。
+ * 支持点击跳转、右上角按钮删除、长按整卡删除（两种删除方式共存）。
  */
 class HistoryRecordAdapter(
     /** 点击卡片（跳转详情/播放） */
@@ -33,9 +34,9 @@ class HistoryRecordAdapter(
 ) : RecyclerView.Adapter<HistoryRecordAdapter.CardHolder>() {
 
     companion object {
-        // 3 列海报卡片：封面按控件宽度等比计算（与 item_record_card.xml 的 2:3 比例一致）
-        private const val COVER_RADIUS_DP = 16f
-        private const val CARD_MARGIN_DP = 10f
+        // 3 列海报：RecyclerView 左右各 10dp padding + 每格卡片左右各 5dp margin
+        private const val RV_HORIZONTAL_PADDING_DP = 10f
+        private const val CARD_MARGIN_DP = 5f
     }
 
     private val items = ArrayList<RecordEntry>()
@@ -65,23 +66,24 @@ class HistoryRecordAdapter(
             val name: String
             val pic: String?
             val sourceKey: String?
-            var year = 0
             var playNote: String? = null
+            var updateTime = 0L
 
             when (entry) {
                 is RecordEntry.History -> {
                     name = entry.vod.name ?: ""
                     pic = entry.vod.pic
                     sourceKey = entry.vod.sourceKey
-                    year = entry.vod.year
                     // 历史卡片保留播放进度标记（原 HistoryAdapter 的 playNote 逻辑）
                     playNote = entry.vod.playNote
+                    updateTime = entry.vod.historyTime
                 }
 
                 is RecordEntry.Collect -> {
                     name = entry.vod.name ?: ""
                     pic = entry.vod.pic
                     sourceKey = entry.vod.sourceKey
+                    updateTime = entry.vod.updateTime
                 }
             }
 
@@ -89,14 +91,18 @@ class HistoryRecordAdapter(
 
             // 来源名兜底，避免源被删除后 ApiConfig.getSource() 返回 null 导致崩溃
             val sourceName = ApiConfig.get().getSource(sourceKey)?.name ?: "未知来源"
-            binding.tvMeta.text = if (year > 0) "$sourceName · $year" else sourceName
+            binding.tvSource.text = sourceName
 
             if (!TextUtils.isEmpty(playNote)) {
-                binding.tvProgress.visibility = View.VISIBLE
-                binding.tvProgress.text = "上次看到：$playNote"
+                binding.llProgress.visibility = View.VISIBLE
+                binding.tvProgress.text = "上次观看 $playNote"
             } else {
-                binding.tvProgress.visibility = View.GONE
+                binding.llProgress.visibility = View.GONE
             }
+
+            val timeText = formatRelativeTime(updateTime)
+            binding.tvTime.text = timeText
+            binding.tvTime.visibility = if (TextUtils.isEmpty(timeText)) View.GONE else View.VISIBLE
 
             bindCover(pic)
 
@@ -108,26 +114,41 @@ class HistoryRecordAdapter(
             binding.ivDel.setOnClickListener { onDelete(entry) }
         }
 
-        /** 封面：Picasso 缓存 + 顶部圆角裁剪 + 失败占位图 */
+        /** 封面：按卡片实际宽度 2:3 解码，避免加载原图；圆角由 poster_box 的 outline 裁剪 */
         private fun bindCover(picUrl: String?) {
             val pic = picUrl ?: ""
             if (TextUtils.isEmpty(pic)) {
                 binding.ivCover.setImageResource(R.drawable.img_loading_placeholder)
                 return
             }
-            // 3 列布局：按屏幕宽度算卡片宽度，封面高度按 2:3 计算，避免按原图尺寸解码
-            val cardWidth = (ScreenUtils.getScreenWidth() - ConvertUtils.dp2px(CARD_MARGIN_DP)) / 3
-            val cardHeight = cardWidth * 3 / 2
+            val rvPadding = ConvertUtils.dp2px(RV_HORIZONTAL_PADDING_DP) * 2
+            val cellWidth = (ScreenUtils.getScreenWidth() - rvPadding) / 3
+            val coverWidth = cellWidth - ConvertUtils.dp2px(CARD_MARGIN_DP) * 2
+            val coverHeight = coverWidth * 3 / 2
             Picasso.get()
                 .load(DefaultConfig.checkReplaceProxy(pic))
                 .placeholder(R.drawable.img_loading_placeholder)
                 .error(R.drawable.img_loading_placeholder)
-                .transform(
-                    RoundTransformation("record_cover_${pic.hashCode()}")
-                        .override(cardWidth, cardHeight)
-                        .roundRadius(ConvertUtils.dp2px(COVER_RADIUS_DP), RoundTransformation.RoundType.TOP)
-                )
+                .resize(coverWidth.coerceAtLeast(1), coverHeight.coerceAtLeast(1))
+                .centerCrop()
                 .into(binding.ivCover)
+        }
+    }
+
+    /** 时间：刚刚 / N分钟前 / N小时前 / N天前，超过 30 天显示日期 */
+    private fun formatRelativeTime(time: Long): String {
+        if (time <= 0L) return ""
+        val diff = System.currentTimeMillis() - time
+        if (diff <= 0L) return "刚刚"
+        val minute = 60_000L
+        val hour = 60 * minute
+        val day = 24 * hour
+        return when {
+            diff < minute -> "刚刚"
+            diff < hour -> "${diff / minute}分钟前"
+            diff < day -> "${diff / hour}小时前"
+            diff < 30 * day -> "${diff / day}天前"
+            else -> SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(time))
         }
     }
 }

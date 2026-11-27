@@ -6,6 +6,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import com.github.tvbox.osc.R
@@ -32,8 +34,8 @@ import org.greenrobot.eventbus.ThreadMode
  * 记录（历史 + 收藏）页面
  *
  * 1. 顶部 Tab【历史｜收藏】左右并排（与订阅管理页同款样式），切换查看历史 / 收藏
- * 2. 卡片 UI 保持不变：左封面 + 中间标题信息 + 右侧删除按钮
- * 3. 右侧删除按钮与长按整卡删除两种方式共存
+ * 2. 3 列流式海报卡片：封面 + 来源角标 + 上次观看 + 标题 / 相对时间
+ * 3. 右上角删除按钮与长按整卡删除两种方式共存
  * 4. 历史、收藏在同一次统一读取中加载（修复部分手机端只显示历史、不显示收藏的问题）
  * 5. 空数据时显示与订阅页一致的 LoadSir「暂无数据」占位
  */
@@ -60,11 +62,25 @@ class HistoryActivity : BaseVbActivity<ActivityHistoryBinding>() {
     private var firstResume = true
 
     override fun init() {
+        applyStatusBarInset()
         initList()
         initTabLayout()
         initClearAction()
         loadAllData()
         BottomNavHelper.attach(this, findViewById(R.id.bottom_nav), R.id.navigation_history)
+    }
+
+    /**
+     * 记录页没有 TitleBar，ImmersionBar 不会自动留出状态栏高度，
+     * 导致右上角「清空」按钮被状态栏遮住一半。这里手动补上状态栏高度。
+     */
+    private fun applyStatusBarInset() {
+        val baseTop = mBinding.root.paddingTop
+        ViewCompat.setOnApplyWindowInsetsListener(mBinding.root) { v, insets ->
+            val top = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+            v.setPadding(v.paddingLeft, baseTop + top, v.paddingRight, v.paddingBottom)
+            insets
+        }
     }
 
     /** 列表初始化：单 RecyclerView + 单适配器，Tab 切换只换数据 */

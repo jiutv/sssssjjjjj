@@ -60,6 +60,10 @@ public class VodInfo implements Serializable {
     public String sourceKey;
     public String playerCfg = "";
     public boolean reverseSort = false;
+    /**
+     * 历史记录最后观看时间（毫秒），由 Room 的 updateTime 回填，不参与序列化展示
+     */
+    public long historyTime = 0L;
 
     public void setVideo(Movie.Video video) {
         last = video.last;

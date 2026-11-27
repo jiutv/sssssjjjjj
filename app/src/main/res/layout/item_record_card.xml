@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    记录页卡片（历史 / 收藏通用）—— 3 列海报网格版
-    封面在上、标题信息在下，右上角独立删除按钮，点击/长按逻辑保持不变
-    黑金深色主题：卡片背景复用 bg_sub_card（与订阅卡片同款）
+    记录页卡片（历史 / 收藏通用）—— 流式海报版
+    1. 3 列网格，卡片无底色，封面 2:3 圆角铺满
+    2. 封面左上角：来源角标（半透明玻璃胶囊）
+    3. 封面左下角：上次观看标记（白字 + 主题色下划线）
+    4. 封面下方：影片名称 + 相对时间（刚刚 / N分钟前 / N天前）
+    5. 右上角删除按钮 / 长按整卡删除 两种删除方式保留
 -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -10,86 +13,145 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="5dp"
-    android:layout_marginBottom="10dp"
-    android:background="@drawable/bg_sub_card"
-    android:paddingBottom="8dp">
+    android:layout_marginBottom="14dp">
 
-    <!-- 顶部封面：按 2:3 海报比例铺满卡片宽度 -->
-    <ImageView
-        android:id="@+id/iv_cover"
+    <!-- 封面容器：圆角裁剪，内部叠放角标 / 进度 / 删除 -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/poster_box"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:contentDescription="封面"
-        android:scaleType="centerCrop"
-        app:layout_constraintDimensionRatio="2:3"
+        android:background="@drawable/bg_round_poster"
+        android:clipToOutline="true"
+        app:layout_constraintDimensionRatio="H,2:3"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:src="@drawable/img_loading_placeholder" />
+        app:layout_constraintTop_toTopOf="parent">
 
-    <!-- 标题 -->
+        <ImageView
+            android:id="@+id/iv_cover"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:contentDescription="封面"
+            android:scaleType="centerCrop"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:src="@drawable/img_loading_placeholder" />
+
+        <!-- 底部渐变：保证「上次观看」在任何封面上都清晰 -->
+        <View
+            android:id="@+id/v_scrim"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:background="@drawable/bg_gradient_black_b2t"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <!-- 上次观看标记（收藏卡片隐藏） -->
+        <LinearLayout
+            android:id="@+id/ll_progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginBottom="8dp"
+            android:orientation="vertical"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            tools:visibility="visible">
+
+            <TextView
+                android:id="@+id/tv_progress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxWidth="150dp"
+                android:singleLine="true"
+                android:shadowColor="#99000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="3"
+                android:textColor="@color/white"
+                android:textSize="11sp"
+                tools:text="上次观看 1" />
+
+            <View
+                android:id="@+id/v_progress_underline"
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:layout_marginTop="2dp"
+                android:background="?attr/skin_accent" />
+        </LinearLayout>
+
+        <!-- 左上角来源角标 -->
+        <TextView
+            android:id="@+id/tv_source"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_marginTop="6dp"
+            android:layout_marginEnd="4dp"
+            android:background="@drawable/bg_glass_tag"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:paddingLeft="6dp"
+            android:paddingTop="2dp"
+            android:paddingRight="6dp"
+            android:paddingBottom="2dp"
+            android:textColor="@color/white"
+            android:textSize="9sp"
+            app:layout_constraintEnd_toStartOf="@id/iv_del"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="金牌 | 影视资源" />
+
+        <!-- 右上角删除按钮（长按整卡也可删除） -->
+        <ImageView
+            android:id="@+id/iv_del"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_margin="4dp"
+            android:background="@drawable/bg_record_del"
+            android:contentDescription="删除"
+            android:padding="4dp"
+            android:src="@drawable/dkplayer_ic_action_close"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/white" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- 影片名称 -->
     <TextView
         android:id="@+id/tv_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="8dp"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="7dp"
         android:ellipsize="end"
         android:singleLine="true"
         android:textColor="?attr/skin_text_primary"
-        android:textSize="13sp"
+        android:textSize="14sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/iv_cover"
-        tools:text="鬼灭之刃" />
+        app:layout_constraintTop_toBottomOf="@id/poster_box"
+        tools:text="枪响情起" />
 
-    <!-- 副标题：来源 · 年份 -->
+    <!-- 相对时间：刚刚 / N分钟前 / N天前 -->
     <TextView
-        android:id="@+id/tv_meta"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="3dp"
-        android:ellipsize="end"
-        android:singleLine="true"
-        android:textColor="?attr/skin_text_secondary"
-        android:textSize="11sp"
-        app:layout_constraintEnd_toEndOf="@id/tv_name"
-        app:layout_constraintStart_toStartOf="@id/tv_name"
-        app:layout_constraintTop_toBottomOf="@id/tv_name"
-        tools:text="金牌 · 2024" />
-
-    <!-- 历史卡片播放进度标记（收藏卡片隐藏） -->
-    <TextView
-        android:id="@+id/tv_progress"
+        android:id="@+id/tv_time"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
-        android:layout_marginBottom="8dp"
         android:ellipsize="end"
         android:singleLine="true"
         android:textColor="?attr/skin_accent"
-        android:textSize="10sp"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="@id/tv_name"
-        app:layout_constraintStart_toStartOf="@id/tv_name"
-        app:layout_constraintTop_toBottomOf="@id/tv_meta"
-        tools:text="上次看到：第 3 集"
-        tools:visibility="visible" />
-
-    <!-- 右上角独立删除按钮（长按整卡也可删除） -->
-    <ImageView
-        android:id="@+id/iv_del"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:layout_margin="4dp"
-        android:background="@drawable/bg_sub_card"
-        android:contentDescription="删除"
-        android:padding="4dp"
-        android:src="@drawable/dkplayer_ic_action_close"
+        android:textSize="11sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:tint="@color/red" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_name"
+        tools:text="20分钟前" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

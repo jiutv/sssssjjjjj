@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 历史卡片右上角删除按钮：半透明黑底圆形，保证任意封面上都可见 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="#73000000" />
+</shape>

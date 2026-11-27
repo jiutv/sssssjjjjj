@@ -3,7 +3,7 @@
     记录（历史 + 收藏）页面
     1. 顶部标题「记录」+ 右上角刷子一键清空按钮
     2. 顶部 Tab【历史｜收藏】左右并排，样式与「订阅管理」页一致，切换查看历史 / 收藏
-    3. 列表卡片样式保持不变（item_record_card：左封面 + 中间标题信息 + 右侧删除按钮）
+    3. 列表为 3 列流式海报：封面 + 来源角标 + 上次观看 + 标题 / 相对时间（item_record_card）
     4. 空数据时由 LoadSir 的 EmptyCallback（暂无数据）占位，与订阅页一致
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -129,6 +129,7 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
+        android:paddingHorizontal="10dp"
         android:paddingTop="4dp"
         android:paddingBottom="8dp"
         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
