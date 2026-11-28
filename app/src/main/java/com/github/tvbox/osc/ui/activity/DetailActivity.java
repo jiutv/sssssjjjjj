@@ -937,9 +937,10 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                     if (!TextUtils.isEmpty(absXml.sourceKey) && !absXml.sourceKey.equals(sourceKey)) {
                         return;
                     }
-                    // 剧集列表写入内存缓存，短时间内重复打开优先命中
+                    // 剧集列表写入缓存：内存（短时间重复打开优先命中）+ 磁盘（冷启动先出选集）
                     if (detailCacheKey != null) {
                         PlayCache.putDetail(detailCacheKey, absXml);
+                        PlayCache.putDetailDisk(detailCacheKey, absXml);
                     }
                     mBinding.tvLoadTip.setVisibility(View.GONE);
                     mBinding.tvLoadTip.setOnClickListener(null);
@@ -1279,10 +1280,18 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
      * 需求2：渲染详情数据（网络结果与本地缓存命中共用同一套渲染逻辑）
      */
     private void renderDetail(AbsXml absXml) {
+        renderDetail(absXml, true);
+    }
+
+    /**
+     * @param autoPlay 是否自动起播。磁盘缓存渲染时传 false：只铺选集，等网络数据回来再播，
+     *                 避免用可能已失效的旧地址起播，也避免网络回来时打断用户手动点的播放。
+     */
+    private void renderDetail(AbsXml absXml, boolean autoPlay) {
                 if (absXml != null && absXml.movie != null && absXml.movie.videoList != null && absXml.movie.videoList.size() > 0) {
                     showSuccess();
                     // 数据已到，恢复预览播放区（加载期间是隐藏的，避免黑屏转圈）
-                    mBinding.previewPlayerPlace.setVisibility(showPreview ? View.VISIBLE : View.GONE);
+                    mBinding.previewPlayerPlace.setVisibility(showPreview && autoPlay ? View.VISIBLE : View.GONE);
                     mVideo = absXml.movie.videoList.get(0);
                     vodInfo = new VodInfo();
                     vodInfo.setVideo(mVideo);
@@ -1321,6 +1330,13 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                         if (vodInfo.playFlag == null || !vodInfo.seriesMap.containsKey(vodInfo.playFlag))
                             vodInfo.playFlag = (String) vodInfo.seriesMap.keySet().toArray()[0];
 
+                        // 兜底：线路失效 / 集数顺序变化时，按上次看的集名找回同一集
+                        if (vodInfoRecord != null) {
+                            restoreSelectionByName(vodInfoRecord.playNote);
+                        } else {
+                            vodInfo.playIndex = 0;
+                        }
+
                         int flagScrollTo = 0;
                         for (int j = 0; j < vodInfo.seriesFlags.size(); j++) {
                             VodInfo.VodSeriesFlag flag = vodInfo.seriesFlags.get(j);
@@ -1336,14 +1352,17 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                         mBinding.mGridViewFlag.scrollToPosition(flagScrollTo);
 
                         refreshList();
-                        // 打开播放页后后台测速，测完按真实加载速度重排播放源
-                        maybeStartSpeedTest();
-                        // 非搜索入口进入时，自动补齐其他站点，让播放源和搜索入口一致
-                        startAutoSourceSearch(vodInfo.name);
+                        if (autoPlay) {
+                            // 打开播放页后后台测速，测完按真实加载速度重排播放源
+                            maybeStartSpeedTest();
+                            // 非搜索入口进入时，自动补齐其他站点，让播放源和搜索入口一致
+                            startAutoSourceSearch(vodInfo.name);
+                        }
                         // 需求4：同步正序/倒序按钮文案
                         mBinding.tvSort.setText(vodInfo.reverseSort ? "倒序" : "正序");
-                        if (showPreview) {
+                        if (showPreview && autoPlay && !isPlayerPlaying()) {
                             // 数据已到：先显示预览播放器容器，再起播
+                            mBinding.previewPlayerPlace.setVisibility(View.VISIBLE);
                             mBinding.previewPlayer.setVisibility(View.VISIBLE);
                             jumpToPlay();
                             toggleSubtitleTextSize();
@@ -1358,6 +1377,58 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                     showEmpty();
                     mBinding.previewPlayer.setVisibility(View.GONE);
                 }
+    }
+
+    /**
+     * 恢复上次看的那一集：
+     * 1. 记录里有集名时，先在当前线路按集名匹配（集数顺序变了也能对上）；
+     * 2. 当前线路没有这集，再遍历其他线路找同名集并切线路；
+     * 3. 都找不到就退回原下标，越界收敛到最后一集，避免选集越界。
+     */
+    private void restoreSelectionByName(String playNote) {
+        if (vodInfo == null || vodInfo.seriesMap == null || vodInfo.seriesMap.isEmpty()) return;
+        String note = playNote == null ? "" : playNote.trim();
+        List<VodInfo.VodSeries> current = vodInfo.seriesMap.get(vodInfo.playFlag);
+        int matched = indexOfSeries(current, note);
+        if (matched >= 0) {
+            vodInfo.playIndex = matched;
+            return;
+        }
+        if (!TextUtils.isEmpty(note)) {
+            for (String flag : vodInfo.seriesMap.keySet()) {
+                if (flag.equals(vodInfo.playFlag)) continue;
+                int idx = indexOfSeries(vodInfo.seriesMap.get(flag), note);
+                if (idx >= 0) {
+                    vodInfo.playFlag = flag;
+                    vodInfo.playIndex = idx;
+                    return;
+                }
+            }
+        }
+        int size = current == null ? 0 : current.size();
+        if (size <= 0) {
+            vodInfo.playIndex = 0;
+        } else if (vodInfo.playIndex >= size) {
+            vodInfo.playIndex = size - 1;
+        } else if (vodInfo.playIndex < 0) {
+            vodInfo.playIndex = 0;
+        }
+    }
+
+    private int indexOfSeries(List<VodInfo.VodSeries> list, String name) {
+        if (list == null || TextUtils.isEmpty(name)) return -1;
+        for (int i = 0; i < list.size(); i++) {
+            VodInfo.VodSeries series = list.get(i);
+            if (series != null && series.name != null && series.name.trim().equals(name)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /** 预览播放器是否已经在播（用于避免网络数据回来时重复起播、打断用户） */
+    private boolean isPlayerPlaying() {
+        return playFragment != null && playFragment.getPlayer() != null && playFragment.getPlayer().isPlaying();
     }
 
     private String getHtml(String label, String content) {
@@ -1399,9 +1470,14 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
 
         // ===== 恢复旧版时序：先发请求，页面绝不等待网络 =====
         detailCacheKey = PlayCache.detailKey(sourceKey, vodId);
-        // 纯内存缓存读取（微秒级），命中则不重复请求；未命中立刻发起请求
+        // 内存缓存（10 分钟内）可直接复用；磁盘缓存只用于先把选集渲染出来，仍然要拉一次最新数据
         AbsXml cached = PlayCache.getDetail(detailCacheKey);
+        boolean fromDisk = false;
         if (cached == null) {
+            cached = PlayCache.getDetailDisk(detailCacheKey);
+            fromDisk = cached != null;
+        }
+        if (cached == null || fromDisk) {
             detailRequestStart = System.currentTimeMillis();
             sourceViewModel.getDetail(sourceKey, vodId);
         }
@@ -1415,17 +1491,21 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             applyPreviewHeader(intent.getStringExtra("title"), intent.getStringExtra("pic"));
         }
 
-        if (cached != null && cached.movie != null) {
+        if (cached != null && cached.movie != null && !fromDisk) {
             // 内存缓存命中：直接把内容填进已渲染好的页面
             detailLoaded = true;
             mBinding.tvLoadTip.setVisibility(View.GONE);
             mBinding.tvLoadTip.setOnClickListener(null);
-            renderDetail(cached);
+            renderDetail(cached, true);
         } else {
-            // 缓存未命中：页面已在后台请求，这里只更新页面内的加载状态 + 超时保护
+            if (fromDisk) {
+                // 磁盘缓存命中：先把选集渲染出来（不起播），网络数据回来再刷新并起播
+                renderDetail(cached, false);
+            }
+            // 页面已在后台请求，这里只更新页面内的加载状态 + 超时保护
             detailLoaded = false;
             mBinding.tvLoadTip.setOnClickListener(null);
-            mBinding.tvLoadTip.setText("正在获取剧集列表…");
+            mBinding.tvLoadTip.setText(fromDisk ? "正在刷新剧集…" : "正在获取剧集列表…");
             mBinding.tvLoadTip.setVisibility(View.VISIBLE);
             mTimeoutHandler.removeCallbacks(detailTimeoutRunnable);
             mTimeoutHandler.postDelayed(detailTimeoutRunnable, DETAIL_TIMEOUT);
