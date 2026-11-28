@@ -9,6 +9,7 @@ import com.github.tvbox.osc.data.AppDataManager;
 import com.google.gson.ExclusionStrategy;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.HistoryHelper;
+import com.github.tvbox.osc.util.MD5;
 import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -96,10 +97,75 @@ public class RoomDataManger {
                 if (record != null) {
                     AppDataManager.get().getVodRecordDao().delete(record);
                 }
+                // 删历史记录 = 删这部片的所有进度缓存，避免"记录没了进度还在"
+                clearProgress(sourceKey, vodInfo.id, vodInfo);
             } catch (Throwable t) {
                 t.printStackTrace();
             }
         });
+    }
+
+    /**
+     * 记录当前播放进度到历史记录里（跟随记录一起删除）。
+     * 只更新已存在的记录：没看过（没有历史）就不主动创建。
+     */
+    public static void saveVodProgress(VodInfo vodInfo) {
+        if (vodInfo == null || TextUtils.isEmpty(vodInfo.id) || vodInfo.historyProgress <= 0) return;
+        String sourceKey = vodInfo.sourceKey;
+        WRITE_EXECUTOR.execute(() -> {
+            try {
+                VodRecord record = AppDataManager.get().getVodRecordDao().getVodRecord(sourceKey, vodInfo.id);
+                if (record == null) return;
+                record.dataJson = getVodInfoGson().toJson(vodInfo);
+                record.updateTime = System.currentTimeMillis();
+                AppDataManager.get().getVodRecordDao().insert(record);
+                rememberProgressKey(vodInfo);
+            } catch (Throwable t) {
+                t.printStackTrace();
+            }
+        });
+    }
+
+    // ===== 进度清理索引：progress_index_<sourceKey|vodId> = 该片看过的所有集的进度 key =====
+    private static final String PROGRESS_INDEX_PREFIX = "progress_index_";
+    /** 每部片最多记多少集，避免索引无限增长 */
+    private static final int MAX_PROGRESS_EPS = 300;
+
+    private static String progressIndexKey(String sourceKey, String vodId) {
+        return PROGRESS_INDEX_PREFIX + sourceKey + "|" + vodId;
+    }
+
+    /** 某一集的进度缓存 key（必须和 PlayFragment 起播时用的 key 完全一致） */
+    private static String progressCacheKey(VodInfo vodInfo) {
+        return vodInfo.sourceKey + vodInfo.id + vodInfo.playFlag + vodInfo.playIndex + vodInfo.playNote;
+    }
+
+    /** 把看过的集记进该片的进度索引 */
+    private static void rememberProgressKey(VodInfo vodInfo) {
+        String indexKey = progressIndexKey(vodInfo.sourceKey, vodInfo.id);
+        List<String> keys = Hawk.get(indexKey, new ArrayList<String>());
+        String key = progressCacheKey(vodInfo);
+        if (keys.contains(key)) return;
+        keys.add(key);
+        while (keys.size() > MAX_PROGRESS_EPS) {
+            keys.remove(0);
+        }
+        Hawk.put(indexKey, keys);
+    }
+
+    /** 清掉某部片所有集的进度缓存 */
+    private static void clearProgress(String sourceKey, String vodId, VodInfo fallback) {
+        String indexKey = progressIndexKey(sourceKey, vodId);
+        List<String> keys = Hawk.get(indexKey, new ArrayList<String>());
+        if (fallback != null) {
+            // 兼容没有索引的老记录：至少把记录里那一集清掉
+            String key = progressCacheKey(fallback);
+            if (!keys.contains(key)) keys.add(key);
+        }
+        for (String key : keys) {
+            CacheManager.delete(MD5.string2MD5(key), 0);
+        }
+        Hawk.delete(indexKey);
     }
 
     public static List<VodInfo> getAllVodRecord(int limit) {
@@ -108,6 +174,14 @@ public class RoomDataManger {
             Integer index = Hawk.get(HawkConfig.HISTORY_NUM, 0);
             Integer hisNum = HistoryHelper.getHisNum(index);
             if (count > hisNum) {
+                // 被裁掉的老记录也要把进度一起清掉，否则进度会变成永远不会删的孤儿数据
+                List<VodRecord> all = AppDataManager.get().getVodRecordDao().getAll(Integer.MAX_VALUE);
+                if (all != null) {
+                    for (int i = hisNum; i < all.size(); i++) {
+                        VodRecord old = all.get(i);
+                        clearProgress(old.sourceKey, old.vodId, null);
+                    }
+                }
                 AppDataManager.get().getVodRecordDao().reserver(hisNum);
             }
             List<VodRecord> recordList = AppDataManager.get().getVodRecordDao().getAll(limit);
@@ -211,11 +285,20 @@ public class RoomDataManger {
     }
 
     /**
-     * 删除全部历史记录
+     * 删除全部历史记录（顺带清掉每条记录对应的进度缓存）
      */
     public static void deleteVodRecordAll() {
         WRITE_EXECUTOR.execute(() -> {
             try {
+                List<VodRecord> records = AppDataManager.get().getVodRecordDao().getAll(Integer.MAX_VALUE);
+                if (records != null) {
+                    for (VodRecord record : records) {
+                        try {
+                            clearProgress(record.sourceKey, record.vodId, null);
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                }
                 AppDataManager.get().getVodRecordDao().deleteAll();
             } catch (Throwable t) {
                 t.printStackTrace();

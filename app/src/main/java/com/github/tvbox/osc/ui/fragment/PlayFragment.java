@@ -55,6 +55,7 @@ import com.github.tvbox.osc.bean.SourceBean;
 import com.github.tvbox.osc.bean.Subtitle;
 import com.github.tvbox.osc.bean.VodInfo;
 import com.github.tvbox.osc.cache.CacheManager;
+import com.github.tvbox.osc.cache.RoomDataManger;
 import com.github.tvbox.osc.event.RefreshEvent;
 import com.github.tvbox.osc.player.EXOmPlayer;
 import com.github.tvbox.osc.player.IjkMediaPlayer;
@@ -161,6 +162,17 @@ public class PlayFragment extends BaseLazyFragment {
     private int mBufferRecoverCount = 0;
     /** 正在执行缓冲自愈时，不重置恢复计数，避免死循环重播 */
     private boolean mRecoveringFromBuffer = false;
+
+    // ===== 进度落库：播放中每 10 秒把进度写进历史记录，退出/切后台再补一次 =====
+    private static final long PROGRESS_SAVE_INTERVAL = 10000L;
+    private final Handler mProgressSaveHandler = new Handler(Looper.getMainLooper());
+    private final Runnable mProgressSaveTask = new Runnable() {
+        @Override
+        public void run() {
+            saveProgressToRecord();
+            mProgressSaveHandler.postDelayed(this, PROGRESS_SAVE_INTERVAL);
+        }
+    };
 
     private final long videoDuration = -1;
     /**
@@ -1326,14 +1338,16 @@ public class PlayFragment extends BaseLazyFragment {
     @Override
     public void onPause() {
         super.onPause();
+        stopProgressSaver();
         // 后台不做缓冲自愈，避免在后台反复重播
         if (mBufferWatchHandler != null) {
             mBufferWatchHandler.removeCallbacksAndMessages(null);
         }
         if (mVideoView != null) {
             mVideoView.pause();
-            // 切后台立刻落一次进度，避免进程被回收后历史进度丢失
+            // 切后台立刻落一次进度缓存 + 历史记录，避免进程被回收后进度丢失
             mVideoView.saveProgressNow();
+            saveProgressToRecord();
         }
     }
 
@@ -1343,6 +1357,36 @@ public class PlayFragment extends BaseLazyFragment {
         if (mVideoView != null) {
             mVideoView.resume();
             recoverIfStuckOnResume();
+        }
+        startProgressSaver();
+    }
+
+    /** 启动周期进度落库（幂等，重复调用不会叠加） */
+    private void startProgressSaver() {
+        mProgressSaveHandler.removeCallbacks(mProgressSaveTask);
+        mProgressSaveHandler.postDelayed(mProgressSaveTask, PROGRESS_SAVE_INTERVAL);
+    }
+
+    private void stopProgressSaver() {
+        mProgressSaveHandler.removeCallbacks(mProgressSaveTask);
+    }
+
+    /**
+     * 把当前播放位置写进历史记录。
+     * 进度存在历史记录里，删历史记录就等于删进度；本地进度缓存丢了也能兜底续播。
+     */
+    private void saveProgressToRecord() {
+        if (mVodInfo == null || mVideoView == null) return;
+        try {
+            long pos = mVideoView.getCurrentPosition();
+            if (pos <= 0) return;
+            VodInfo.VodSeries vs = mVodInfo.seriesMap.get(mVodInfo.playFlag).get(mVodInfo.playIndex);
+            if (vs != null && vs.name != null) {
+                mVodInfo.playNote = vs.name;
+            }
+            mVodInfo.historyProgress = pos;
+            RoomDataManger.saveVodProgress(mVodInfo);
+        } catch (Throwable ignored) {
         }
     }
 
@@ -1395,6 +1439,9 @@ public class PlayFragment extends BaseLazyFragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        stopProgressSaver();
+        // 退出前把进度写进历史记录（release 会先落一次本地进度缓存）
+        saveProgressToRecord();
         // P0 fix: 移除所有 pending callbacks/runnables，防止退出后回调访问已 detach 的 View/Activity
         if (mHandler != null) mHandler.removeCallbacksAndMessages(null);
         // 移除缓冲看门狗，避免页面销毁后继续重播
@@ -1586,6 +1633,10 @@ public class PlayFragment extends BaseLazyFragment {
         if (reset) {
             CacheManager.delete(MD5.string2MD5(progressKey), 0);
             CacheManager.delete(MD5.string2MD5(subtitleCacheKey), 0);
+        } else if (mVodInfo.historyProgress > 0 && vs.name != null && vs.name.equals(mVodInfo.playNote)
+                && CacheManager.getCache(MD5.string2MD5(progressKey)) == null) {
+            // 历史记录里存了进度、但本地进度缓存没了（升级/清缓存）：用它兜底续播
+            CacheManager.save(MD5.string2MD5(progressKey), mVodInfo.historyProgress);
         }
         if (Jianpian.isJpUrl(vs.url)) {//荐片地址特殊判断
             String jp_url = vs.url;

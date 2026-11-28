@@ -1316,6 +1316,8 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                             vodInfo.playFlag = vodInfoRecord.playFlag;
                             vodInfo.playerCfg = vodInfoRecord.playerCfg;
                             vodInfo.reverseSort = vodInfoRecord.reverseSort;
+                            // 进度跟着历史记录走：本地进度缓存丢了也能从这里兜底
+                            vodInfo.historyProgress = vodInfoRecord.historyProgress;
                         } else {
                             vodInfo.playIndex = 0;
                             vodInfo.playFlag = null;
@@ -1748,7 +1750,12 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
             return;
         }
         try {
-            vodInfo.playNote = vodInfo.seriesMap.get(vodInfo.playFlag).get(vodInfo.playIndex).name;
+            String curNote = vodInfo.seriesMap.get(vodInfo.playFlag).get(vodInfo.playIndex).name;
+            // 进度只属于它自己那一集：切集后不能让上一集的进度"传染"给新的一集
+            if (vodInfo.historyProgress > 0 && !TextUtils.equals(curNote, vodInfo.playNote)) {
+                vodInfo.historyProgress = 0;
+            }
+            vodInfo.playNote = curNote;
         } catch (Throwable th) {
             vodInfo.playNote = "";
         }

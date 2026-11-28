@@ -57,6 +57,11 @@ public class VodInfo implements Serializable {
      */
     public int playIndex = 0;
     public String playNote = "";
+    /**
+     * 上次播放进度（毫秒），随历史记录一起落库：
+     * 历史记录删掉，进度自然没了；本地进度缓存丢了也能用它兜底。
+     */
+    public long historyProgress = 0;
     public String sourceKey;
     public String playerCfg = "";
     public boolean reverseSort = false;
