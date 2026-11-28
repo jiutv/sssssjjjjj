@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  选集按钮背景 selector
+  用 state_selected 控制：选中=accent 填充，未选中=玻璃底
+  Java 层 adapter 里 setSelected(true/false) 即可
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true" android:drawable="@drawable/bg_series_chip_selected" />
+    <item android:drawable="@drawable/bg_series_chip_normal" />
+</selector>

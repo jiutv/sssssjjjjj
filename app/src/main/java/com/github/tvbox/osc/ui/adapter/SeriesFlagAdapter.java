@@ -1,7 +1,6 @@
 package com.github.tvbox.osc.ui.adapter;
 
 import android.view.View;
-import android.widget.TextView;
 
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.BaseViewHolder;
@@ -11,9 +10,10 @@ import com.github.tvbox.osc.bean.VodInfo;
 import java.util.ArrayList;
 
 /**
- * @author pj567
- * @date :2020/12/22
- * @description:
+ * 线路 tab Adapter
+ * 根容器 id 还是根 LinearLayout（没有 id），通过 BaseViewHolder 的 itemView 取根。
+ * setSelected(item.selected) 触发 background selector 切换 accent_soft 填充态 / 玻璃底态
+ * vFlag 旧底部横线已废弃（visibility=gone），保留 id 兼容。
  */
 public class SeriesFlagAdapter extends BaseQuickAdapter<VodInfo.VodSeriesFlag, BaseViewHolder> {
     public SeriesFlagAdapter() {
@@ -22,12 +22,8 @@ public class SeriesFlagAdapter extends BaseQuickAdapter<VodInfo.VodSeriesFlag, B
 
     @Override
     protected void convert(BaseViewHolder helper, VodInfo.VodSeriesFlag item) {
-        View select = helper.getView(R.id.vFlag);
-        if (item.selected) {
-            select.setVisibility(View.VISIBLE);
-        } else {
-            select.setVisibility(View.GONE);
-        }
+        // 给根容器设 selected → background selector 自动切换 accent 高亮态
+        helper.itemView.setSelected(item.selected);
         helper.setText(R.id.tvFlag, item.name);
     }
 }

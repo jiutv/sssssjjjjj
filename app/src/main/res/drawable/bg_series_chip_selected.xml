@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  选集按钮 — 选中态
+  skin_accent 填充 + 无描边，圆角 10dp，文字在外层 TextView 里通过 selector 设成 skin_on_accent
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="?attr/skin_accent" />
+    <corners android:radius="10dp" />
+</shape>

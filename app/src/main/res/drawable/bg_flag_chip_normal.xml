@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  线路 tab 胶囊 — 未选中态
+  半透明玻璃底 + 细描边，跟皮肤 token 绑定
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="?attr/skin_card" />
+    <corners android:radius="12dp" />
+    <stroke
+        android:width="0.6dp"
+        android:color="?attr/skin_card_border" />
+</shape>

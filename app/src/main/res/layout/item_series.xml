@@ -1,29 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.lihang.ShadowLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  选集按钮 — 原生 ConstraintLayout + TextView
+  选中态：skin_accent 填充 + skin_on_accent 文字
+  未选中态：玻璃 card 底 + skin_text_primary 文字
+  完全用主题 token 绑色，换皮肤自动适配
+  保持原 id tvSeries（原 ShadowLayout 里的子 TextView id）
+-->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/sl"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    app:hl_cornerRadius="@dimen/common_corners"
-    app:hl_layoutBackground="@android:color/transparent"
-    app:hl_strokeWith="0.6dp"
-    app:hl_strokeColor="@color/colorPrimary"
-    app:hl_layoutBackground_true="@color/colorPrimary"
-    app:hl_shapeMode="selected"
-    app:hl_bindTextView="@+id/tvSeries"
-    app:hl_textColor_true="#fff"
-    app:hl_textColor="@color/colorPrimary">
+    android:background="@drawable/selector_series_chip_bg"
+    android:clickable="true"
+    android:focusable="true"
+    android:paddingHorizontal="6dp"
+    android:paddingVertical="2dp">
 
     <TextView
         android:id="@+id/tvSeries"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:ellipsize="marquee"
         android:gravity="center"
         android:marqueeRepeatLimit="marquee_forever"
-        android:text="第210集"
+        android:maxLines="1"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="9dp"
         android:singleLine="true"
-        android:paddingHorizontal="10dp"
-        android:paddingVertical="6dp"
-        android:textSize="12dp"/>
-</com.lihang.ShadowLayout>
+        android:textColor="@color/selector_series_chip_text"
+        android:textSize="13sp"
+        tools:text="第 210 集"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  详情页 — Hero Banner 风格
+  顶部 460dp 高斯模糊封面 + 渐变遮罩 + 片名/工具按钮叠在 Hero 区
+  下方线路/选集网格保持不变，只改样式为胶囊
+-->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -6,27 +11,29 @@
     android:layout_height="match_parent"
     android:background="?attr/skin_page_bg">
 
-    <!-- 详情页背景：本剧封面高斯模糊 -->
+    <!-- ========= Hero 背景：高斯模糊封面 ========= -->
     <ImageView
         android:id="@+id/ivDetailBg"
         android:layout_width="match_parent"
-        android:layout_height="380dp"
+        android:layout_height="460dp"
         android:scaleType="centerCrop"
         android:visibility="invisible"
         tools:visibility="visible" />
 
-    <!-- 背景遮罩：向下渐变过渡到页面底色 -->
+    <!-- Hero 渐变遮罩：由代码动态生成（initDetailBackground），透明→pageColor -->
     <View
         android:id="@+id/bgScrim"
         android:layout_width="match_parent"
-        android:layout_height="380dp" />
+        android:layout_height="460dp" />
 
+    <!-- ========= 主体内容 ========= -->
     <LinearLayout
         android:id="@+id/llLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
+        <!-- 预览播放器容器（详情页内嵌 250dp 预览播放） -->
         <LinearLayout
             android:id="@+id/previewPlayerPlace"
             android:layout_width="match_parent"
@@ -34,34 +41,30 @@
             android:orientation="horizontal"
             android:paddingLeft="@dimen/dp_40"
             android:paddingRight="@dimen/dp_50"
-            android:paddingBottom="@dimen/dp_10">
-
-        </LinearLayout>
+            android:paddingBottom="@dimen/dp_10" />
 
         <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:fillViewport="true">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:orientation="vertical"
                 android:layout_height="wrap_content">
 
-                <!-- 需求3：移除顶部居中 "MBox" 文字 Logo，其余样式不变 -->
-
-                <!-- 封面 + 剧集信息 -->
+                <!-- ========= Hero 信息卡：封面 + 片名 + Meta + 工具按钮 + 来源 ========= -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="14dp"
-                    android:layout_marginTop="16dp"
-                    android:background="?attr/skin_card_bg"
-                    android:orientation="horizontal"
-                    android:padding="12dp">
+                    android:layout_marginHorizontal="16dp"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
 
+                    <!-- 左侧封面图：2:3 比例，圆角 -->
                     <FrameLayout
-                        android:layout_width="104dp"
-                        android:layout_height="146dp">
+                        android:layout_width="112dp"
+                        android:layout_height="160dp">
 
                         <ImageView
                             android:id="@+id/ivPoster"
@@ -71,6 +74,7 @@
                             android:src="@drawable/img_loading_placeholder" />
                     </FrameLayout>
 
+                    <!-- 右侧信息 -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
@@ -78,6 +82,7 @@
                         android:layout_weight="1"
                         android:orientation="vertical">
 
+                        <!-- 片名 + 详情跳转 -->
                         <LinearLayout
                             android:id="@+id/ll_title"
                             android:layout_width="match_parent"
@@ -98,13 +103,14 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_gravity="bottom"
+                                android:layout_gravity="top"
                                 android:layout_marginLeft="8dp"
                                 android:text="详情 >>"
-                                android:textColor="?attr/skin_text_primary"
+                                android:textColor="?attr/skin_text_secondary"
                                 android:textSize="12sp" />
                         </LinearLayout>
 
+                        <!-- 副标题 meta（地区 · 年份 · 类型） -->
                         <TextView
                             android:id="@+id/tvMeta"
                             android:layout_width="match_parent"
@@ -116,28 +122,31 @@
                             android:textSize="12sp"
                             tools:text="中国大陆 · 2026 · 剧集" />
 
+                        <!-- 导演 -->
                         <TextView
                             android:id="@+id/tvDirector"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="5dp"
+                            android:layout_marginTop="3dp"
                             android:ellipsize="end"
                             android:singleLine="true"
                             android:textColor="?attr/skin_text_secondary"
-                            android:textSize="12sp"
+                            android:textSize="11sp"
                             tools:text="导演：杨龙" />
 
+                        <!-- 演员 -->
                         <TextView
                             android:id="@+id/tvActor"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="5dp"
+                            android:layout_marginTop="3dp"
                             android:ellipsize="end"
-                            android:maxLines="2"
+                            android:maxLines="1"
                             android:textColor="?attr/skin_text_secondary"
-                            android:textSize="12sp"
+                            android:textSize="11sp"
                             tools:text="演员：田曦薇，闫桉，刘小北" />
 
+                        <!-- 更新/备注 tag -->
                         <TextView
                             android:id="@+id/tvNote"
                             android:layout_width="wrap_content"
@@ -154,119 +163,114 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- 需求2：加载状态提示（区分"获取剧集列表"与"解析播放线路"） -->
-                <TextView
-                    android:id="@+id/tvLoadTip"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="14dp"
-                    android:layout_marginTop="10dp"
-                    android:gravity="center"
-                    android:text="正在获取剧集列表…"
-                    android:textColor="?attr/skin_text_secondary"
-                    android:textSize="12sp"
-                    android:visibility="gone" />
-
+                <!-- ========= Hero 下方一行：工具胶囊 + 来源 ========= -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="14dp"
-                    android:layout_marginTop="14dp"
+                    android:layout_marginHorizontal="16dp"
+                    android:layout_marginTop="12dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
+                    <!-- 投屏胶囊 -->
                     <TextView
-                        android:id="@+id/tvSite"
-                        android:background="?attr/skin_card_bg"
+                        android:id="@+id/tvCast"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:ellipsize="end"
-                        android:maxLines="1"
-                        android:singleLine="true"
-                        tools:text="非凡影视"
+                        android:background="@drawable/bg_tool_chip"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:drawableLeft="@drawable/ic_cast_18"
+                        android:drawablePadding="6dp"
+                        android:gravity="center"
+                        android:paddingHorizontal="14dp"
+                        android:paddingVertical="8dp"
+                        android:text="投屏"
                         android:textColor="?attr/skin_text_primary"
-                        android:drawableRight="@drawable/ic_change_20"
-                        android:drawablePadding="4dp"
-                        android:paddingHorizontal="12dp"
-                        android:paddingVertical="6dp" />
+                        android:textSize="12sp" />
+
+                    <!-- 收藏胶囊（未收藏态） -->
+                    <TextView
+                        android:id="@+id/tvCollect"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="8dp"
+                        android:background="@drawable/bg_tool_chip"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:drawableLeft="@drawable/ic_colloct_18"
+                        android:drawablePadding="6dp"
+                        android:gravity="center"
+                        android:paddingHorizontal="14dp"
+                        android:paddingVertical="8dp"
+                        android:text="收藏"
+                        android:textColor="?attr/skin_text_primary"
+                        android:textSize="12sp" />
+
+                    <!-- 下载胶囊 -->
+                    <TextView
+                        android:id="@+id/tvDownload"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="8dp"
+                        android:background="@drawable/bg_tool_chip"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:drawableLeft="@drawable/ic_download_18"
+                        android:drawablePadding="6dp"
+                        android:gravity="center"
+                        android:paddingHorizontal="14dp"
+                        android:paddingVertical="8dp"
+                        android:text="下载"
+                        android:textColor="?attr/skin_text_primary"
+                        android:textSize="12sp" />
 
                     <Space
                         android:layout_width="0dp"
                         android:layout_weight="1"
                         android:layout_height="wrap_content" />
 
+                    <!-- 来源胶囊（Hero 行右侧） -->
+                    <TextView
+                        android:id="@+id/tvSite"
+                        android:background="@drawable/bg_source_chip"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="?attr/skin_text_secondary"
+                        android:drawableRight="@drawable/ic_change_20"
+                        android:drawablePadding="4dp"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="6dp"
+                        android:textSize="11sp"
+                        tools:text="非凡影视" />
+
+                    <!-- 无痕浏览图标（保留） -->
                     <ImageView
                         android:id="@+id/iv_private_browsing"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="center_vertical"
-                        android:paddingLeft="10dp"
+                        android:layout_marginLeft="6dp"
+                        android:paddingLeft="6dp"
                         android:src="@drawable/ic_private_browsing"
                         android:visibility="gone"
                         tools:visibility="visible" />
                 </LinearLayout>
 
-                <LinearLayout
+                <!-- 加载状态提示 -->
+                <TextView
+                    android:id="@+id/tvLoadTip"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="14dp"
-                    android:layout_marginTop="6dp"
-                    android:gravity="start|center_vertical"
-                    android:orientation="horizontal">
-                    <TextView
-                        android:id="@+id/tvCast"
-                        android:layout_width="wrap_content"
-                        android:layout_height="@dimen/dp_40"
-                        android:drawableRight="@drawable/ic_cast_18"
-                        android:drawablePadding="6dp"
-                        android:focusable="true"
-                        android:gravity="center"
-                        android:paddingHorizontal="10dp"
-                        android:text="投屏"
-                        android:textColor="?attr/skin_text_primary" />
-
-                    <View
-                        android:layout_width="1dp"
-                        android:layout_height="14dp"
-                        android:background="?attr/skin_card_border"
-                        android:layout_marginHorizontal="6dp"/>
-                    <TextView
-                        android:id="@+id/tvCollect"
-                        android:layout_width="wrap_content"
-                        android:layout_height="@dimen/dp_40"
-                        android:drawableRight="@drawable/ic_colloct_18"
-                        android:drawablePadding="6dp"
-                        android:focusable="true"
-                        android:gravity="center"
-                        android:paddingHorizontal="10dp"
-                        android:text="收藏"
-                        android:textColor="?attr/skin_text_primary" />
-
-                    <View
-                        android:layout_width="1dp"
-                        android:layout_height="14dp"
-                        android:background="?attr/skin_card_border"
-                        android:layout_marginHorizontal="6dp"/>
-                    <TextView
-                        android:id="@+id/tvDownload"
-                        android:layout_width="wrap_content"
-                        android:layout_height="@dimen/dp_40"
-                        android:drawableRight="@drawable/ic_download_18"
-                        android:drawablePadding="6dp"
-                        android:focusable="true"
-                        android:gravity="center"
-                        android:paddingHorizontal="10dp"
-                        android:text="下载"
-                        android:textColor="?attr/skin_text_primary" />
-                </LinearLayout>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="?attr/skin_card"
-                    android:layout_marginHorizontal="14dp"
-                    android:layout_marginTop="2dp"/>
-
+                    android:layout_marginHorizontal="16dp"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center"
+                    android:text="正在获取剧集列表…"
+                    android:textColor="?attr/skin_text_secondary"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
 
                 <LinearLayout
                     android:id="@+id/mEmptyPlaylist"
@@ -290,11 +294,10 @@
                         android:layout_marginStart="@dimen/dp_10"
                         android:layout_marginLeft="@dimen/dp_10"
                         android:gravity="center"
-                        android:text="暂无播放数据"
-
-                        />
+                        android:text="暂无播放数据" />
                 </LinearLayout>
 
+                <!-- 解析源播放源（如果有的话） -->
                 <LinearLayout
                     android:id="@+id/parse_root"
                     android:layout_width="match_parent"
@@ -302,6 +305,7 @@
                     android:orientation="vertical"
                     android:visibility="gone"
                     tools:visibility="visible">
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -309,13 +313,13 @@
                         android:textColor="?attr/skin_text_primary"
                         android:textSize="16sp"
                         android:textStyle="bold"
-                        android:layout_marginLeft="14dp"
+                        android:layout_marginLeft="16dp"
                         android:layout_marginTop="8dp"
-                        android:layout_centerVertical="true"
-                        />
+                        android:layout_centerVertical="true" />
+
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_parse"
-                        android:layout_marginHorizontal="10dp"
+                        android:layout_marginHorizontal="12dp"
                         android:layout_marginVertical="4dp"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -323,75 +327,80 @@
                         android:orientation="horizontal"
                         tools:listitem="@layout/item_select_flag" />
                 </LinearLayout>
+
+                <!-- ========= 线路 标题 ========= -->
                 <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="14dp"
-                    android:layout_marginTop="14dp">
+                    android:layout_marginHorizontal="16dp"
+                    android:layout_marginTop="18dp">
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="线路"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp"
+                        android:textSize="15sp"
                         android:textStyle="bold"
-                        android:layout_centerVertical="true"
-                        />
+                        android:layout_centerVertical="true" />
+
                     <TextView
                         android:id="@+id/tvChangeLine"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="快捷换线"
                         android:drawableRight="@drawable/ic_change_20"
-                        android:textColor="?attr/skin_text_primary"
+                        android:textColor="?attr/skin_text_secondary"
                         android:drawablePadding="4dp"
                         android:paddingVertical="6dp"
-                        android:paddingLeft="20dp"
+                        android:paddingLeft="10dp"
                         android:layout_alignParentRight="true"
-                        />
+                        android:textSize="12sp" />
                 </RelativeLayout>
-                <!--        线路列表-->
+
+                <!-- 线路列表（胶囊 tag） -->
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/mGridViewFlag"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="10dp"
-                    android:layout_marginVertical="4dp"
+                    android:layout_marginHorizontal="12dp"
+                    android:layout_marginVertical="8dp"
                     tools:listitem="@layout/item_select_flag"
                     app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-                    android:orientation="horizontal"/>
+                    android:orientation="horizontal" />
 
+                <!-- ========= 选集 标题 ========= -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="14dp"
+                    android:layout_marginHorizontal="16dp"
                     android:layout_marginTop="14dp"
-                    android:gravity="center_vertical"
-                    >
+                    android:gravity="center_vertical">
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="选集"
                         android:textColor="?attr/skin_text_primary"
-                        android:textSize="16sp"
-                        android:layout_centerVertical="true"
+                        android:textSize="15sp"
                         android:textStyle="bold"
-                        />
+                        android:layout_centerVertical="true" />
 
                     <Space
                         android:layout_width="0dp"
                         android:layout_weight="1"
-                        android:layout_height="wrap_content"/>
+                        android:layout_height="wrap_content" />
+
                     <TextView
                         android:id="@+id/tvSort"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="倒序"
+                        android:text="正序"
                         android:drawableRight="@drawable/ic_sort_18"
-                        android:textColor="?attr/skin_text_primary"
+                        android:textColor="?attr/skin_text_secondary"
                         android:drawablePadding="4dp"
                         android:paddingVertical="6dp"
-                        />
+                        android:textSize="12sp" />
 
                     <View
                         android:id="@+id/line10"
@@ -399,34 +408,36 @@
                         android:layout_height="14dp"
                         android:layout_marginHorizontal="10dp"
                         android:background="?attr/skin_card_border" />
-                    <!-- 需求4：原"全部"按钮改为"布局"按钮，点击循环切换 完整/紧凑/智能 三种选集布局 -->
+
                     <TextView
                         android:id="@+id/tv_all_series"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="布局·智能"
                         android:drawableRight="@drawable/ic_expand_all_18"
-                        android:textColor="?attr/skin_text_primary"
+                        android:textColor="?attr/skin_text_secondary"
                         android:drawablePadding="4dp"
                         android:paddingVertical="6dp"
-                        />
+                        android:textSize="12sp" />
                 </LinearLayout>
-                <!--        集数列表：网格铺开，全部集数直接显示 -->
+
+                <!-- 选集网格 -->
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/mGridView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="10dp"
-                    android:layout_marginVertical="12dp"
+                    android:layout_marginHorizontal="12dp"
+                    android:layout_marginVertical="10dp"
                     android:clipChildren="false"
                     android:clipToPadding="false"
                     tools:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-                    tools:listitem="@layout/item_series"/>
+                    tools:listitem="@layout/item_series" />
             </LinearLayout>
         </ScrollView>
 
     </LinearLayout>
 
+    <!-- 预览播放器 fragment（悬浮于 previewPlayerPlace 之上） -->
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/previewPlayer"
         android:layout_width="match_parent"

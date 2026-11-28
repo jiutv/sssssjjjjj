@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  线路 tab 文字颜色 selector
+  选中=skin_accent（强调色），未选中=skin_text_secondary
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="?attr/skin_accent" android:state_selected="true" />
+    <item android:color="?attr/skin_text_secondary" />
+</selector>

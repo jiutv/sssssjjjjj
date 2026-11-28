@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  线路 tab 背景 selector
+  selected=accent_soft 填充 + accent 描边，未选中=玻璃底
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true" android:drawable="@drawable/bg_flag_chip_selected" />
+    <item android:drawable="@drawable/bg_flag_chip_normal" />
+</selector>

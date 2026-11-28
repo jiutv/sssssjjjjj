@@ -15,6 +15,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.Icon;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -257,11 +258,11 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                 if ("加入收藏".equals(text)) {
                     RoomDataManger.insertVodCollect(sourceKey, vodInfo);
                     Toast.makeText(DetailActivity.this, "已加入收藏夹", Toast.LENGTH_SHORT).show();
-                    mBinding.tvCollect.setText("取消收藏");
+                    applyCollectState(true);
                 } else {
                     RoomDataManger.deleteVodCollect(sourceKey, vodInfo);
                     Toast.makeText(DetailActivity.this, "已移除收藏夹", Toast.LENGTH_SHORT).show();
-                    mBinding.tvCollect.setText("加入收藏");
+                    applyCollectState(false);
                 }
             }
         });
@@ -363,17 +364,19 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         if (!TextUtils.isEmpty(picUrl)) {
             mBinding.ivDetailBg.setVisibility(View.VISIBLE);
             // 修复：按控件实际尺寸解码 + 居中裁剪，避免模糊背景按原图全尺寸解码/输出造成卡顿
+            // Hero 区高度 460dp（含 250dp 预览播放器 + 下方封面信息区）
             Picasso.get().load(picUrl)
-                    .resize(ScreenUtils.getScreenWidth(), ConvertUtils.dp2px(380))
+                    .resize(ScreenUtils.getScreenWidth(), ConvertUtils.dp2px(460))
                     .centerCrop()
                     .transform(new BlurTransformation())
                     .into(mBinding.ivDetailBg);
+            // 封面图：112x160dp（2:3），圆角 10dp
             Picasso.get().load(picUrl)
                     .placeholder(R.drawable.img_loading_placeholder)
                     .error(R.drawable.img_loading_placeholder)
                     .transform(new RoundTransformation("detail_poster")
-                            .override(ConvertUtils.dp2px(104), ConvertUtils.dp2px(146))
-                            .roundRadius(ConvertUtils.dp2px(8), RoundTransformation.RoundType.ALL))
+                            .override(ConvertUtils.dp2px(112), ConvertUtils.dp2px(160))
+                            .roundRadius(ConvertUtils.dp2px(10), RoundTransformation.RoundType.ALL))
                     .into(mBinding.ivPoster);
         }
 
@@ -406,6 +409,31 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         } else {
             view.setText(prefix + value);
             view.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
+     * Hero 工具胶囊 —— 收藏按钮状态切换
+     * 已收藏：背景 = accent 填充 + icon tint = skin_on_accent + 文字 = "取消收藏"
+     * 未收藏：背景 = 玻璃卡底 + icon tint = skin_text_primary + 文字 = "加入收藏"
+     */
+    private void applyCollectState(boolean collected) {
+        TextView btn = mBinding.tvCollect;
+        btn.setText(collected ? "取消收藏" : "加入收藏");
+        btn.setBackgroundResource(collected
+                ? R.drawable.bg_tool_chip_filled
+                : R.drawable.bg_tool_chip);
+
+        // 用 DrawableCompat 给左侧心形 icon 上 tint，避免不同主题上颜色看不清
+        Drawable[] drawables = btn.getCompoundDrawables();
+        if (drawables[0] != null) {
+            Drawable icon = drawables[0].mutate();
+            TypedValue tv = new TypedValue();
+            int colorRes = collected ? R.attr.skin_on_accent : R.attr.skin_text_primary;
+            if (getTheme().resolveAttribute(colorRes, tv, true)) {
+                icon.setTint(tv.data);
+            }
+            btn.setCompoundDrawables(icon, null, null, null);
         }
     }
 
@@ -788,7 +816,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
 
         // 收藏状态放到请求之后查询，避免主线程数据库查询阻塞首屏请求
         boolean isVodCollect = RoomDataManger.isVodCollect(sourceKey, vodId);
-        mBinding.tvCollect.setText(isVodCollect ? "取消收藏" : "加入收藏");
+        applyCollectState(isVodCollect);
     }
 
     /**

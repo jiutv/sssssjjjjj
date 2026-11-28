@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  详情页工具按钮胶囊（投屏/收藏/下载）—— 玻璃半透明 + 细描边
+  按下态用 transparent 让 ripple 接管（item_bg_selector_* 已做）
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="?attr/skin_card" />
+    <corners android:radius="14dp" />
+    <stroke
+        android:width="0.6dp"
+        android:color="?attr/skin_card_border" />
+</shape>

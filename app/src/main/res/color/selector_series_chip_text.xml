@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  选集按钮文字颜色 selector
+  选中=skin_on_accent（白/或皮肤指定色），未选中=skin_text_primary
+  使用 ColorStateList，setSelected() 时自动切换
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="?attr/skin_on_accent" android:state_selected="true" />
+    <item android:color="?attr/skin_text_primary" />
+</selector>

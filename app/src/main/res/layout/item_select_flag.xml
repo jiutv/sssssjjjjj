@@ -1,31 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  线路 tab 胶囊标签
+  选中态：accent_soft 底 + accent 描边 + accent 文字
+  未选中态：玻璃底 + card_border + secondary 文字
+  保持原 id tvFlag / vFlag（vFlag 在新方案里隐藏）
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_marginRight="@dimen/dp_10"
+    android:layout_marginRight="8dp"
+    android:background="@drawable/selector_flag_chip_bg"
     android:clickable="true"
     android:focusable="true"
-    android:orientation="vertical"
-    android:paddingLeft="@dimen/dp_10"
-    android:paddingTop="@dimen/dp_5"
-    android:paddingRight="@dimen/dp_10"
-    android:paddingBottom="@dimen/dp_1">
+    android:gravity="center"
+    android:orientation="horizontal"
+    android:paddingHorizontal="14dp"
+    android:paddingVertical="8dp">
 
     <TextView
         android:id="@+id/tvFlag"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:background="@null"
         android:ellipsize="end"
         android:gravity="center"
         android:singleLine="true"
-        tools:text="11111111111" />
+        android:textColor="@color/selector_flag_chip_text"
+        android:textSize="13sp"
+        android:textStyle="medium"
+        tools:text="线路 1" />
 
+    <!-- 旧版底部横线，新方案不再使用，保留 id 但隐藏 -->
     <View
         android:id="@+id/vFlag"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/dp_4"
-        android:layout_marginLeft="@dimen/dp_5"
-        android:layout_marginRight="@dimen/dp_5"
-        android:background="@drawable/shape_source_flag_line" />
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
 </LinearLayout>

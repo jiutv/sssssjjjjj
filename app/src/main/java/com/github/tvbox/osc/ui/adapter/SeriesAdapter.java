@@ -1,6 +1,6 @@
 package com.github.tvbox.osc.ui.adapter;
 
-import android.graphics.Color;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
@@ -12,14 +12,12 @@ import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.BaseViewHolder;
 import com.github.tvbox.osc.R;
 import com.github.tvbox.osc.bean.VodInfo;
-import com.lihang.ShadowLayout;
 
 import java.util.ArrayList;
 
 /**
- * @author pj567
- * @date :2020/12/22
- * @description:
+ * 选集 Adapter
+ * item_series 根容器 id 保持 @id/sl，setSelected 触发 background selector 切换选中/未选中态
  */
 public class SeriesAdapter extends BaseQuickAdapter<VodInfo.VodSeries, BaseViewHolder> {
     private boolean isGird;
@@ -31,12 +29,12 @@ public class SeriesAdapter extends BaseQuickAdapter<VodInfo.VodSeries, BaseViewH
 
     @Override
     protected void convert(BaseViewHolder helper, VodInfo.VodSeries item) {
-        ShadowLayout sl = helper.getView(R.id.sl);
+        View sl = helper.getView(R.id.sl);
         TextView tvSeries = helper.getView(R.id.tvSeries);
         sl.setSelected(item.selected);
         tvSeries.setText(item.name);
 
-        if (!isGird){// 详情页横向展示时固定宽度
+        if (!isGird) {
             ViewGroup.LayoutParams layoutParams = sl.getLayoutParams();
             layoutParams.width = ConvertUtils.dp2px(120);
             sl.setLayoutParams(layoutParams);
@@ -46,5 +44,4 @@ public class SeriesAdapter extends BaseQuickAdapter<VodInfo.VodSeries, BaseViewH
     public void setGird(boolean gird) {
         isGird = gird;
     }
-
 }
