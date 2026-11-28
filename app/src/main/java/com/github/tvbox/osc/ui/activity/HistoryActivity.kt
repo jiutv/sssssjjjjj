@@ -215,6 +215,9 @@ class HistoryActivity : BaseVbActivity<ActivityHistoryBinding>() {
                 val bundle = Bundle().apply {
                     putString("id", vod.id)
                     putString("sourceKey", vod.sourceKey)
+                    // 带上标题/封面，详情页可以先把头部渲染出来，不用干等网络
+                    putString("title", vod.name)
+                    putString("pic", vod.pic)
                 }
                 jumpActivity(DetailActivity::class.java, bundle)
             }
@@ -225,6 +228,8 @@ class HistoryActivity : BaseVbActivity<ActivityHistoryBinding>() {
                     val bundle = Bundle().apply {
                         putString("id", vod.vodId)
                         putString("sourceKey", vod.sourceKey)
+                        putString("title", vod.name)
+                        putString("pic", vod.pic)
                     }
                     jumpActivity(DetailActivity::class.java, bundle)
                 } else {

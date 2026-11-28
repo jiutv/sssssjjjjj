@@ -1409,6 +1409,11 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         // ===== 页面先渲染出来（封面 / 标题 / 线路 / 选集区域先占位）=====
         showSuccess();
         showDetailSkeleton();
+        // 历史/收藏入口带了标题与封面：先渲染头部，别让用户对着"加载中…"干等网络
+        Intent intent = getIntent();
+        if (intent != null) {
+            applyPreviewHeader(intent.getStringExtra("title"), intent.getStringExtra("pic"));
+        }
 
         if (cached != null && cached.movie != null) {
             // 内存缓存命中：直接把内容填进已渲染好的页面
@@ -1469,6 +1474,36 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         // 加载完成前不显示预览播放区，避免顶部黑屏 + 一直转圈
         mBinding.previewPlayerPlace.setVisibility(View.GONE);
         mBinding.previewPlayer.setVisibility(View.GONE);
+    }
+
+    /**
+     * 历史 / 收藏入口会带上标题和封面：网络数据回来前先把头部渲染出来，
+     * 否则从记录页进来要一直盯着"加载中…"，观感就是"打开很慢"。
+     */
+    private void applyPreviewHeader(String title, String pic) {
+        if (!TextUtils.isEmpty(title)) {
+            mBinding.tvName.setText(title);
+        }
+        if (TextUtils.isEmpty(pic)) {
+            return;
+        }
+        String picUrl = DefaultConfig.checkReplaceProxy(pic);
+        if (TextUtils.isEmpty(picUrl)) {
+            return;
+        }
+        mBinding.ivDetailBg.setVisibility(View.VISIBLE);
+        Picasso.get().load(picUrl)
+                .resize(ScreenUtils.getScreenWidth(), ConvertUtils.dp2px(380))
+                .centerCrop()
+                .transform(new BlurTransformation())
+                .into(mBinding.ivDetailBg);
+        Picasso.get().load(picUrl)
+                .placeholder(R.drawable.img_loading_placeholder)
+                .error(R.drawable.img_loading_placeholder)
+                .transform(new RoundTransformation("detail_poster")
+                        .override(ConvertUtils.dp2px(104), ConvertUtils.dp2px(146))
+                        .roundRadius(ConvertUtils.dp2px(8), RoundTransformation.RoundType.ALL))
+                .into(mBinding.ivPoster);
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)

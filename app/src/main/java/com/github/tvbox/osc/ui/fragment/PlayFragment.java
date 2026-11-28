@@ -1201,7 +1201,11 @@ public class PlayFragment extends BaseLazyFragment {
                     PlayCache.putPlay(mPlayCacheKey, info);
                 }
                 try {
-                    progressKey = info.optString("proKey", null);
+                    // 解析器返回 proKey 时才覆盖；否则保留 play() 里设置的固定进度 key
+                    String proKey = info.optString("proKey", null);
+                    if (!TextUtils.isEmpty(proKey)) {
+                        progressKey = proKey;
+                    }
                     boolean parse = info.optString("parse", "1").equals("1");
                     boolean jx = info.optString("jx", "0").equals("1");
                     playSubtitle = info.optString("subt", /*"https://dash.akamaized.net/akamai/test/caption_test/ElephantsDream/ElephantsDream_en.vtt"*/"");
@@ -1328,6 +1332,8 @@ public class PlayFragment extends BaseLazyFragment {
         }
         if (mVideoView != null) {
             mVideoView.pause();
+            // 切后台立刻落一次进度，避免进程被回收后历史进度丢失
+            mVideoView.saveProgressNow();
         }
     }
 
@@ -1573,7 +1579,9 @@ public class PlayFragment extends BaseLazyFragment {
         if (mDanmuController != null) mDanmuController.reset();
         if (mVideoView != null) mVideoView.release();
         String subtitleCacheKey = mVodInfo.sourceKey + "-" + mVodInfo.id + "-" + mVodInfo.playFlag + "-" + mVodInfo.playIndex + "-" + vs.name + "-subt";
-        String progressKey = mVodInfo.sourceKey + mVodInfo.id + mVodInfo.playFlag + mVodInfo.playIndex + vs.name;
+        // 关键修复：进度 key 必须落到字段上，VideoView.setProgressKey 才有固定值；
+        // 原来这里是局部变量，字段一直是 null，进度实际按"播放 URL"存，URL 带 token/时间戳时永远恢复不了
+        progressKey = mVodInfo.sourceKey + mVodInfo.id + mVodInfo.playFlag + mVodInfo.playIndex + vs.name;
         //重新播放清除现有进度
         if (reset) {
             CacheManager.delete(MD5.string2MD5(progressKey), 0);

@@ -62,6 +62,16 @@ public class MyVideoView extends VideoView implements DrawHandler.Callback {
         if (haveDanmu()) danmuView.release();
     }
 
+    /**
+     * 立即保存播放进度。
+     * 切后台 / 页面销毁前调用，避免直接划掉 App 时进度没机会落盘。
+     */
+    public void saveProgressNow() {
+        // 先刷新内部 mCurrentPosition，saveProgress 依赖它
+        getCurrentPosition();
+        saveProgress();
+    }
+
     private boolean haveDanmu() {
         return danmuView != null && danmuView.isPrepared();
     }
